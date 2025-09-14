@@ -1,0 +1,6 @@
+@yaqeenpay_HostAddress = http://localhost:5253
+
+GET {{yaqeenpay_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

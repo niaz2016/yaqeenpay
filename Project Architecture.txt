@@ -1,0 +1,282 @@
+Architecture for Escrow Platform
+
+Version: 1.1 (Aligned with refined Story v1.1)
+
+0. Guiding Principles
+• Start monolithic (ASP.NET Core 9) with clear boundaries to allow future extraction.
+• Strong consistency for financial state (single PostgreSQL instance / primary).  
+• Event-driven adjunct (outbox → queue) only where asynchronous side-effects needed (notifications, analytics enrichment).  
+• Idempotency & auditability over premature optimization.
+
+1. Technology Stack (MVP)
+Backend: ASP.NET Core 9 with Clean Architecture (multiple projects/layers):
+  • YaqeenPay.Domain - Core business logic and entities
+  • YaqeenPay.Application - Application services, CQRS commands/queries (MediatR)
+  • YaqeenPay.Infrastructure - External systems integration, persistence implementation
+  • YaqeenPay.API - ASP.NET Core API controllers, minimal APIs, and presentation logic
+Auth & Identity: ASP.NET Identity extended with GUID v7 primary keys (ordered for index locality) + JWT (Access) + Refresh Tokens. OTP verification service (phone/email) pluggable.
+Persistence: PostgreSQL 16 (Schemas: auth, core, ledger). Use EF Core with migrations. Consider Dapper for hot read models later.
+Background Processing: Hangfire (preferred) OR Quartz.NET (for delayed release timers, withdrawal settlements, reconciliation jobs). Hangfire storage in PostgreSQL.
+Cache / Fast Data: Redis (rate limiting, ephemeral OTPs, short-lived locks, refresh token blacklist on rotation). 
+Message / Outbox: Outbox table + background dispatcher to (RabbitMQ OR later SQS) – deferred until external integrations scale.
+Frontend: React.js with TypeScript (Buyer/Seller/Admin dashboards) – separate repo consuming REST JSON APIs. Modern client-side SPA with component-based architecture.
+Observability: Serilog + OpenTelemetry (tracing) → console + (optional) OTLP exporter (Jaeger / Tempo). Metrics (Prometheus scraping / dotnet counters).
+
+2. Identity & Authentication Design
+Key Requirements: JWT-based stateless API auth, refresh flows, multi-channel OTP verification, role + policy-based authorization.
+
+2.1 User IDs
+• All principal entities (User, Wallet, LedgerAccount, Escrow, Order) use GUID v7 (time-ordered UUID) for PK.  
+• Benefits: Ordered insert performance, avoids guessable ints, preserves uniqueness across shards future.
+
+2.2 ASP.NET Identity Extensions
+• Custom IdentityUser<Guid> subclass (UserProfile) with added fields: PhoneVerifiedAt, EmailVerifiedAt, KycStatus, RiskScore.
+• Role model: Buyer, Seller, Admin (enum mapped to IdentityRole for flexibility).
+• Claims: sub (user id), role(s), kyc, risk_level, phone_verified, email_verified.
+
+2.3 JWT Tokens
+• Access Token: 15 min expiry, signed with asymmetric key (RSA 2048) for future key rotation; kid header maintained.
+• Refresh Token: 7 days rolling (extend to 30 after trust heuristics). Stored hashed (PBKDF2) in RefreshToken table (UserId, TokenHash, ExpiresAt, RevokedAt, ReplacedById).
+• Rotation: On refresh, old token marked RevokedAt; new token created; detection of reuse triggers global user refresh token invalidation.
+• OTP Actions: Register, Sensitive Operation (Withdrawal >= threshold), Password Reset.
+
+2.4 OTP Flow
+• Redis key pattern: otp:{channel}:{normalizedTarget} → code + attempts + expiry (default 5 min).  
+• Rate limit: Max 5 valid sends / hour / channel; exponential backoff enforced client-side.
+
+2.5 Authorization
+• Policy-based (RequireRole + custom requirements): SellerApprovedRequirement ensures seller KYC before order acceptance if acting as seller.
+• Future: Fine-grained permission table (e.g., dispute:resolve) pluggable without rewriting token pipeline.
+
+3. Domain Modules / Bounded Contexts (Logical)
+Auth & Identity
+User onboarding, OTP verification, token issuance, refresh management.
+
+Wallet & Ledger
+Double-entry ledger accounts (BuyerWallet, SellerWallet, EscrowHolding, PlatformFeeRevenue). Each monetary mutation = LedgerEntry (DebitAccountId, CreditAccountId, Amount, Currency, ReferenceType, ReferenceId, CorrelationId, CreatedAt). Balances derived via materialized view / periodic snapshot (optimization deferred until needed).
+
+Escrow
+Lifecycle state machine: Created → Funded → Shipped → DeliveredPendingDecision → Released | Refunded | Cancelled. State transitions validated via domain services to enforce invariants (e.g., cannot ship unless Funded).
+
+Orders
+Commercial metadata wrapper around Escrow (product summary, declared value, courier info, tracking number). Optional multi-line items future.
+
+Settlement & Payout
+Withdrawal requests (SellerWallet → External) with statuses Initiated → PendingProvider → Settled | Failed | Reversed. Provider adapter pattern (JazzCash/Easypaisa/BankFile). Reconciliation jobs mark terminal states.
+
+Notifications
+Outbox-driven (EscrowFunded, EscrowReleased, WithdrawalSettled) consumed by NotificationDispatcher → Email/SMS providers (strategy pattern). Failures retried with exponential policy via Hangfire.
+
+Admin & Compliance
+KYC review queue, manual ledger adjustments (only via command that writes compensating entries), risk scoring baseline (simple heuristics: rejects/escrows ratio, velocity of withdrawals).
+
+4. Layered Architecture Mapping
+The solution follows Clean Architecture principles with strict dependency rules (inner layers know nothing about outer layers):
+
+4.1 Project Structure
+YaqeenPay.Domain (Core Layer):
+• Contains: Entities, Value Objects, Domain Events, Domain Services, Exceptions, Interfaces (Repositories, Domain Services)
+• Dependencies: None (pure C# with no external dependencies)
+• Principles: Rich domain model, encapsulated business rules, immutable where possible
+• Examples: Escrow, LedgerEntry, Money (value object), EscrowStatus (enum), IEscrowRepository
+
+YaqeenPay.Application (Service Layer):
+• Contains: Command/Query handlers (CQRS via MediatR), DTOs, Interfaces for Infrastructure, Validation
+• Dependencies: YaqeenPay.Domain, MediatR, FluentValidation
+• Principles: Thin orchestration layer, transaction boundaries, input validation
+• Examples: CreateEscrowCommand, GetWalletBalanceQuery, TransferToEscrowCommandHandler
+
+YaqeenPay.Infrastructure (Implementation Layer):
+• Contains: Database context, Repository implementations, External services, Identity implementation
+• Dependencies: YaqeenPay.Domain, YaqeenPay.Application, EF Core, ASP.NET Identity, Redis, etc.
+• Principles: Implementation of interfaces defined in inner layers, infrastructure concerns
+• Examples: AppDbContext, EscrowRepository, JwtService, NotificationService
+
+YaqeenPay.API (Presentation Layer):
+• Contains: Controllers, API models, Filters, Middleware configurations
+• Dependencies: YaqeenPay.Application, YaqeenPay.Infrastructure (for DI registration only)
+• Principles: Thin controllers, focused on HTTP concerns, minimal business logic
+• Examples: AuthController, EscrowController, ErrorHandlingMiddleware
+
+Common patterns across layers:
+• Presentation: REST Controllers (thin) returning DTOs. Model binding + FluentValidation.
+• Application: Commands/Queries (MediatR). Transaction boundary per command. Idempotency via IdempotencyKey table for externally triggered posts (e.g., PSP callbacks).
+• Domain: Entities (Escrow, LedgerEntry), Value Objects (Money, LedgerAccountType), Domain Events (EscrowReleasedEvent) raising side-effects through handlers.
+• Infrastructure: EF Core Repositories, PostgreSQL Migrations, Redis Cache, External PSP Clients, Notification Providers, JWT Issuer service.
+
+4.2 Cross-Cutting Concerns
+YaqeenPay.Shared (Optional):
+• Contains: Common utilities, constants, extension methods used across all layers
+• Dependencies: Minimal framework dependencies
+• Examples: DateTimeProvider, GuidV7Generator, Constants
+
+4.3 Layer Communication & Implementation Details
+• Commands/Queries: Application layer uses CQRS pattern with MediatR
+  - Commands represent intentions to change state (e.g., CreateEscrowCommand)
+  - Queries represent requests for data (e.g., GetEscrowByIdQuery)
+  - Handlers encapsulate business logic and transaction boundaries
+  - Validation occurs via FluentValidation pipeline behavior
+
+• Repository Pattern:
+  - Domain defines repository interfaces (e.g., IEscrowRepository)
+  - Infrastructure implements these interfaces with EF Core
+  - Application depends only on interfaces, not implementations
+  - Generic repository base class with specialized repositories for specific entities
+
+• Domain Events:
+  - Raised by domain entities during state changes
+  - Handled by dedicated handlers in the Application layer
+  - Used for side effects (e.g., notifications, audit logging)
+  - Published after transaction commits via outbox pattern
+
+• Configuration:
+  - API project responsible for registering dependencies
+  - Infrastructure project provides extension methods for service registration
+  - Application project provides MediatR and validation pipeline registration
+  - Environment-specific configurations stored in appsettings.{Environment}.json
+
+• Cross-Project References:
+  - Domain ← Application ← Infrastructure, API (dependency direction)
+  - API → Infrastructure (for dependency injection only)
+  - No circular dependencies permitted
+
+4.4 Frontend Architecture (React.js + TypeScript)
+• Core: TypeScript for type safety and improved developer experience
+• State Management: React Context + Hooks pattern for simple states; Redux Toolkit for complex global state
+• API Integration: Axios with interceptors for JWT token handling and refresh
+• UI Components: Component library TBD (Material UI or Chakra UI likely candidates)
+• Routing: React Router for client-side navigation
+• Form Handling: React Hook Form + Zod for validation
+• Testing: Jest + React Testing Library
+• Build System: Vite for development and production builds
+• Architecture Pattern: Feature-based folder structure with shared components
+• Code Quality: ESLint + Prettier with strict TypeScript rules
+
+5. Data Model (Selected Core Tables – abbreviated)
+Users (Id GUIDv7 PK, Email, Phone, PasswordHash, PhoneVerifiedAt, EmailVerifiedAt, KycStatus, RiskScore, CreatedAt)
+RefreshTokens (Id GUIDv7, UserId FK, TokenHash, ExpiresAt, RevokedAt, ReplacedById)
+LedgerAccounts (Id GUIDv7, UserId nullable, Type enum, Currency, CreatedAt)
+LedgerEntries (Id GUIDv7, DebitAccountId, CreditAccountId, Amount, Currency, ReferenceType, ReferenceId, CorrelationId, CreatedAt)
+Escrows (Id GUIDv7, BuyerId, SellerId, OrderId, Amount, Currency, FeeRate, State enum, LockedAt, ReleasedAt, RefundedAt, CancelledAt)
+Orders (Id GUIDv7, BuyerId, SellerId, EscrowId, Description, DeclaredValue, Courier, TrackingNumber, CreatedAt)
+Withdrawals (Id GUIDv7, SellerId, Amount, Channel, ChannelRef, State enum, RequestedAt, SettledAt, FailedAt)
+OutboxMessages (Id GUIDv7, Type, PayloadJson, OccurredAt, ProcessedAt, RetryCount)
+AuditLogs (Id GUIDv7, ActorUserId, Action, EntityType, EntityId, MetadataJson, CreatedAt)
+
+6. Transaction & Consistency Strategy
+• Each command executes in a single DB transaction (SERIALIZABLE or REPEATABLE READ for monetary operations).  
+• Ledger writes ALWAYS paired (debit + credit) inside transaction; enforce constraint: SUM(debits) = SUM(credits) per entry pair by design (two rows).  
+• Escrow state transitions + ledger mutations occur atomically.  
+• Outbox pattern: Domain events persisted with state change; background dispatcher publishes to external channels (so notifications not in critical path).
+
+7. Background Jobs (Initial Set)
+• EscrowAutoReleaseJob: Scans DeliveredPendingDecision older than threshold → release if no dispute/reject.  
+• WithdrawalSettlementPoller: Queries provider API for pending payouts.  
+• StaleOtpCleanupJob (optional; Redis TTL mainly handles).  
+• OutboxDispatcherJob: Publishes unprocessed messages.  
+• MetricsSnapshotJob (optional early) for performance baselining.
+
+8. Security & Compliance
+• JWT Access tokens signed with RSA; refresh token hashing prevents theft utility if DB leak.  
+• PII columns (Phone, Email) optionally encrypted at rest using column-level encryption or application-level envelope encryption (deferred).  
+• Audit logging mandated for: Manual ledger adjustment, Forced escrow release/refund, KYC status change, Role elevation.  
+• Rate limiting (Redis token bucket) on login, OTP request, withdrawal initiation.  
+• Secrets management: User secrets (dev) → Azure Key Vault / AWS Secrets Manager (prod).  
+• Separate Escrow Holding account at PSP side; platform revenue only recognized on release and moved logically (internal accounting separation).  
+• Future: Add mTLS to PSP callbacks; implement rotating signing keys (kid) + JWKS endpoint for frontend services.
+
+9. Performance & Scaling Path
+Phase 0: Single DB, simple indexes (Users.Email, Users.Phone unique; LedgerEntries.ReferenceType+ReferenceId composite).  
+Phase 1: Read model optimization (materialized views for wallet balances).  
+Phase 2: Split heavy write tables (ledger) to dedicated partitioned schema by month/year if volume grows.  
+Phase 3: Extract Notification service if throughput demands.
+
+10. Development Workflow & Tooling
+• Solution Structure:
+  - YaqeenPay.sln (main solution file)
+  - src/ (all source code)
+    - YaqeenPay.Domain/
+    - YaqeenPay.Application/
+    - YaqeenPay.Infrastructure/
+    - YaqeenPay.API/
+    - YaqeenPay.Shared/ (optional)
+  - tests/ (all test projects)
+    - YaqeenPay.Domain.Tests/
+    - YaqeenPay.Application.Tests/
+    - YaqeenPay.Infrastructure.Tests/
+    - YaqeenPay.API.Tests/
+    - YaqeenPay.IntegrationTests/
+
+• Project Setup:
+  - Create projects: `dotnet new classlib -o src/YaqeenPay.Domain` (repeat for each project)
+  - Create solution: `dotnet new sln -n YaqeenPay`
+  - Add projects: `dotnet sln add src/YaqeenPay.Domain/YaqeenPay.Domain.csproj` (repeat for each)
+  - Add references: `dotnet add src/YaqeenPay.Application/YaqeenPay.Application.csproj reference src/YaqeenPay.Domain/YaqeenPay.Domain.csproj`
+
+• Migrations: EF Core migrations in Infrastructure project with custom DbContext factory.
+  - `dotnet ef migrations add <Name> --project src/YaqeenPay.Infrastructure --startup-project src/YaqeenPay.API`
+  - Enforced PR review for migration changes
+
+• Code Quality: 
+  - Analyzer rules + nullable reference types ON for all projects
+  - StyleCop/FxCop or equivalent static code analysis
+  - Shared .editorconfig file for consistent style across projects
+
+• Testing: 
+  - Domain: Unit tests with xUnit (pure domain logic)
+  - Application: Unit tests with mocked repositories
+  - Infrastructure: Integration tests with test containers (PostgreSQL, Redis)
+  - API: Integration tests with WebApplicationFactory
+  - E2E: Playwright or similar for UI tests (separate project)
+
+• Seeding: 
+  - Development seed data creates demo users, sample escrow scenarios
+  - Located in Infrastructure project with extension method for API startup
+
+• Local Secrets: 
+  - dotnet user-secrets for JWT private key & OTP provider keys
+  - Development certificate for HTTPS in development
+
+11. Open Engineering Questions
+• Partial shipments / partial releases? (Out of scope MVP)  
+• Multi-currency & FX? (Later)  
+• Dispute pause state vs immediate reject? (Current: reject = refund; future add Disputed).  
+• Provider webhooks reliability SLA? (Will need signature verification + replay protection using nonce table.)
+
+12. Initial API Surface (Representative)
+POST /auth/register (email/phone)  
+POST /auth/verify-otp  
+POST /auth/login  
+POST /auth/refresh  
+POST /wallet/topups (initiate)  
+POST /wallet/topups/{id}/confirm (simulated callback in dev)  
+POST /escrows (create)  
+POST /escrows/{id}/ship  
+POST /escrows/{id}/deliver (manual dev)  
+POST /escrows/{id}/accept  
+POST /escrows/{id}/reject  
+POST /withdrawals  
+GET  /me/wallet  
+Admin endpoints (prefixed /admin/*) for approvals & overrides.
+
+13. Migration Readiness for Microservices (Future)
+Candidates for extraction: Notifications, Analytics, PSP Integrations. Preconditions: stable domain boundaries, outbox events, clear SLAs. Strategy: Strangle pattern with API gateway or BFF. Avoid premature decomposition.
+
+14. Summary
+This architecture centers on a trustworthy ledgered escrow engine with secure identity underpinned by ASP.NET Identity + JWT using ordered GUID v7 keys. It follows Clean Architecture principles with strict separation of concerns across multiple projects:
+
+• Domain (core): Pure business logic with rich domain model
+• Application: Orchestration layer with CQRS via MediatR 
+• Infrastructure: External systems integration and persistence
+• API: Thin controllers and API endpoints
+
+The multi-project structure enforces dependency rules and ensures maintainability as the system grows. It balances rapid MVP delivery with forward-compatible seams (outbox, modular contexts) that will simplify future extraction into microservices if needed.
+
+Next immediate engineering tasks: 
+1. Set up solution with multiple projects following Clean Architecture
+2. Scaffold Identity with GUID v7 in Infrastructure layer
+3. Define core domain entities and interfaces in Domain layer
+4. Implement CQRS handlers in Application layer
+5. Define ledger entities & migrations in Infrastructure
+6. Implement escrow state transitions as domain services
+7. Integrate Hangfire for auto-release jobs

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YaqeenPay API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .panel { border: 1px solid #ccc; border-radius: 5px; padding: 20px; margin-bottom: 20px; }
+        .result { background-color: #f5f5f5; padding: 10px; border-radius: 5px; white-space: pre-wrap; }
+        button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        input { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <h1>YaqeenPay API Test</h1>
+    
+    <div class="panel">
+        <h2>Step 1: Login</h2>
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" value="admin@yaqeenpay.com">
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="Admin@123456">
+        </div>
+        <button onclick="login()">Login</button>
+        <h3>Response:</h3>
+        <div id="loginResult" class="result">Not logged in yet</div>
+    </div>
+    
+    <div class="panel">
+        <h2>Step 2: Get Profile</h2>
+        <button onclick="getProfile()">Get Profile</button>
+        <h3>Response:</h3>
+        <div id="profileResult" class="result">No profile data yet</div>
+    </div>
+    
+    <div class="panel">
+        <h2>Local Storage Tokens</h2>
+        <button onclick="showTokens()">Show Tokens</button>
+        <button onclick="clearTokens()">Clear Tokens</button>
+        <h3>Current Tokens:</h3>
+        <div id="tokensResult" class="result">No tokens to display</div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'https://localhost:7137/api';
+        
+        // Function to display JSON data
+        function displayJson(element, data) {
+            document.getElementById(element).textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // Login function
+        async function login() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const result = await response.json();
+                displayJson('loginResult', result);
+                
+                // If login successful, extract and store tokens
+                if (result.success && result.data) {
+                    const data = result.data;
+                    
+                    // Store tokens in localStorage
+                    localStorage.setItem('access_token', data.token || '');
+                    localStorage.setItem('refresh_token', data.refreshToken || '');
+                    
+                    // Calculate and store expiry
+                    const expiryTime = data.tokenExpires 
+                        ? new Date(data.tokenExpires).getTime()
+                        : (Date.now() + 3600 * 1000);
+                    
+                    localStorage.setItem('token_expiry', expiryTime.toString());
+                    
+                    // Show updated tokens
+                    showTokens();
+                }
+            } catch (error) {
+                displayJson('loginResult', { error: error.message });
+            }
+        }
+        
+        // Get profile function
+        async function getProfile() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    displayJson('profileResult', { error: 'No access token available. Please login first.' });
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE_URL}/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    let body = '';
+                    try { body = await response.text(); } catch {}
+                    displayJson('profileResult', { 
+                        error: 'Unauthorized (401)', 
+                        message: 'Your token may be invalid or expired',
+                        status: response.status,
+                        statusText: response.statusText,
+                        body
+                    });
+                    return;
+                }
+                
+                const result = await response.json();
+                displayJson('profileResult', result);
+            } catch (error) {
+                displayJson('profileResult', { error: error.message });
+            }
+        }
+        
+        // Show tokens function
+        function showTokens() {
+            const accessToken = localStorage.getItem('access_token');
+            const refreshToken = localStorage.getItem('refresh_token');
+            const tokenExpiry = localStorage.getItem('token_expiry');
+            
+            const tokenData = {
+                accessToken: accessToken ? `${accessToken.substring(0, 20)}...` : 'Not set',
+                refreshToken: refreshToken ? `${refreshToken.substring(0, 10)}...` : 'Not set',
+                tokenExpiry: tokenExpiry ? new Date(parseInt(tokenExpiry)).toLocaleString() : 'Not set',
+                isExpired: tokenExpiry ? new Date() > new Date(parseInt(tokenExpiry)) : true,
+                remainingTime: tokenExpiry 
+                    ? Math.floor((new Date(parseInt(tokenExpiry)).getTime() - Date.now()) / 1000 / 60) + ' minutes' 
+                    : 'Expired'
+            };
+            
+            displayJson('tokensResult', tokenData);
+        }
+        
+        // Clear tokens function
+        function clearTokens() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('token_expiry');
+            showTokens();
+        }
+        
+        // Show tokens on page load
+        showTokens();
+    </script>
+</body>
+</html>

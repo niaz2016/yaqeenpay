@@ -1,0 +1,310 @@
+// src/components/auth/BuyerRegisterForm.tsx
+import React, { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  Paper,
+  Link,
+  InputAdornment,
+  IconButton,
+  Alert,
+  Checkbox,
+  FormControlLabel,
+  Divider,
+} from '@mui/material';
+import { Visibility, VisibilityOff, ArrowBack, ShoppingCart } from '@mui/icons-material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { registerSchema } from '../../utils/validationSchemas';
+import { useAuth } from '../../context/AuthContext';
+import type { z } from 'zod';
+
+type BuyerRegisterFormData = z.infer<typeof registerSchema>;
+
+interface BuyerRegisterFormProps {
+  onBack: () => void;
+}
+
+const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<BuyerRegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: '',
+      userName: '',
+      phoneNumber: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
+      termsAccepted: false,
+    },
+  });
+
+  const onSubmit = async (data: BuyerRegisterFormData) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      
+      await register({
+        ...data,
+        role: 'buyer', // Explicitly set role as buyer
+        userName: data.userName || data.email,
+      });
+      
+      setSuccess('Registration successful! Please check your email for verification.');
+      
+      // Redirect to verification page after short delay
+      setTimeout(() => {
+        navigate('/auth/verify-email', { 
+          state: { 
+            email: data.email,
+            channel: 'email',
+          } 
+        });
+      }, 1500);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ textAlign: 'center', mb: 4 }}>
+        <ShoppingCart sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+        <Typography variant="h4" component="h1" gutterBottom>
+          Buyer Registration
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Join YaqeenPay to start shopping securely
+        </Typography>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Controller
+              name="firstName"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="First Name"
+                  fullWidth
+                  error={!!errors.firstName}
+                  helperText={errors.firstName?.message}
+                />
+              )}
+            />
+            <Controller
+              name="lastName"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Last Name"
+                  fullWidth
+                  error={!!errors.lastName}
+                  helperText={errors.lastName?.message}
+                />
+              )}
+            />
+          </Box>
+
+          <Controller
+            name="email"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Email Address"
+                type="email"
+                fullWidth
+                error={!!errors.email}
+                helperText={errors.email?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="userName"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Username (Optional)"
+                fullWidth
+                error={!!errors.userName}
+                helperText={errors.userName?.message || "Leave blank to use your email"}
+              />
+            )}
+          />
+
+          <Controller
+            name="phoneNumber"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Phone Number"
+                fullWidth
+                error={!!errors.phoneNumber}
+                helperText={errors.phoneNumber?.message}
+              />
+            )}
+          />
+
+          <Controller
+            name="password"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                fullWidth
+                error={!!errors.password}
+                helperText={errors.password?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+          />
+
+          <Controller
+            name="confirmPassword"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                fullWidth
+                error={!!errors.confirmPassword}
+                helperText={errors.confirmPassword?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+          />
+
+          <Controller
+            name="termsAccepted"
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    {...field}
+                    checked={field.value}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    I agree to the{' '}
+                    <Link component={RouterLink} to="/terms" target="_blank">
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link component={RouterLink} to="/privacy" target="_blank">
+                      Privacy Policy
+                    </Link>
+                  </Typography>
+                }
+              />
+            )}
+          />
+          {errors.termsAccepted && (
+            <Typography variant="caption" color="error">
+              {errors.termsAccepted.message}
+            </Typography>
+          )}
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={onBack}
+            variant="outlined"
+          >
+            Back to Role Selection
+          </Button>
+
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Creating Account...' : 'Create Buyer Account'}
+          </Button>
+        </Box>
+      </form>
+
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          Already have an account?{' '}
+          <Link component={RouterLink} to="/auth/login">
+            Sign In
+          </Link>
+        </Typography>
+      </Box>
+    </Paper>
+  );
+};
+
+export default BuyerRegisterForm;

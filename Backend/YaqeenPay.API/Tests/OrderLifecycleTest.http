@@ -1,0 +1,118 @@
+# Order Lifecycle Test Script
+# This script outlines the steps to test the complete order lifecycle
+
+# 1. Order Creation Flow
+## Create an order with buyer, seller, and escrow information
+POST /api/orders
+{
+  "sellerId": "<guid>",
+  "title": "Test Order",
+  "description": "Order for testing the complete lifecycle",
+  "amount": {
+    "amount": 100.00,
+    "currency": "PKR"
+  }
+}
+
+# 2. Confirmation Flow
+## Implicitly confirmed when escrow is funded
+
+# 3. Shipping Flow
+## Update shipping details
+PUT /api/orders/<orderId>/shipping
+{
+  "courier": "TCS",
+  "trackingNumber": "TRK123456789",
+  "shippingProof": "https://example.com/proof.jpg"
+}
+
+## Mark as shipped
+POST /api/orders/<orderId>/ship
+{
+  "courier": "TCS",
+  "trackingNumber": "TRK123456789",
+  "shippingProof": "https://example.com/proof.jpg"
+}
+
+# 4. Delivery Flow
+## Mark as delivered
+POST /api/orders/<orderId>/deliver
+{
+  "deliveryProof": "https://example.com/delivery.jpg",
+  "deliveryNotes": "Left at front door"
+}
+
+# 5. Completion/Acceptance Flow
+## Buyer accepts and completes order
+POST /api/orders/<orderId>/complete
+
+# 6. Rejection Flow
+## Buyer rejects order
+POST /api/orders/<orderId>/reject
+{
+  "reason": "Product damaged during shipping"
+}
+
+# 7. Dispute Flow
+## Create dispute
+POST /api/orders/<orderId>/dispute
+{
+  "reason": "Product not as described",
+  "description": "The product color is different from what was advertised",
+  "evidence": "https://example.com/evidence.jpg"
+}
+
+## Add evidence to dispute
+POST /api/disputes/<disputeId>/evidence
+{
+  "evidence": "https://example.com/more-evidence.jpg"
+}
+
+## Escalate dispute
+POST /api/disputes/<disputeId>/escalate
+
+## Admin adds notes to dispute
+POST /api/disputes/<disputeId>/notes
+{
+  "notes": "Contacted both parties for clarification"
+}
+
+## Resolve dispute in favor of buyer
+POST /api/disputes/<disputeId>/resolve
+{
+  "inFavorOfBuyer": true,
+  "notes": "Evidence clearly shows the product was misrepresented"
+}
+
+## Resolve dispute in favor of seller
+POST /api/disputes/<disputeId>/resolve
+{
+  "inFavorOfBuyer": false,
+  "notes": "Product matches the description provided by the seller"
+}
+
+# 8. Cancellation Flow
+## Cancel order (early stages only)
+POST /api/orders/<orderId>/cancel
+
+# 9. Query Testing
+## Get all orders (admin)
+GET /api/orders
+
+## Get buyer orders
+GET /api/orders/buyer
+
+## Get seller orders
+GET /api/orders/seller
+
+## Get specific order
+GET /api/orders/<orderId>
+
+## Get all disputes (admin)
+GET /api/disputes
+
+## Get user disputes
+GET /api/disputes/user
+
+## Get specific dispute
+GET /api/disputes/<disputeId>

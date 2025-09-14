@@ -1,0 +1,150 @@
+Project Story: Escrow Payment Platform for Pakistan E‑Commerce
+
+Version: 1.1
+
+1. Problem Statement
+Pakistan e‑commerce still relies on Cash on Delivery (COD) for 80%+ of orders. COD creates structural inefficiencies:
+• High Return-To-Origin (RTO) rates when customers reject parcels at the door.
+• Seller fraud & buyer non-serious behavior (fake orders, no accountability until delivery).
+• Operational cash handling costs + reconciliation delays for couriers.
+• Regulatory scrutiny on large COD amounts and informal cash flows.
+• Small/medium sellers (Instagram / WhatsApp / Shopify / WooCommerce) lack a trusted digital payment + fulfillment assurance model.
+
+Impact: Sellers suffer margin erosion (RTO, fraud, manual reconciliation). Buyers lack trust in prepayment. Market growth is constrained by low perceived reliability.
+
+2. Proposed Solution
+Unified Web (and later Mobile) Escrow Payment Platform that inserts a trusted financial layer between Buyer and Seller. Core mechanics:
+1. Buyer maintains a prepaid wallet (JazzCash, Easypaisa, Bank Transfer, later Cards / 1Link rails).
+2. When an order is placed, required funds are MOVED from Buyer Wallet → Escrow (a reserved ledger bucket) — not yet Seller-owned.
+3. Seller gains confidence shipment can proceed (funds are locked, not cancellable without a structured action).
+4. On delivery the Buyer either:
+	• Confirms (Accept) → funds released from Escrow to Seller Wallet minus platform fee.
+	• Rejects → funds returned from Escrow to Buyer Wallet; shipment reversal flagged.
+5. Platform fee (initial target 1–2% of gross order value) is recognized only at release (successful acceptance) to align incentives.
+
+Trust Flywheel:
+• Buyer: “Money is safe; I don’t lose control before I inspect the parcel.”
+• Seller: “Payment is guaranteed if I ship honestly.”
+• Platform: Reduces RTO, increases legitimate prepaid adoption.
+
+3. Primary Actors & Journeys (MVP)
+Buyer
+• Register / Login using email or phone (OTP-based; password optional fallback).
+• Top up wallet (JazzCash/Easypaisa/Bank; asynchronous confirmation webhooks).
+• Create Order (select Seller, input parcel info, amount, optional courier selection).
+• View Escrowed Amount & Order Status timeline.
+• Accept or Reject upon delivery (with optional reason / photo on reject for analytics).
+• View refund history & balance ledger (transparent).
+
+Seller
+• Onboard (KYC: CNIC + business profile) → Pending → Approved (by Admin).
+• Dashboard: Incoming Escrows, Awaiting Shipment, In Transit, Action Required.
+• Ship once escrow funded (optionally enter tracking # / courier).
+• Receive release notification; funds move to Seller Wallet.
+• Initiate Withdrawal (JazzCash/Easypaisa/Bank); status tracked (Pending → Settled / Failed).
+
+Admin
+• Review & approve Seller onboarding (risk flags: mismatched CNIC, duplicate bank accounts).
+• Oversee dispute / rejection rates (fraud monitoring baseline).
+• Adjust fee tiers (future dynamic pricing) & view platform financial health.
+• Manage manual overrides (force release / force refund with audit log).
+
+Courier (Phase 2)
+• API or file-based ingestion of tracking events.
+• Delivery event auto-triggers a Buyer reminder; auto-release after configurable timeout (e.g., 48h) if no Buyer action and no dispute.
+
+4. Glossary (to remove ambiguity)
+• Wallet Balance: Liquid funds user can spend or withdraw.
+• Escrow Balance: Funds temporarily locked against a specific order until outcome (release/refund).
+• Release: Movement Escrow → Seller Wallet less fee.
+• Refund: Movement Escrow → Buyer Wallet (no fee charged unless rejection abuse rules added later).
+• Withdrawal: Movement Seller Wallet → External payout channel.
+• Order: Commercial intent record referencing Buyer, Seller, Amount, and Delivery context.
+• Ledger: Immutable double-entry record of all balance-affecting events.
+
+5. MVP Functional Scope
+Mandatory
+• User Accounts (Buyer/Seller/Admin) with JWT auth & OTP verification.
+• Wallet Top-up (manual simulation first → integrate real PSPs after baseline).
+• Escrow Creation & State Machine (Created → Funded → Shipped → DeliveredPendingDecision → Released/Refunded → Settled).
+• Manual Buyer Accept/Reject UI.
+• Fee Calculation (flat percentage; parameterized in config / DB).
+• Basic Notifications (email + SMS; WhatsApp optional later).
+• Admin Portal (seller approvals + manual ledger adjustments with audit trail).
+• Ledger & Audit Logging (append-only, reversible only via compensating entries).
+
+Deferred (Phase 2+)
+• Courier API automation (TCS/Leopards/M&P integration).
+• Shopify / WooCommerce plugins.
+• Dispute Resolution Workflow (evidence upload, structured statuses).
+• Advanced Fraud Scoring (velocity rules, device fingerprinting).
+• Analytics Dashboards (seller conversion, rejection heatmaps).
+• Mobile Apps (React Native) once web product-market fit proven.
+
+6. Non-Functional Requirements (Initial Targets)
+• Availability: 99.5% monthly (single-region acceptable MVP). 
+• Consistency: Strong for ledger & escrow transitions (ACID PostgreSQL transactions).
+• Latency: <300 ms p95 for primary read/write API endpoints under low concurrency.
+• Auditability: Every monetary mutation has a correlated ledger entry + correlationId.
+• Security: JWT (15 min) + Refresh Tokens (rolling 7–30 days) + OTP on sensitive actions (withdrawal >= threshold).
+
+7. High-Level Flows (Illustrative)
+7.1 Wallet Top-up
+1. Buyer initiates top-up (amount + channel).  
+2. PSP redirect / API call.  
+3. Pending ledger entry created (TopUpInitiated).  
+4. PSP callback → verify signature → commit ledger (TopUpConfirmed) → increase Wallet Balance.
+
+7.2 Escrow Creation
+1. Buyer selects Seller + order amount.  
+2. System checks available Wallet Balance ≥ amount.  
+3. Atomic transaction: Debit Wallet → Credit Escrow (two ledger rows).  
+4. Escrow status = Funded.
+
+7.3 Shipment & Delivery
+• Seller marks Shipped (tracking optional).  
+• Courier (or manual) marks Delivered.  
+• Status → DeliveredPendingDecision.  
+• Timer starts (e.g., 48h).  
+• If Buyer accepts (manual) OR timeout passes with no rejection → Release.
+
+7.4 Buyer Acceptance (Release)
+• Atomic: Debit Escrow → Credit Seller Wallet; Fee ledger entry recognized & platform revenue tracked.  
+• Seller may Withdraw later.
+
+7.5 Buyer Rejection (Refund)
+• Atomic: Debit Escrow → Credit Buyer Wallet; optional rejection reason captured.  
+• Order flagged for analytics; potential abuse metrics increment.
+
+8. Fee & Revenue Principles
+• Fee only on successful release (aligns with parcel quality & trust).  
+• Fee tiering future: volume-based or category-based.  
+• Separate “platform revenue” ledger bucket—never mixed with user wallet funds.
+
+9. Risk & Fraud Considerations (MVP baseline)
+• Rate limit top-ups & withdrawals (per IP, per user).  
+• Monitor repeated rapid rejects (possible misuse).  
+• Enforce KYC before first withdrawal.  
+• Manual admin override logged with reason & actor ID.
+
+10. Assumptions / Open Points
+• Initial PSP integration order: Easypaisa then JazzCash (subject to API access).  
+• Currency = PKR only (multi-currency future).  
+• No partial releases in MVP (full acceptance or full rejection).  
+• Dispute flow (item damaged) treated as Reject until formal dispute module shipped.  
+• Courier status ingestion can start as CSV/manual entry.
+
+11. Key Success Metrics (First 3–6 Months)
+• Escrow Completion Rate = Released / (Released + Refunded). Target >70% early, improving to >85%.  
+• RTO Reduction vs COD baseline (target 15–25% lower for enrolled sellers).  
+• Wallet Top-up to Order Conversion Rate >60%.  
+• Average Release Time (post-delivery) <48h.  
+• Fraud / Abuse Rejects <5% of total rejects.
+
+12. Vision
+“PayPal‑style Buyer Protection for Pakistan” — a neutral, trusted escrow layer bridging the trust gap in a COD-dominated ecosystem. Longer term expansions:
+• Freelance marketplace payments.
+• B2B procurement assurance.
+• Cross-border escrow with FX later.
+
+The platform empowers: Buyers (confidence), Sellers (predictable cashflow), and Ecosystem (lower friction & fraud). This story guides MVP scope and architectural decisions in the companion Architecture document.

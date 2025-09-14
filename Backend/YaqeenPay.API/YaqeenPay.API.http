@@ -1,0 +1,6 @@
+@YaqeenPay.API_HostAddress = http://localhost:5008
+
+GET {{YaqeenPay.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+</head>
+<body>
+    <h2>Test Login</h2>
+    <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="admin@yaqeenpay.com">
+    </div>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="Admin@123456">
+    </div>
+    <button onclick="testLogin()">Test Login</button>
+    
+    <h3>Results:</h3>
+    <pre id="results"></pre>
+
+    <script>
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultsElement = document.getElementById('results');
+            
+            resultsElement.textContent = 'Sending request...';
+            
+            try {
+                const response = await fetch('https://localhost:7137/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                resultsElement.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultsElement.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using YaqeenPay.Application.Common.Interfaces;
+using YaqeenPay.Domain.Entities.Identity;
+using YaqeenPay.Domain.Enums;
+using UserRoleEnum = YaqeenPay.Domain.Enums.UserRole;
+
+namespace YaqeenPay.Application.Features.Admin.Commands.VerifySellerProfile;
+
+public class VerifySellerProfileCommandHandler : IRequestHandler<VerifySellerProfileCommand, VerifySellerProfileResponse>
+{
+    private readonly IApplicationDbContext _dbContext;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IWalletService _walletService;
+
+    public VerifySellerProfileCommandHandler(
+        IApplicationDbContext dbContext,
+        ICurrentUserService currentUserService,
+        UserManager<ApplicationUser> userManager,
+        IWalletService walletService)
+    {
+        _dbContext = dbContext;
+        _currentUserService = currentUserService;
+        _userManager = userManager;
+        _walletService = walletService;
+    }
+
+    public async Task<VerifySellerProfileResponse> Handle(VerifySellerProfileCommand request, CancellationToken cancellationToken)
+    {
+        var adminId = _currentUserService.UserId;
+        if (adminId == null)
+        {
+            throw new UnauthorizedAccessException("User is not authenticated");
+        }
+
+        var admin = await _userManager.FindByIdAsync(adminId.ToString());
+        if (admin == null || !await _userManager.IsInRoleAsync(admin, UserRoleEnum.Admin.ToString()))
+        {
+            throw new UnauthorizedAccessException("User is not authorized for this action");
+        }
+
+        var profile = await _dbContext.BusinessProfiles
+            .FirstOrDefaultAsync(bp => bp.Id == request.BusinessProfileId, cancellationToken);
+
+        if (profile == null)
+        {
+            return new VerifySellerProfileResponse
+            {
+                Success = false,
+                Message = "Business profile not found"
+            };
+        }
+
+        // Update profile status
+        profile.VerificationStatus = request.Status;
+        profile.RejectionReason = request.Status == SellerVerificationStatus.Rejected ? request.RejectionReason : null;
+        profile.VerifiedAt = request.Status == SellerVerificationStatus.Approved ? DateTime.UtcNow : null;
+        profile.VerifiedBy = request.Status == SellerVerificationStatus.Approved ? adminId : null;
+
+        // If seller is approved, create wallet if it doesn't exist
+        if (request.Status == SellerVerificationStatus.Approved)
+        {
+            var existingWallet = await _walletService.GetWalletByUserIdAsync(profile.UserId);
+            if (existingWallet == null)
+            {
+                // Create wallet for the approved seller
+                await _walletService.CreateWalletAsync(profile.UserId, "PKR");
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new VerifySellerProfileResponse
+        {
+            Success = true,
+            Message = $"Seller profile status updated to {request.Status}",
+            BusinessProfileId = profile.Id,
+            Status = profile.VerificationStatus
+        };
+    }
+}

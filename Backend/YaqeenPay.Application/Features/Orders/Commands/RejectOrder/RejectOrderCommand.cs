@@ -36,7 +36,7 @@ public class RejectOrderCommandHandler : IRequestHandler<RejectOrderCommand, Rej
 
     public async Task<RejectOrderResponse> Handle(RejectOrderCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var order = await _context.Orders
             .Include(o => o.Escrow)

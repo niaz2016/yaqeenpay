@@ -31,7 +31,9 @@ import {
   Cancel,
   Refresh,
   Download,
-  Info
+  Info,
+  Visibility,
+  VisibilityOff
 } from '@mui/icons-material';
 import WithdrawalRequestForm from '../../components/seller/WithdrawalRequestForm';
 import { selectedSellerService } from '../../services/sellerServiceSelector';
@@ -52,6 +54,7 @@ const SellerWithdrawalsPage: React.FC = () => {
   const [showDetails, setShowDetails] = useState(false);
   // Add tab state for switching between withdrawals and transactions
   const [activeTab, setActiveTab] = useState<'withdrawals' | 'transactions'>('withdrawals');
+  const [showBalance, setShowBalance] = useState(false); // Hidden by default
 
   const loadData = async () => {
     setLoading(true);
@@ -304,15 +307,25 @@ const SellerWithdrawalsPage: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
           <Card sx={{ flex: 1, minWidth: 250 }}>
             <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                Available Balance
-              </Typography>
-              <Typography variant="h4" color="success.main">
-                ${availableBalance.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Ready for withdrawal
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography color="text.secondary" gutterBottom variant="body2">
+                    Available Balance
+                  </Typography>
+                  <Typography variant="h4" color="success.main">
+                    {showBalance ? `$${availableBalance.toLocaleString()}` : '••••••'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Ready for withdrawal
+                  </Typography>
+                </Box>
+                <IconButton 
+                  onClick={() => setShowBalance(!showBalance)}
+                  size="small"
+                >
+                  {showBalance ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </Box>
             </CardContent>
           </Card>
 
@@ -322,7 +335,7 @@ const SellerWithdrawalsPage: React.FC = () => {
                 Total Withdrawn
               </Typography>
               <Typography variant="h4">
-                ${totalWithdrawn.toLocaleString()}
+                {showBalance ? `$${totalWithdrawn.toLocaleString()}` : '••••••'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 All time withdrawals
@@ -336,7 +349,7 @@ const SellerWithdrawalsPage: React.FC = () => {
                 Pending Withdrawals
               </Typography>
               <Typography variant="h4" color="warning.main">
-                ${pendingWithdrawals.toLocaleString()}
+                {showBalance ? `$${pendingWithdrawals.toLocaleString()}` : '••••••'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Being processed
@@ -394,6 +407,7 @@ const SellerWithdrawalsPage: React.FC = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
+                      <TableCell>Reference</TableCell>
                       <TableCell>Date Requested</TableCell>
                       <TableCell>Amount</TableCell>
                       <TableCell>Method</TableCell>
@@ -405,6 +419,11 @@ const SellerWithdrawalsPage: React.FC = () => {
                   <TableBody>
                     {withdrawals.map((withdrawal) => (
                       <TableRow key={withdrawal.id}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {withdrawal.reference || `#${withdrawal.id.slice(0, 8)}`}
+                          </Typography>
+                        </TableCell>
                         <TableCell>
                           {new Date(withdrawal.requestedAt).toLocaleDateString('en-US', {
                             month: 'short',
@@ -598,7 +617,7 @@ const SellerWithdrawalsPage: React.FC = () => {
                     Withdrawal ID
                   </Typography>
                   <Typography variant="body1">
-                    {selectedWithdrawal.id}
+                    {selectedWithdrawal.reference || selectedWithdrawal.id}
                   </Typography>
                 </Box>
 

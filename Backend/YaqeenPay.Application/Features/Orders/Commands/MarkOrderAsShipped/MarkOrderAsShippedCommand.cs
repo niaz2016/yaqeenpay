@@ -34,7 +34,7 @@ public class MarkOrderAsShippedCommandHandler : IRequestHandler<MarkOrderAsShipp
 
     public async Task<MarkOrderAsShippedResponse> Handle(MarkOrderAsShippedCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var order = await _context.Orders.FindAsync(new object[] { request.OrderId }, cancellationToken) 
             ?? throw new KeyNotFoundException($"Order with ID {request.OrderId} not found");

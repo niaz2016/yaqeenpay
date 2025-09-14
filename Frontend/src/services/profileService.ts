@@ -15,8 +15,8 @@ class ProfileService {
     return apiService.put<ProfileDetails>('/profile', profileData);
   }
 
-  async changePassword(passwordData: ChangePasswordRequest): Promise<{ success: boolean }> {
-    return apiService.post<{ success: boolean }>('/profile/change-password', passwordData);
+  async changePassword(passwordData: ChangePasswordRequest): Promise<{ success: boolean; message?: string }> {
+    return apiService.post<{ success: boolean; message?: string }>('/profile/change-password', passwordData);
   }
 
   async verifyEmail(): Promise<{ success: boolean; message: string }> {

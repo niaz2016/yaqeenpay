@@ -1,10 +1,10 @@
-using System;
 
 namespace YaqeenPay.Domain.Common
 {
     public abstract class BaseEntity
     {
         public Guid Id { get; set; }
+        public bool IsActive { get; set; }
     }
 
     public abstract class AuditableEntity : BaseEntity

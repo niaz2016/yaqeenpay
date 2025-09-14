@@ -1,3 +1,6 @@
+    /// <summary>
+    /// Returns all top-ups in the system (admin only)
+    /// </summary>
 using YaqeenPay.Domain.Entities;
 using YaqeenPay.Domain.Enums;
 using YaqeenPay.Domain.ValueObjects;
@@ -6,6 +9,7 @@ namespace YaqeenPay.Application.Common.Interfaces
 {
     public interface IWalletService
     {
+        Task<List<Models.TopUpDto>> GetAllTopUpsAsync(int page = 1, int pageSize = 100);
         Task<Wallet> CreateWalletAsync(Guid userId, string currency = "PKR");
         Task<Wallet?> GetWalletAsync(Guid walletId);
         Task<Wallet?> GetWalletByUserIdAsync(Guid userId);

@@ -10,6 +10,7 @@ namespace YaqeenPay.Application.Common.Models
         public string Currency { get; set; } = null!;
         public WithdrawalChannel Channel { get; set; }
         public string? ChannelReference { get; set; }
+        public string Reference { get; set; } = string.Empty; // User-friendly reference
         public WithdrawalStatus Status { get; set; }
         public DateTime RequestedAt { get; set; }
         public DateTime? SettledAt { get; set; }

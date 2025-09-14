@@ -19,7 +19,7 @@ public class CurrentUserService : ICurrentUserService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public Guid? UserId => GetUserId();
+    public Guid UserId => GetUserId() ?? Guid.Empty;
     public string? IpAddress => GetIpAddress();
 
     private Guid? GetUserId()

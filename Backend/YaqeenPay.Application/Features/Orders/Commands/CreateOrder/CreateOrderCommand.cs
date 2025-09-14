@@ -68,7 +68,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         // Create new order
         var escrow = new Escrow(
             new Money(request.Amount, request.Currency),
-            _currentUserService.UserId.Value,
+            _currentUserService.UserId,
             request.SellerId,
             request.Title,
             request.Description);
@@ -77,7 +77,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         await _context.SaveChangesAsync(cancellationToken);
 
         var order = new Order(
-            _currentUserService.UserId.Value,
+            _currentUserService.UserId,
             request.SellerId,
             escrow.Id,
             request.Title,

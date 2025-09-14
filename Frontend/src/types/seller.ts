@@ -155,6 +155,7 @@ export interface Withdrawal {
   currency: string;
   channel: 'JazzCash' | 'Easypaisa' | 'BankTransfer';
   channelReference?: string;
+  reference: string; // User-friendly reference like WDR-xxxxx
   status: 'Initiated' | 'PendingProvider' | 'Settled' | 'Failed' | 'Reversed';
   requestedAt: string;
   settledAt?: string;

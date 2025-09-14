@@ -45,14 +45,14 @@ public class SubmitKycDocumentCommandHandler : IRequestHandler<SubmitKycDocument
         var documentUrl = await _documentStorageService.StoreDocumentAsync(
             request.DocumentBase64,
             request.FileName,
-            userId.Value,
+            userId,
             "kyc");
 
         // Create new KYC document
         var document = new KycDocument
         {
             Id = Guid.NewGuid(),
-            UserId = userId.Value,
+            UserId = userId,
             DocumentType = request.DocumentType,
             DocumentNumber = request.DocumentNumber,
             DocumentUrl = documentUrl,

@@ -32,7 +32,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
 
     public async Task<CancelOrderResponse> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var order = await _context.Orders
             .Include(o => o.Escrow)

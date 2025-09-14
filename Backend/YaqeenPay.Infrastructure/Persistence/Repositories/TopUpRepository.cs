@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using YaqeenPay.Domain.Entities;
 using YaqeenPay.Domain.Enums;
@@ -19,6 +20,14 @@ namespace YaqeenPay.Infrastructure.Persistence.Repositories
         {
             return await _context.TopUps
                 .FindAsync(id);
+        }
+        public async Task<IEnumerable<TopUp>> GetAllAsync(int page = 1, int pageSize = 100)
+        {
+            return await _context.TopUps
+                .OrderByDescending(t => t.RequestedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<TopUp>> GetByUserIdAsync(Guid userId, int page = 1, int pageSize = 20)

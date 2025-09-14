@@ -36,7 +36,7 @@ public class UpdateShippingDetailsCommandHandler : IRequestHandler<UpdateShippin
 
     public async Task<UpdateShippingDetailsResponse> Handle(UpdateShippingDetailsCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var order = await _context.Orders.FindAsync(new object[] { request.OrderId }, cancellationToken) 
             ?? throw new KeyNotFoundException($"Order with ID {request.OrderId} not found");

@@ -18,7 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     {
         _currentUserService = currentUserService;
     }
-
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Escrow> Escrows => Set<Escrow>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<LedgerAccount> LedgerAccounts => Set<LedgerAccount>();
@@ -31,7 +31,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<KycDocument> KycDocuments => Set<KycDocument>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
 
+
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<YaqeenPay.Domain.Entities.AuditLog> AuditLogs => Set<YaqeenPay.Domain.Entities.AuditLog>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -40,11 +42,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedBy = _currentUserService.UserId ?? Guid.Empty;
+                    entry.Entity.CreatedBy = _currentUserService.UserId;
                     entry.Entity.CreatedAt = DateTime.UtcNow;
                     break;
                 case EntityState.Modified:
-                    entry.Entity.LastModifiedBy = _currentUserService.UserId ?? Guid.Empty;
+                    entry.Entity.LastModifiedBy = _currentUserService.UserId;
                     entry.Entity.LastModifiedAt = DateTime.UtcNow;
                     break;
             }

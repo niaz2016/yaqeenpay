@@ -33,7 +33,7 @@ public class AddDisputeEvidenceCommandHandler : IRequestHandler<AddDisputeEviden
 
     public async Task<CreateDisputeResponse> Handle(AddDisputeEvidenceCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var dispute = await _context.Disputes
             .Include(d => d.Order)
@@ -127,7 +127,7 @@ public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, P
 
     public async Task<PaginatedList<BuyerOrderDto>> Handle(GetBuyerOrdersQuery request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var query = _context.Orders
             .Include(o => o.Seller)

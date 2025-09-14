@@ -52,7 +52,7 @@ public class CreateBusinessProfileCommandHandler : IRequestHandler<CreateBusines
         var businessProfile = new BusinessProfile
         {
             Id = Guid.NewGuid(),
-            UserId = userId.Value,
+            UserId = userId,
             BusinessName = request.BusinessName,
             BusinessType = request.BusinessType,
             BusinessCategory = request.BusinessCategory,

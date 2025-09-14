@@ -24,7 +24,7 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetTransactionHistory
 
         public async Task<PaginatedList<TransactionDto>> Handle(GetTransactionHistoryQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
             
             Guid walletId;
             

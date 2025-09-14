@@ -53,10 +53,10 @@ const ChangePassword: React.FC = () => {
       });
       
       if (result.success) {
-        setSuccess('Password changed successfully!');
+        setSuccess(result.message || 'Password changed successfully!');
         reset(); // Reset form
       } else {
-        setError('Failed to change password. Please try again.');
+        setError(result.message || 'Failed to change password. Please try again.');
       }
     } catch (err) {
       if (err instanceof Error) {

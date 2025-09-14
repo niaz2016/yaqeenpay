@@ -1,3 +1,4 @@
+        
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YaqeenPay.API.Controllers;
@@ -16,6 +17,27 @@ namespace YaqeenPay.API.Controllers
     [Authorize]
     public class WalletsController : ApiControllerBase
     {
+        [HttpPost("top-up/{id}/proof")]
+        [RequestSizeLimit(5_000_000)] // 5MB max
+        public async Task<IActionResult> UploadTopUpProof(Guid id)
+        {
+            var form = await Request.ReadFormAsync();
+            var file = form.Files["file"];
+            var notes = form["notes"].ToString();
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            var command = new YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet.UploadTopUpProofCommand
+            {
+                TopUpId = id,
+                FileStream = file.OpenReadStream(),
+                FileName = file.FileName,
+                ContentType = file.ContentType,
+                Notes = notes
+            };
+            var result = await Mediator.Send(command);
+            return Ok(result);
+        }
         [HttpGet("balance")]
         public async Task<IActionResult> GetBalance([FromQuery] GetWalletBalanceQuery query)
         {

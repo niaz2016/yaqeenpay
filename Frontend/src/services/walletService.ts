@@ -98,6 +98,21 @@ function sanitizeTransactions(items: WalletTransaction[]): WalletTransaction[] {
 }
 
 class WalletService {
+
+  /**
+   * Uploads proof of payment for a wallet top-up.
+   * @param topUpId The ID of the top-up (from TopUpDto.id)
+   * @param file The proof image file
+   * @param notes Optional notes
+   */
+  async uploadTopUpProof(topUpId: string, file: File, notes: string): Promise<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('notes', notes || '');
+    await apiService.post(`/wallets/top-up/${topUpId}/proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
   private mockMode: boolean;
   
   constructor() {
@@ -121,6 +136,18 @@ class WalletService {
     try {
       const result = await apiService.get<T>(url);
       console.log(`WalletService: Successfully fetched from database: ${url}`);
+      
+      // Debug logging for transactions
+      if (url.includes('/wallets/transactions')) {
+        console.log('DEBUG: Transactions data received:', result);
+        const typedResult = result as any;
+        if (typedResult.items && typedResult.items.length > 0) {
+          console.log('DEBUG: First transaction:', typedResult.items[0]);
+          console.log('DEBUG: First transaction amount:', typedResult.items[0].amount);
+          console.log('DEBUG: Amount type:', typeof typedResult.items[0].amount);
+        }
+      }
+      
       return result;
     } catch (e) {
       console.error(`WalletService: Database call failed for ${url}:`, e);

@@ -20,7 +20,7 @@ namespace YaqeenPay.Application.Features.Withdrawals.Queries.GetWithdrawals
 
         public async Task<List<WithdrawalDto>> Handle(GetWithdrawalsQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
 
             var withdrawals = await _context.Withdrawals
                 .Where(w => w.SellerId == userId)
@@ -35,6 +35,7 @@ namespace YaqeenPay.Application.Features.Withdrawals.Queries.GetWithdrawals
                     Currency = w.Amount.Currency,
                     Channel = w.Channel,
                     ChannelReference = w.ChannelReference,
+                    Reference = w.Reference,
                     Status = w.Status,
                     RequestedAt = w.RequestedAt,
                     SettledAt = w.SettledAt,

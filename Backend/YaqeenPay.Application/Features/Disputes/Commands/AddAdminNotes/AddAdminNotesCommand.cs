@@ -32,7 +32,7 @@ public class AddAdminNotesCommandHandler : IRequestHandler<AddAdminNotesCommand,
 
     public async Task<AddAdminNotesResponse> Handle(AddAdminNotesCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         // Only admins can add admin notes
         if (!_currentUserService.IsInRole("Admin"))

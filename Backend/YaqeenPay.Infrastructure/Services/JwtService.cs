@@ -15,7 +15,7 @@ public class JwtService : IJwtService
     {
         _configuration = configuration;
     }
-    public string GenerateJwtToken(ApplicationUser user)
+    public string GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles)
     {
         var secret = _configuration["JwtSettings:Secret"];
         var issuer = _configuration["JwtSettings:Issuer"];
@@ -38,6 +38,14 @@ public class JwtService : IJwtService
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty)
         };
+        // Add role claims
+        if (roles != null)
+        {
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
         
         // Make sure we have a key that's at least 32 bytes (256 bits) for HS256
         string keyString = secret ?? "ThisIsAVeryLongSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm";
@@ -84,9 +92,9 @@ public class JwtService : IJwtService
         var hash = sha256.ComputeHash(bytes);
         return Convert.ToBase64String(hash);
     }
-    public (string jwtToken, Domain.Entities.Identity.RefreshToken refreshToken) GenerateTokens(ApplicationUser user, string ipAddress)
+    public (string jwtToken, Domain.Entities.Identity.RefreshToken refreshToken) GenerateTokens(ApplicationUser user, IEnumerable<string> roles, string ipAddress)
     {
-        var jwtToken = GenerateJwtToken(user);
+        var jwtToken = GenerateJwtToken(user, roles);
         var refreshToken = GenerateRefreshToken(ipAddress);
         refreshToken.UserId = user.Id;
         return (jwtToken, refreshToken);

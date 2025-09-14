@@ -30,8 +30,14 @@ public class WithdrawalConfiguration : IEntityTypeConfiguration<Withdrawal>
             .OnDelete(DeleteBehavior.Restrict);
         builder.Property(w => w.Channel)
             .IsRequired();
+        
+        builder.Property(w => w.Reference)
+            .HasMaxLength(50)
+            .IsRequired();
+            
         builder.Property(w => w.ChannelReference)
             .HasMaxLength(100);
+            
         builder.Property(w => w.Status)
             .IsRequired();
     }

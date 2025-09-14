@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Container, Paper, Typography, Tabs, Tab, Box, Alert, Snackbar, TextField, MenuItem, Stack, Button } from '@mui/material';
 import walletService from '../../services/walletService';
-import type { WalletSummary, WalletTransaction, WalletAnalytics, TopUpRequest, TransactionType } from '../../types/wallet';
+import type { WalletSummary, WalletTransaction, WalletAnalytics, TopUpDto, TransactionType } from '../../types/wallet';
 import BalanceCard from '../../components/wallet/BalanceCard';
 import TransactionTable from '../../components/wallet/TransactionTable';
-import TopUpForm from '../../components/wallet/TopUpForm';
+import TopUpQrModal from '../../components/wallet/TopUpQrModal';
 import WalletCharts from '../../components/wallet/WalletCharts';
 
 const WalletPage: React.FC = () => {
@@ -19,6 +19,8 @@ const WalletPage: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txType, setTxType] = useState<TransactionType | 'All'>('All');
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [topUpSubmitting, setTopUpSubmitting] = useState(false);
 
   const loadSummary = async () => {
     try {
@@ -59,29 +61,28 @@ const WalletPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, txType]);
 
-  const handleTopUp = async (req: TopUpRequest) => {
+
+  // Handler for QR modal submission (to be implemented)
+  const handleQrProofSubmit = async ({ amount, file, notes }: { amount: number; file: File; notes: string }) => {
+    setTopUpSubmitting(true);
     try {
-      const res = await walletService.topUp(req);
-      // Handle different response types based on whether we're using backend or mock
-      if ('success' in res) {
-        // Mock response format
-        if (res.success) {
-          setToast(`Top-up successful. New balance: ${res.newBalance.toFixed(2)}`);
-          await loadSummary();
-          await loadTx();
-          await loadAnalytics();
-        } else if (res.message) {
-          setToast(res.message);
-        }
-      } else {
-        // Backend TopUpDto response format
-        setToast(`Top-up initiated successfully. Reference: ${res.id}`);
-        await loadSummary();
-        await loadTx();
-        await loadAnalytics();
-      }
+      // 1. Initiate top-up (create a pending top-up record)
+      const topUp: TopUpDto = await walletService.topUp({
+        amount,
+        currency: summary?.currency || 'PKR',
+        channel: 'Easypaisa',
+      }) as TopUpDto;
+      // 2. Upload proof
+      await walletService.uploadTopUpProof(topUp.id, file, notes);
+      setToast('Proof uploaded successfully. Awaiting admin approval.');
+      setQrModalOpen(false);
+      await loadSummary();
+      await loadTx();
+      await loadAnalytics();
     } catch (e: any) {
-      setToast(e?.message || 'Top-up failed');
+      setToast(e?.message || 'Top-up proof upload failed');
+    } finally {
+      setTopUpSubmitting(false);
     }
   };
 
@@ -103,9 +104,17 @@ const WalletPage: React.FC = () => {
         <Box>
           <Paper sx={{ p: 2 }}>
             <Typography variant="subtitle1" gutterBottom>Top Up</Typography>
-            <TopUpForm onSubmit={handleTopUp} />
+            <Button variant="contained" color="primary" onClick={() => setQrModalOpen(true)}>
+              Top Up
+            </Button>
           </Paper>
         </Box>
+      <TopUpQrModal
+        open={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        onSubmit={handleQrProofSubmit}
+        submitting={topUpSubmitting}
+      />
         <Box sx={{ gridColumn: '1 / -1' }}>
           <WalletCharts analytics={analytics} />
         </Box>

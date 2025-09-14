@@ -24,26 +24,26 @@ public class WithdrawalsController : ApiControllerBase
     }
 
     [HttpGet("{withdrawalId}")]
-    public IActionResult GetWithdrawalById(string withdrawalId)
+    public async Task<IActionResult> GetWithdrawalById(string withdrawalId)
     {
-        // TODO: Implement get withdrawal by ID logic
-        // For now, return a basic response to avoid 404 errors
-        var mockWithdrawal = new
-        {
-            id = withdrawalId,
-            amount = 0.0m,
-            status = "Pending",
-            requestedAt = DateTime.UtcNow,
-            currency = "USD"
-        };
-        return Ok(mockWithdrawal);
+        if (!Guid.TryParse(withdrawalId, out var id))
+            return BadRequest("Invalid withdrawal ID");
+
+        var result = await Mediator.Send(new YaqeenPay.Application.Features.Withdrawals.Queries.GetWithdrawalById.GetWithdrawalByIdQuery(id));
+        if (result == null)
+            return NotFound();
+        return Ok(result);
     }
 
     [HttpDelete("{withdrawalId}")]
-    public IActionResult CancelWithdrawal(string withdrawalId)
+    public async Task<IActionResult> CancelWithdrawal(string withdrawalId)
     {
-        // TODO: Implement cancel withdrawal logic
-        // For now, return success response to avoid 404 errors
+        if (!Guid.TryParse(withdrawalId, out var id))
+            return BadRequest("Invalid withdrawal ID");
+
+        var result = await Mediator.Send(new YaqeenPay.Application.Features.Withdrawals.Commands.CancelWithdrawal.CancelWithdrawalCommand(id));
+        if (!result)
+            return BadRequest("Unable to cancel withdrawal. It may not exist or cannot be cancelled at this stage.");
         return Ok(new { message = "Withdrawal cancelled successfully" });
     }
 }

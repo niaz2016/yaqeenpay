@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Domain.Entities;
@@ -15,6 +14,27 @@ namespace YaqeenPay.Infrastructure.Services
         private readonly ITopUpRepository _topUpRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<WalletService> _logger;
+
+        public async Task<List<Application.Common.Models.TopUpDto>> GetAllTopUpsAsync(int page = 1, int pageSize = 100)
+        {
+            var topUps = await _topUpRepository.GetAllAsync(page, pageSize);
+            // Map to DTOs
+            return topUps.Select(t => new Application.Common.Models.TopUpDto
+            {
+                Id = t.Id,
+                UserId = t.UserId,
+                WalletId = t.WalletId,
+                Amount = t.Amount.Amount,
+                Currency = t.Amount.Currency,
+                Channel = t.Channel,
+                Status = t.Status,
+                ExternalReference = t.ExternalReference,
+                RequestedAt = t.RequestedAt,
+                ConfirmedAt = t.ConfirmedAt,
+                FailedAt = t.FailedAt,
+                FailureReason = t.FailureReason
+            }).ToList();
+        }
 
         public WalletService(
             IWalletRepository walletRepository,

@@ -38,7 +38,7 @@ public class ResolveDisputeCommandHandler : IRequestHandler<ResolveDisputeComman
 
     public async Task<ResolveDisputeResponse> Handle(ResolveDisputeCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         // Only admins can resolve disputes
         if (!_currentUserService.IsInRole("Admin"))

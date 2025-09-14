@@ -1,0 +1,53 @@
+What’s Remaining for MVP
+1. Withdrawals: Complete Endpoints & State Machine
+Get by ID: Implement real DB lookup in WithdrawalsController.GetWithdrawalById.
+Cancel: Implement real cancellation logic in WithdrawalsController.CancelWithdrawal (set status to Reversed if allowed).
+State Machine: Ensure transitions (Initiated → PendingProvider → Settled/Failed) are handled in the domain/entity and application layers, with robust error handling and provider integration (JazzCash/Easypaisa).
+Provider Integration: Implement provider adapter pattern and background job to poll for settlement status.
+2. Admin Portal: Seller Approval, Ledger Adjustments, Audit Trail
+Seller Approval: Use AdminController endpoints (/admin/seller/pending, /admin/seller/verify) and ensure the handler creates wallets and updates status/audit logs.
+Manual Ledger Adjustments: Add endpoints and commands for admins to adjust balances, with compensating entries and audit logging.
+Audit Trail: Ensure all sensitive/admin actions (approvals, overrides) are logged.
+3. Notifications: Email/SMS for Key Events
+Wire up notification service (IEmailService, INotificationService) to send emails/SMS for:
+Withdrawal initiated/completed/failed
+Order status changes
+KYC events
+Use outbox pattern and background dispatcher for reliability.
+4. OTP Verification for Sensitive Actions
+Enforce OTP for:
+Registration
+Login
+Withdrawals (especially above a threshold)
+Use Redis for OTP storage and rate limiting, and require OTP validation before processing sensitive actions.
+5. Dispute Handling & Refund Logic
+Dispute Creation: Ensure /orders/{id}/dispute and related commands are implemented.
+Refund Logic: On order rejection or dispute resolution in favor of buyer, trigger escrow refund and update order/escrow status.
+6. Background Jobs
+Auto-release escrow: Job to release funds if buyer does not act within timeout.
+Reconciliation: Job to poll payment providers for withdrawal settlement.
+Notification Dispatch: Job to process outbox and send notifications.
+7. Other Gaps
+Webhook Handling: Implement endpoints for payment provider callbacks.
+Security Hardening: Add rate limiting, refresh token rotation, IP restrictions.
+Audit Logging: Ensure all monetary and sensitive actions are logged.
+
+2. Frontend Gaps
+Some admin features (approval, manual overrides, analytics) are missing or incomplete.
+Notification UI for status changes and events is basic or missing.
+Error handling for backend “not yet implemented” endpoints needs improvement.
+3. Integration/Infrastructure
+Real payment provider integration (JazzCash/Easypaisa) for wallet top-up and withdrawals is not fully live.
+Webhook handling for asynchronous payment confirmations.
+Security hardening: rate limiting, refresh token rotation, IP restrictions.
+Audit logging for all monetary and sensitive actions.
+MVP Completion Checklist
+ Complete all backend endpoints for withdrawal, order, and wallet flows (including cancel, get by ID, and provider integration).
+ Implement admin portal for seller approval, manual ledger adjustments, and audit logs.
+ Enforce OTP for registration, login, and sensitive actions.
+ Add notification system (email/SMS) for all major events.
+ Implement background jobs for auto-release, reconciliation, and notifications.
+ Finalize dispute and refund logic for rejected orders.
+ Integrate real payment providers and test end-to-end flows.
+ Harden security and auditability.
+ Polish frontend for admin and buyer flows, and improve error handling.

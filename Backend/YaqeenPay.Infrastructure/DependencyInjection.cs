@@ -23,6 +23,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Easypaisa config and service registration
+        services.Configure<Services.Easypaisa.EasypaisaSettings>(configuration.GetSection("Easypaisa"));
+        services.AddHttpClient<Services.Easypaisa.EasypaisaPaymentService>();
+        services.AddScoped<Application.Interfaces.IPaymentGatewayService, Services.Easypaisa.EasypaisaPaymentService>();
         // Add DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseNpgsql(
@@ -124,16 +128,19 @@ public static class DependencyInjection
 
         // Register services
         services.AddScoped<IJwtService, JwtService>();
-        services.AddScoped<YaqeenPay.Application.Common.Interfaces.IIdentityService, IdentityService>();
+        services.AddScoped<Application.Common.Interfaces.IIdentityService, IdentityService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IWalletService, WalletService>();
         
-        // Register repositories
-        services.AddScoped<IWalletRepository, Persistence.Repositories.WalletRepository>();
-        services.AddScoped<IWalletTransactionRepository, Persistence.Repositories.WalletTransactionRepository>();
-        services.AddScoped<ITopUpRepository, Persistence.Repositories.TopUpRepository>();
+    // Register repositories
+    services.AddScoped<IWalletRepository, WalletRepository>();
+    services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
+    services.AddScoped<ITopUpRepository, TopUpRepository>();
 
-        return services;
+    // Register OutboxService for notifications
+    services.AddScoped<IOutboxService, OutboxService>();
+
+    return services;
     }
 }

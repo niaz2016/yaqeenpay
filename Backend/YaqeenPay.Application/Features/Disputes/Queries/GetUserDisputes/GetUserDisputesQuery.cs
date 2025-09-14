@@ -40,7 +40,7 @@ public class GetUserDisputesQueryHandler : IRequestHandler<GetUserDisputesQuery,
 
     public async Task<PaginatedList<UserDisputeDto>> Handle(GetUserDisputesQuery request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         // Get disputes where the user is either the buyer, seller, or the one who raised the dispute
         var query = _context.Disputes

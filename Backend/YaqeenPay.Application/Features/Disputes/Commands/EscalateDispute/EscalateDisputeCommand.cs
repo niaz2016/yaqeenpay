@@ -29,7 +29,7 @@ public class EscalateDisputeCommandHandler : IRequestHandler<EscalateDisputeComm
 
     public async Task<EscalateDisputeResponse> Handle(EscalateDisputeCommand request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var dispute = await _context.Disputes
             .Include(d => d.Order)

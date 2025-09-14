@@ -20,7 +20,7 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetWalletSummary
 
         public async Task<WalletSummaryDto> Handle(GetWalletSummaryQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
             
             // Get the user's wallet (unified wallet system)
             var wallet = await _walletService.GetWalletByUserIdAsync(userId);

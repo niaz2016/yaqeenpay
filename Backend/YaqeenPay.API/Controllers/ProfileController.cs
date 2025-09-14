@@ -6,9 +6,18 @@ using YaqeenPay.Application.Features.UserManagement.Queries.GetUserProfile;
 
 namespace YaqeenPay.API.Controllers;
 
-[Authorize]
+[
+Authorize]
 public class ProfileController : ApiControllerBase
 {
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] Application.Features.UserManagement.Commands.ChangePassword.ChangePasswordCommand command)
+    {
+        var result = await Mediator.Send(command);
+        if (result)
+            return Ok(new { success = true, message = "Password changed successfully" });
+        return BadRequest(new { success = false, message = "Password change failed" });
+    }
     [HttpGet]
     public async Task<IActionResult> GetUserProfile()
     {

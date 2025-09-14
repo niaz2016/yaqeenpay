@@ -20,7 +20,7 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetWalletAnalytics
 
         public async Task<WalletAnalyticsDto> Handle(GetWalletAnalyticsQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
             
             // Get the user's wallet (unified system)
             var wallet = await _walletService.GetWalletByUserIdAsync(userId);

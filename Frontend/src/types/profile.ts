@@ -34,3 +34,8 @@ export interface ChangePasswordRequest {
   newPassword: string;
   confirmPassword: string;
 }
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message?: string;
+}

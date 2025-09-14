@@ -6,6 +6,7 @@ namespace YaqeenPay.Application.Common.Interfaces;
 
 public interface IApplicationDbContext
 {
+    DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<Escrow> Escrows { get; }
     DbSet<Order> Orders { get; }
     DbSet<LedgerAccount> LedgerAccounts { get; }
@@ -18,7 +19,9 @@ public interface IApplicationDbContext
     DbSet<Wallet> Wallets { get; }
     DbSet<WalletTransaction> WalletTransactions { get; }
     DbSet<TopUp> TopUps { get; }
+
     DbSet<Dispute> Disputes { get; }
+    DbSet<YaqeenPay.Domain.Entities.AuditLog> AuditLogs { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

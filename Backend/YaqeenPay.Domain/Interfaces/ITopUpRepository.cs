@@ -1,3 +1,6 @@
+    /// <summary>
+    /// Returns all top-ups in the system (admin only)
+    /// </summary>
 using YaqeenPay.Domain.Entities;
 using YaqeenPay.Domain.Enums;
 
@@ -5,6 +8,8 @@ namespace YaqeenPay.Domain.Interfaces
 {
     public interface ITopUpRepository
     {
+    Task<IEnumerable<TopUp>> GetAllAsync(int page = 1, int pageSize = 100);
+
         Task<TopUp?> GetByIdAsync(Guid id);
         Task<IEnumerable<TopUp>> GetByUserIdAsync(Guid userId, int page = 1, int pageSize = 20);
         Task<IEnumerable<TopUp>> GetByStatusAsync(TopUpStatus status, int page = 1, int pageSize = 20);

@@ -62,6 +62,16 @@ const NavMenu: React.FC = () => {
         </ListItemButton>
       </ListItem>
 
+      {/* Withdrawals - Accessible to all users */}
+      <ListItem disablePadding>
+        <ListItemButton component={RouterLink} to="/withdrawals">
+          <ListItemIcon>
+            <WithdrawIcon />
+          </ListItemIcon>
+          <ListItemText primary="Withdrawals" />
+        </ListItemButton>
+      </ListItem>
+
       {/* Orders - Temporarily accessible to all users for testing */}
       <ListItem disablePadding>
         <ListItemButton component={RouterLink} to="/orders">
@@ -110,15 +120,6 @@ const NavMenu: React.FC = () => {
                 <AnalyticsIcon />
               </ListItemIcon>
               <ListItemText primary="Analytics" />
-            </ListItemButton>
-          </ListItem>
-          
-          <ListItem disablePadding>
-            <ListItemButton component={RouterLink} to="/seller/withdrawals">
-              <ListItemIcon>
-                <WithdrawIcon />
-              </ListItemIcon>
-              <ListItemText primary="Withdrawals" />
             </ListItemButton>
           </ListItem>
         </>

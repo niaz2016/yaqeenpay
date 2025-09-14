@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
@@ -31,12 +32,16 @@ import SellerOrderDetailsPage from './pages/seller/SellerOrderDetailsPage';
 import SellerAnalyticsPage from './pages/seller/SellerAnalyticsPage';
 import SellerWithdrawalsPage from './pages/seller/SellerWithdrawalsPage';
 
+// General Pages
+import WithdrawalsPage from './pages/WithdrawalsPage';
+
 // Admin Pages (Phase 6)
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import KycVerification from './pages/admin/KycVerification';
 import SellerApproval from './pages/admin/SellerApproval';
 import OrderMonitoring from './pages/admin/OrderMonitoring';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
 
 // Error Pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -85,6 +90,7 @@ const App: React.FC = () => {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/wallet" element={<WalletPage />} />
+                <Route path="/withdrawals" element={<WithdrawalsPage />} />
                 {/* Orders */}
                 <Route path="/orders" element={<OrderListPage />} />
                 <Route path="/orders/new" element={<NewOrderPage />} />
@@ -106,6 +112,7 @@ const App: React.FC = () => {
             <Route element={<ProtectedRoute allowedRoles={["Admin", "admin"]} />}>
               <Route element={<AdminLayout />}>
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/profile" element={<AdminProfilePage />} />
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/kyc" element={<KycVerification />} />
                 <Route path="/admin/sellers" element={<SellerApproval />} />

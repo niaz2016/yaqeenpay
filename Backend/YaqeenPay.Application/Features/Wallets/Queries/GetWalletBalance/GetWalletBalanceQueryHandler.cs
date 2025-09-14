@@ -20,7 +20,7 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetWalletBalance
 
         public async Task<WalletBalanceDto> Handle(GetWalletBalanceQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
             
             Guid walletId;
             

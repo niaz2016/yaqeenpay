@@ -33,7 +33,7 @@ public class GetEscrowsListQueryHandler : IRequestHandler<GetEscrowsListQuery, A
             return ApiResponse<List<EscrowDto>>.SuccessResponse(new List<EscrowDto>());
         }
 
-        var userId = _currentUserService.UserId.Value;
+        var userId = _currentUserService.UserId;
 
         IQueryable<Escrow> query = _context.Escrows
             .Include(e => e.Buyer)

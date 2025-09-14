@@ -33,7 +33,7 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
             return ApiResponse<List<OrderDto>>.SuccessResponse(new List<OrderDto>());
         }
 
-        var userId = _currentUserService.UserId.Value;
+        var userId = _currentUserService.UserId;
 
         IQueryable<Order> query = _context.Orders
             .Include(o => o.Buyer)

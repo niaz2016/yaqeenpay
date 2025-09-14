@@ -1,0 +1,86 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using YaqeenPay.Application.Common.Interfaces;
+using YaqeenPay.Domain.Enums;
+
+namespace YaqeenPay.Application.Features.Admin.Queries.GetAdminStats;
+
+public class GetAdminStatsQueryHandler : IRequestHandler<GetAdminStatsQuery, AdminStatsResponse>
+{
+    private readonly IApplicationDbContext _context;
+
+    public GetAdminStatsQueryHandler(IApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<AdminStatsResponse> Handle(GetAdminStatsQuery request, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var oneMonthAgo = now.AddMonths(-1);
+
+        // Calculate statistics
+        var totalUsers = await _context.Users.CountAsync(cancellationToken);
+        
+        var activeUsers = await _context.Users
+            .Where(u => u.EmailConfirmed)
+            .CountAsync(cancellationToken);
+
+        var pendingKycDocuments = await _context.KycDocuments
+            .Where(k => k.Status == KycDocumentStatus.Pending)
+            .CountAsync(cancellationToken);
+
+        var pendingSellers = await _context.BusinessProfiles
+            .Where(b => b.VerificationStatus == SellerVerificationStatus.Pending)
+            .CountAsync(cancellationToken);
+
+        var activeOrders = await _context.Orders
+            .Where(o => o.Status == OrderStatus.Created || 
+                       o.Status == OrderStatus.Confirmed || 
+                       o.Status == OrderStatus.Shipped ||
+                       o.Status == OrderStatus.DeliveredPendingDecision)
+            .CountAsync(cancellationToken);
+
+        var openDisputes = await _context.Disputes
+            .Where(d => d.Status == DisputeStatus.Open || d.Status == DisputeStatus.Escalated)
+            .CountAsync(cancellationToken);
+
+
+        // Calculate total transaction volume from wallet transactions
+        var totalTransactionVolume = _context.WalletTransactions
+            .Where(t => t.Type == TransactionType.Payment || t.Type == TransactionType.Credit)
+            .AsEnumerable()
+            .Sum(t => t.Amount.Value);
+
+        // Calculate total wallet balance across all users
+        var totalWalletBalance = _context.Wallets
+            .AsEnumerable()
+            .Sum(w => w.Balance.Value);
+
+        // Calculate monthly growth rate based on user registrations
+        var usersThisMonth = await _context.Users
+            .Where(u => u.Created >= oneMonthAgo)
+            .CountAsync(cancellationToken);
+
+        var usersLastMonth = await _context.Users
+            .Where(u => u.Created >= oneMonthAgo.AddMonths(-1) && u.Created < oneMonthAgo)
+            .CountAsync(cancellationToken);
+
+        var monthlyGrowthRate = usersLastMonth > 0 
+            ? ((double)(usersThisMonth - usersLastMonth) / usersLastMonth) * 100
+            : 0;
+
+        return new AdminStatsResponse
+        {
+            TotalUsers = totalUsers,
+            ActiveUsers = activeUsers,
+            PendingKycDocuments = pendingKycDocuments,
+            PendingSellers = pendingSellers,
+            ActiveOrders = activeOrders,
+            OpenDisputes = openDisputes,
+            TotalTransactionVolume = totalTransactionVolume,
+            MonthlyGrowthRate = monthlyGrowthRate,
+            TotalWalletBalance = totalWalletBalance
+        };
+    }
+}

@@ -23,7 +23,7 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetTopUpHistory
 
         public async Task<PaginatedList<TopUpDto>> Handle(GetTopUpHistoryQuery request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
             
             // Get total count
             var totalCount = await _topUpRepository.GetTopUpCountByUserIdAsync(userId);

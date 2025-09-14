@@ -3,13 +3,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Domain.Entities.Identity;
+
 namespace YaqeenPay.Infrastructure.Identity;
+
 public class IdentityService : IIdentityService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserClaimsPrincipalFactory<ApplicationUser> _userClaimsPrincipalFactory;
     private readonly IAuthorizationService _authorizationService;
     private readonly SignInManager<ApplicationUser> _signInManager;
+
     public IdentityService(
         UserManager<ApplicationUser> userManager,
         IUserClaimsPrincipalFactory<ApplicationUser> userClaimsPrincipalFactory,
@@ -20,6 +23,25 @@ public class IdentityService : IIdentityService
         _userClaimsPrincipalFactory = userClaimsPrincipalFactory;
         _authorizationService = authorizationService;
         _signInManager = signInManager;
+    }
+
+
+    public async Task<IList<string>> GetUserRolesAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return new List<string>();
+        }
+        return await _userManager.GetRolesAsync(user);
+    }
+
+    public async Task<IdentityResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            return IdentityResult.Failed(new IdentityError { Description = "User not found" });
+        return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
     }
     public async Task<string> GetUserNameAsync(Guid userId)
     {

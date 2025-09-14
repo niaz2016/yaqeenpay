@@ -28,7 +28,7 @@ public class GetPendingSellerProfilesQueryHandler : IRequestHandler<GetPendingSe
     public async Task<List<AdminBusinessProfileDto>> Handle(GetPendingSellerProfilesQuery request, CancellationToken cancellationToken)
     {
         var adminId = _currentUserService.UserId;
-        if (adminId == null)
+        if (adminId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User is not authenticated");
         }
@@ -45,12 +45,12 @@ public class GetPendingSellerProfilesQueryHandler : IRequestHandler<GetPendingSe
             .OrderByDescending(bp => bp.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return pendingProfiles.Select(bp => new AdminBusinessProfileDto
+        return [.. pendingProfiles.Select(bp => new AdminBusinessProfileDto
         {
             Id = bp.Id,
             UserId = bp.UserId,
-            UserEmail = bp.User.Email ?? string.Empty,
-            UserFullName = $"{bp.User.FirstName} {bp.User.LastName}".Trim(),
+            UserEmail = bp.User != null ? bp.User.Email ?? string.Empty : string.Empty,
+            UserFullName = bp.User != null ? ($"{(bp.User.FirstName ?? "").Trim()} {(bp.User.LastName ?? "").Trim()}").Trim() : string.Empty,
             BusinessName = bp.BusinessName,
             BusinessType = bp.BusinessType,
             BusinessCategory = bp.BusinessCategory,
@@ -67,8 +67,13 @@ public class GetPendingSellerProfilesQueryHandler : IRequestHandler<GetPendingSe
             RejectionReason = bp.RejectionReason,
             VerifiedAt = bp.VerifiedAt,
             VerifiedBy = bp.VerifiedBy,
-            Created = bp.CreatedAt,
-            UserKycStatus = bp.User.KycStatus
-        }).ToList();
+            SubmissionDate = bp.CreatedAt,
+            UserKycStatus = bp.User != null ? bp.User.KycStatus : YaqeenPay.Domain.Enums.KycStatus.Pending,
+            User = bp.User != null ? new UserDto {
+                FirstName = bp.User.FirstName ?? string.Empty,
+                LastName = bp.User.LastName ?? string.Empty,
+                Email = bp.User.Email ?? string.Empty
+            } : new UserDto()
+        })];
     }
 }

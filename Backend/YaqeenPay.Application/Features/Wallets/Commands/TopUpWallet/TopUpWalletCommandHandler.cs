@@ -24,20 +24,17 @@ namespace YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet
 
         public async Task<TopUpDto> Handle(TopUpWalletCommand request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
-            
+            var userId = _currentUserService.UserId;
+
             // Create Money object for the credit operation
             var topUpAmount = new Money(request.Amount, request.Currency);
-            
-            // Use wallet service to handle top-up properly with transactions
+
+            // Only initiate the top-up, do not confirm/credit yet
             var topUpId = await _walletService.TopUpInitiateAsync(userId, topUpAmount, request.Channel);
-            
-            // Complete the top-up immediately (since we're not doing real payment processing)
-            await _walletService.TopUpConfirmAsync(topUpId, $"TOP-{DateTime.UtcNow.Ticks}");
-            
-            // Get the updated wallet to return current state
+
+            // Get the wallet (for WalletId)
             var wallet = await _walletService.GetWalletByUserIdAsync(userId);
-            
+
             var topUpDto = new TopUpDto
             {
                 Id = topUpId,
@@ -46,10 +43,8 @@ namespace YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet
                 Amount = request.Amount,
                 Currency = request.Currency,
                 Channel = request.Channel,
-                Status = TopUpStatus.Confirmed,
-                ExternalReference = $"TOP-{DateTime.UtcNow.Ticks}",
-                RequestedAt = DateTime.UtcNow,
-                ConfirmedAt = DateTime.UtcNow
+                Status = TopUpStatus.PendingConfirmation,
+                RequestedAt = DateTime.UtcNow
             };
 
             return topUpDto;

@@ -42,67 +42,81 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
         }
 
         // Check if user already has seller role
-        if (await _userManager.IsInRoleAsync(user, UserRoleEnum.Seller.ToString()))
-        {
-            return new SellerRegistrationResponse
-            {
-                Success = false,
-                Message = "User already has seller role"
-            };
-        }
-
+        var isExistingSeller = await _userManager.IsInRoleAsync(user, UserRoleEnum.Seller.ToString());
+        
         // Check if user already has a business profile
         var existingProfile = await _dbContext.BusinessProfiles
             .FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
 
+        BusinessProfile businessProfile;
+
         if (existingProfile != null)
         {
-            return new SellerRegistrationResponse
+            // Update existing business profile
+            existingProfile.BusinessName = request.BusinessName;
+            existingProfile.BusinessType = request.BusinessType;
+            existingProfile.BusinessCategory = request.BusinessCategory;
+            existingProfile.Description = request.Description;
+            existingProfile.Website = request.Website;
+            existingProfile.PhoneNumber = request.PhoneNumber;
+            existingProfile.Address = request.Address;
+            existingProfile.City = request.City;
+            existingProfile.State = request.State;
+            existingProfile.Country = request.Country;
+            existingProfile.PostalCode = request.PostalCode;
+            existingProfile.TaxId = request.TaxId;
+            // Reset verification status when updating
+            existingProfile.VerificationStatus = SellerVerificationStatus.Pending;
+            
+            businessProfile = existingProfile;
+        }
+        else
+        {
+            // Create new business profile
+            businessProfile = new BusinessProfile
             {
-                Success = false,
-                Message = "User already has a business profile",
-                BusinessProfileId = existingProfile.Id,
+                Id = Guid.NewGuid(),
                 UserId = userId,
-                Status = existingProfile.VerificationStatus
+                BusinessName = request.BusinessName,
+                BusinessType = request.BusinessType,
+                BusinessCategory = request.BusinessCategory,
+                Description = request.Description,
+                Website = request.Website,
+                PhoneNumber = request.PhoneNumber,
+                Address = request.Address,
+                City = request.City,
+                State = request.State,
+                Country = request.Country,
+                PostalCode = request.PostalCode,
+                TaxId = request.TaxId,
+                VerificationStatus = SellerVerificationStatus.Pending
             };
+
+            _dbContext.BusinessProfiles.Add(businessProfile);
         }
 
-        // Create business profile
-        var businessProfile = new BusinessProfile
+        // Process KYC documents (clear existing ones first if updating)
+        if (isExistingSeller)
         {
-            Id = Guid.NewGuid(),
-            UserId = userId.Value,
-            BusinessName = request.BusinessName,
-            BusinessType = request.BusinessType,
-            BusinessCategory = request.BusinessCategory,
-            Description = request.Description,
-            Website = request.Website,
-            PhoneNumber = request.PhoneNumber,
-            Address = request.Address,
-            City = request.City,
-            State = request.State,
-            Country = request.Country,
-            PostalCode = request.PostalCode,
-            TaxId = request.TaxId,
-            VerificationStatus = SellerVerificationStatus.Pending
-        };
+            var existingKycDocs = await _dbContext.KycDocuments
+                .Where(k => k.UserId == userId)
+                .ToListAsync(cancellationToken);
+            _dbContext.KycDocuments.RemoveRange(existingKycDocs);
+        }
 
-        _dbContext.BusinessProfiles.Add(businessProfile);
-
-        // Process KYC documents
         foreach (var docRequest in request.Documents)
         {
             // Upload document to storage
             var documentUrl = await _documentStorageService.StoreDocumentAsync(
                 docRequest.DocumentBase64,
                 docRequest.FileName,
-                userId.Value,
+                userId,
                 "seller-kyc");
 
             var document = new KycDocument
             {
                 Id = Guid.NewGuid(),
-                UserId = userId.Value,
+                UserId = userId,
                 DocumentType = docRequest.DocumentType,
                 DocumentNumber = docRequest.DocumentNumber,
                 DocumentUrl = documentUrl,
@@ -115,8 +129,11 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
         // Update user KYC status
         user.KycStatus = Domain.Enums.KycStatus.Submitted;
         
-        // Add seller role
-        await _userManager.AddToRoleAsync(user, UserRoleEnum.Seller.ToString());
+        // Add seller role if not already present
+        if (!isExistingSeller)
+        {
+            await _userManager.AddToRoleAsync(user, UserRoleEnum.Seller.ToString());
+        }
 
         // Save changes
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -128,10 +145,14 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
 
         var roles = await _userManager.GetRolesAsync(user);
 
+        var message = isExistingSeller 
+            ? "Seller profile updated successfully. Waiting for approval." 
+            : "Seller application submitted successfully. Waiting for approval.";
+
         return new SellerRegistrationResponse
         {
             Success = true,
-            Message = "Seller application submitted successfully. Waiting for approval.",
+            Message = message,
             BusinessProfileId = businessProfile.Id,
             UserId = userId,
             Status = SellerVerificationStatus.Pending,

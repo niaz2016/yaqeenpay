@@ -10,6 +10,8 @@ public interface IIdentityService
     Task<Result> AddUserToRoleAsync(Guid userId, string role);
     Task<Result> DeleteUserAsync(Guid userId);
     Task<(Result Result, ApplicationUser? User)> AuthenticateAsync(string email, string password);
+    Task<IdentityResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+    Task<IList<string>> GetUserRolesAsync(Guid userId);
 }
 public class Result
 {

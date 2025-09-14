@@ -24,14 +24,17 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
     private readonly IApplicationDbContext _context;
     private readonly IJwtService _jwtService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IIdentityService _identityService;
     public RefreshTokenCommandHandler(
         IApplicationDbContext context,
         IJwtService jwtService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IIdentityService identityService)
     {
         _context = context;
         _jwtService = jwtService;
         _currentUserService = currentUserService;
+        _identityService = identityService;
     }
     public async Task<ApiResponse<AuthenticationResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
@@ -53,7 +56,8 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
         }
         // Replace old refresh token with a new one
         var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
-        var (jwtToken, newRefreshToken) = _jwtService.GenerateTokens(user, ipAddress);
+    var roles = await _identityService.GetUserRolesAsync(user.Id);
+        var (jwtToken, newRefreshToken) = _jwtService.GenerateTokens(user, roles, ipAddress);
         refreshToken.RevokedAt = DateTime.UtcNow;
         refreshToken.ReplacedById = newRefreshToken.Id;
         user.RefreshTokens.Add(newRefreshToken);

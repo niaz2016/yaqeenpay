@@ -23,7 +23,7 @@ namespace YaqeenPay.Application.Features.Wallets.Commands.CreateWallet
             // Get the current user ID if not specified
             if (request.UserId == Guid.Empty)
             {
-                request.UserId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+                request.UserId = _currentUserService.UserId;
             }
 
             // Create the wallet (unified system)

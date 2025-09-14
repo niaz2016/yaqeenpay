@@ -49,9 +49,14 @@ public class LoginCommandHandler(
         {
             return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
         }
-        // Generate JWT token
+        // Generate JWT token with roles
         var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
-        var (jwtToken, refreshToken) = _jwtService.GenerateTokens(user, ipAddress);
+        if (user == null)
+        {
+            return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
+        }
+        var roles = await _identityService.GetUserRolesAsync(user.Id);
+        var (jwtToken, refreshToken) = _jwtService.GenerateTokens(user, roles, ipAddress);
         // Save the refresh token
         user.RefreshTokens.Add(refreshToken);
         // Remove old refresh tokens

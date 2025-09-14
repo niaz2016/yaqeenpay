@@ -48,7 +48,7 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
 
     public async Task<PaginatedList<SellerOrderDto>> Handle(GetSellerOrdersQuery request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var query = _context.Orders
             .Include(o => o.Buyer)

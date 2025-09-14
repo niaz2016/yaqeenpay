@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Transactions</title>
+</head>
+<body>
+    <h1>Debug Wallet Transactions</h1>
+    <button onclick="testBackendTransactions()">Test Backend API</button>
+    <div id="output"></div>
+
+    <script>
+        async function testBackendTransactions() {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Loading...';
+            
+            try {
+                // First check if user is logged in
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                if (!user.token) {
+                    output.innerHTML = '<p style="color: red;">No auth token found. Please login first.</p>';
+                    return;
+                }
+                
+                console.log('User token:', user.token);
+                
+                // Try to call the transactions API directly
+                const response = await fetch('https://localhost:7043/api/wallets/transactions', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${user.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Transactions response:', data);
+                
+                output.innerHTML = `
+                    <h3>API Response:</h3>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                if (data.items && data.items.length > 0) {
+                    const firstTransaction = data.items[0];
+                    console.log('First transaction amount:', firstTransaction.amount);
+                    console.log('Amount type:', typeof firstTransaction.amount);
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -27,15 +27,15 @@ export class SellerService {
 
   // Business Profile Management
   async createBusinessProfile(data: CreateBusinessProfileRequest): Promise<BusinessProfile> {
-    return apiService.post<BusinessProfile>('/SellerRegistration/business-profile', data);
+    return apiService.post<BusinessProfile>('/BusinessProfile', data);
   }
 
   async getBusinessProfile(): Promise<BusinessProfile> {
-    return apiService.get<BusinessProfile>('/SellerRegistration/business-profile');
+    return apiService.get<BusinessProfile>('/BusinessProfile');
   }
 
   async updateBusinessProfile(data: Partial<CreateBusinessProfileRequest>): Promise<BusinessProfile> {
-    return apiService.put<BusinessProfile>('/SellerRegistration/business-profile', data);
+    return apiService.put<BusinessProfile>('/BusinessProfile', data);
   }
 
   // Seller Registration
@@ -170,7 +170,16 @@ export class SellerService {
 
   // Withdrawal Management
   async requestWithdrawal(data: WithdrawalRequest): Promise<Withdrawal> {
-    return apiService.post<Withdrawal>('/withdrawals', data);
+    // Transform frontend data to match backend RequestWithdrawalCommand structure
+    const backendRequest = {
+      Amount: data.amount,
+      Currency: 'PKR',
+      PaymentMethod: data.paymentMethod || (data as any).method || (data as any).PaymentMethod,
+      Notes: data.notes || (data as any).bankAccount ? `Account: ${(data as any).bankAccount}` : undefined
+    };
+    
+    console.log('Withdrawal request payload:', backendRequest);
+    return apiService.post<Withdrawal>('/withdrawals', backendRequest);
   }
 
   async getWithdrawals(): Promise<Withdrawal[]> {

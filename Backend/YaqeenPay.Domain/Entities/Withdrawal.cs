@@ -26,6 +26,7 @@ namespace YaqeenPay.Domain.Entities
         public Money Amount { get; private set; } = null!;
         public WithdrawalChannel Channel { get; private set; }
         public string? ChannelReference { get; private set; }
+        public string Reference { get; private set; } = string.Empty; // User-friendly reference like 1/2xxxxx
         public WithdrawalStatus Status { get; private set; }
         public DateTime RequestedAt { get; private set; }
         public DateTime? SettledAt { get; private set; }
@@ -44,6 +45,7 @@ namespace YaqeenPay.Domain.Entities
             Channel = channel;
             Status = WithdrawalStatus.Initiated;
             RequestedAt = DateTime.UtcNow;
+            Reference = $"2{DateTime.UtcNow.Ticks}"; //2 for withdraw Generate user-friendly reference
         }
 
         public void SetPendingProvider(string? channelReference = null)

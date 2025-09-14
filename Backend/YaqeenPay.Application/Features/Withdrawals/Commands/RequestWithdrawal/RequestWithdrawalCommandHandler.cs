@@ -9,23 +9,26 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
 {
     public class RequestWithdrawalCommandHandler : IRequestHandler<RequestWithdrawalCommand, WithdrawalDto>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentUserService _currentUserService;
-        private readonly IWalletService _walletService;
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IWalletService _walletService;
+    private readonly IOutboxService _outboxService;
 
         public RequestWithdrawalCommandHandler(
             IApplicationDbContext context,
             ICurrentUserService currentUserService,
-            IWalletService walletService)
+            IWalletService walletService,
+            IOutboxService outboxService)
         {
             _context = context;
             _currentUserService = currentUserService;
             _walletService = walletService;
+            _outboxService = outboxService;
         }
 
         public async Task<WithdrawalDto> Handle(RequestWithdrawalCommand request, CancellationToken cancellationToken)
         {
-            var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User is not authenticated");
+            var userId = _currentUserService.UserId;
 
             // Get user's wallet (unified - no wallet type)
             var wallet = await _walletService.GetWalletByUserIdAsync(userId);
@@ -51,9 +54,22 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
             _context.Withdrawals.Add(withdrawal);
 
             // Create a withdrawal transaction to reduce wallet balance
-            wallet.Debit(amount, $"Withdrawal request #{withdrawal.Id}");
+            wallet.Debit(amount, $"Withdrawal request {withdrawal.Reference}");
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Enqueue notification (withdrawal initiated)
+            await _outboxService.EnqueueAsync(
+                "WithdrawalInitiated",
+                new {
+                    UserId = userId,
+                    WithdrawalId = withdrawal.Id,
+                    Amount = withdrawal.Amount.Amount,
+                    Currency = withdrawal.Amount.Currency,
+                    Channel = withdrawal.Channel.ToString(),
+                    RequestedAt = withdrawal.RequestedAt
+                },
+                cancellationToken);
 
             // Map to DTO
             return new WithdrawalDto
@@ -64,6 +80,7 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
                 Currency = withdrawal.Amount.Currency,
                 Channel = withdrawal.Channel,
                 ChannelReference = withdrawal.ChannelReference,
+                Reference = withdrawal.Reference,
                 Status = withdrawal.Status,
                 RequestedAt = withdrawal.RequestedAt,
                 SettledAt = withdrawal.SettledAt,

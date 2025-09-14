@@ -50,7 +50,7 @@ public class GetDisputeByIdQueryHandler : IRequestHandler<GetDisputeByIdQuery, D
 
     public async Task<DisputeDetailDto> Handle(GetDisputeByIdQuery request, CancellationToken cancellationToken)
     {
-        var userId = _currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated");
+        var userId = _currentUserService.UserId;
         
         var dispute = await _context.Disputes
             .Include(d => d.Order)

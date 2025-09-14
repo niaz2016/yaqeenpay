@@ -1,6 +1,12 @@
 using YaqeenPay.Domain.Enums;
 
 namespace YaqeenPay.Application.Features.Admin.Common;
+public class UserDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+}
 
 public class AdminBusinessProfileDto
 {
@@ -24,6 +30,7 @@ public class AdminBusinessProfileDto
     public string? RejectionReason { get; set; }
     public DateTime? VerifiedAt { get; set; }
     public Guid? VerifiedBy { get; set; }
-    public DateTime Created { get; set; }
+    public DateTime SubmissionDate { get; set; }
     public KycStatus UserKycStatus { get; set; }
+    public UserDto User { get; set; } = new UserDto();
 }

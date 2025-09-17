@@ -46,6 +46,10 @@ const SellerApproval: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<BusinessProfile | null>(null);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [profileDocuments, setProfileDocuments] = useState<any[]>([]);
+  const [pendingDocsList, setPendingDocsList] = useState<any[] | null>(null);
+  const [pendingDocsDialogOpen, setPendingDocsDialogOpen] = useState(false);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<'Approved' | 'Rejected'>('Approved');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -220,6 +224,87 @@ const SellerApproval: React.FC = () => {
                             onClick={() => openReviewDialog(profile, 'Rejected')}
                           >
                             <CancelIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="View KYC Documents">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={async () => {
+                              try {
+                                setLoading(true);
+
+                                // First attempt a raw fetch so we can inspect HTTP status codes
+                                try {
+                                  const token = localStorage.getItem('access_token');
+                                  const base = import.meta.env.VITE_API_URL || 'https://localhost:7137/api';
+                                  const resp = await fetch(`${base}/admin/sellers/${profile.id}`, {
+                                    method: 'GET',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                    }
+                                  });
+
+                                  if (resp.status === 404) {
+                                    // Fallback to pending KYC documents
+                                    const pendingDocs = await adminService.getPendingKycDocuments();
+                                    const matched = (pendingDocs || []).filter((d: any) => {
+                                      return d.userId === profile.userId || (d.user && d.user.email === profile.user.email) || d.user?.email === profile.user.email;
+                                    }).map((d: any, idx: number) => ({
+                                      id: d.id || d.documentId || `doc-fallback-${idx}`,
+                                      documentUrl: d.documentUrl || d.url || d.fileUrl || d.path || d.documentPath,
+                                      documentType: d.documentType || d.type || d.name || ''
+                                    }));
+
+                                    setProfileDocuments(matched);
+                                    setSelectedProfile(profile as any);
+                                    setDocumentsDialogOpen(true);
+                                    return;
+                                  }
+
+                                  if (!resp.ok) {
+                                    const text = await resp.text();
+                                    throw new Error(`Failed to fetch profile: ${resp.status} ${text}`);
+                                  }
+
+                                  const full = await resp.json();
+                                  const docsRaw = (full as any).kycDocuments || (full as any).documents || (full as any).kycDocs || (full as any).kycFiles || [];
+                                  const docs = Array.isArray(docsRaw) ? docsRaw.map((d: any, idx: number) => ({
+                                    id: d.id || d.documentId || `doc-${idx}`,
+                                    documentUrl: d.documentUrl || d.url || d.fileUrl || d.path || d.documentPath,
+                                    documentType: d.documentType || d.type || d.name || ''
+                                  })) : [];
+
+                                  setProfileDocuments(docs);
+                                  setSelectedProfile(full as any);
+                                  setDocumentsDialogOpen(true);
+                                } catch (fetchErr) {
+                                  // If fetch failed in an unexpected way, as a last resort try adminService.getBusinessProfile
+                                  try {
+                                    const full = await adminService.getBusinessProfile(profile.id);
+                                    const docsRaw = (full as any).kycDocuments || (full as any).documents || (full as any).kycDocs || (full as any).kycFiles || [];
+                                    const docs = Array.isArray(docsRaw) ? docsRaw.map((d: any, idx: number) => ({
+                                      id: d.id || d.documentId || `doc-${idx}`,
+                                      documentUrl: d.documentUrl || d.url || d.fileUrl || d.path || d.documentPath,
+                                      documentType: d.documentType || d.type || d.name || ''
+                                    })) : [];
+                                    setProfileDocuments(docs);
+                                    setSelectedProfile(full as any);
+                                    setDocumentsDialogOpen(true);
+                                  } catch (svcErr) {
+                                    setError(svcErr instanceof Error ? svcErr.message : 'Failed to load documents');
+                                  }
+                                }
+
+                              } catch (err) {
+                                setError(err instanceof Error ? err.message : 'Failed to load documents');
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                          >
+                            <Tooltip title="View KYC Documents"><Avatar sx={{ width: 28, height: 28 }}>📄</Avatar></Tooltip>
                           </IconButton>
                         </Tooltip>
                       </Stack>
@@ -400,6 +485,118 @@ const SellerApproval: React.FC = () => {
           >
             {submitting ? 'Processing...' : `${reviewAction === 'Approved' ? 'Approve' : 'Reject'} Application`}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Documents Dialog */}
+      <Dialog
+        open={documentsDialogOpen}
+        onClose={() => setDocumentsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>KYC Documents</DialogTitle>
+        <DialogContent>
+          {profileDocuments.length === 0 ? (
+            <Box>
+              <Typography>No documents found for this application.</Typography>
+              <Box mt={2}>
+                <Button
+                  variant="outlined"
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      const pending = await adminService.getPendingKycDocuments();
+                      setPendingDocsList(pending || []);
+                      setPendingDocsDialogOpen(true);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Failed to fetch pending KYC documents');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                >
+                  Search pending KYC documents
+                </Button>
+              </Box>
+            </Box>
+          ) : (
+            <Stack spacing={2}>
+              {profileDocuments.map((doc: any) => (
+                <Box key={doc.id}>
+                  <Typography variant="subtitle2">{doc.documentType || doc.type}</Typography>
+                  {doc.documentUrl ? (
+                    <Box mt={1}>
+                      {/* If it's an image show preview, otherwise show link */}
+                      {/(jpg|jpeg|png|gif)$/i.test(doc.documentUrl) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={doc.documentUrl} alt={doc.documentType} style={{ maxWidth: '100%', maxHeight: 400 }} />
+                      ) : (
+                        <a href={doc.documentUrl} target="_blank" rel="noreferrer">Open document</a>
+                      )}
+                      <Box mt={1}>
+                        <Button size="small" variant="outlined" href={doc.documentUrl} target="_blank">Download</Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">No URL available</Typography>
+                  )}
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDocumentsDialogOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Pending Docs Dialog - shows list of all pending KYC docs for manual inspection */}
+      <Dialog
+        open={pendingDocsDialogOpen}
+        onClose={() => setPendingDocsDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>Pending KYC Documents</DialogTitle>
+        <DialogContent>
+          {pendingDocsList === null ? (
+            <Typography>Click "Search pending KYC documents" to load.</Typography>
+          ) : pendingDocsList.length === 0 ? (
+            <Typography>No pending documents found.</Typography>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>User Email</TableCell>
+                    <TableCell>Document Type</TableCell>
+                    <TableCell>Submission Date</TableCell>
+                    <TableCell>Preview / Link</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {pendingDocsList.map((d: any) => (
+                    <TableRow key={d.id || d.documentId}>
+                      <TableCell>{d.user?.email || d.email || '—'}</TableCell>
+                      <TableCell>{d.documentType || d.type || d.name || '—'}</TableCell>
+                      <TableCell>{d.submissionDate ? new Date(d.submissionDate).toLocaleString() : '—'}</TableCell>
+                      <TableCell>
+                        {d.documentUrl || d.url || d.fileUrl ? (
+                          <a href={d.documentUrl || d.url || d.fileUrl} target="_blank" rel="noreferrer">Open</a>
+                        ) : (
+                          'No URL'
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPendingDocsDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

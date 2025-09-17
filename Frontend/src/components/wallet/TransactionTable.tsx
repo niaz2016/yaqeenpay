@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, Tooltip } from '@mui/material';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import type { WalletTransaction } from '../../types/wallet';
 
@@ -33,12 +33,33 @@ const columns: GridColDef[] = [
     valueFormatter: (p: any) => {
       const val = p.value ?? p.row?.amount;
       const num = typeof val === 'string' ? Number(val) : typeof val === 'number' ? val : 0;
-      const curr = p.row?.currency ?? '';
-      return `${curr} ${num.toFixed(2)}`;
+      const curr = p.row?.currency ?? p.row?.currencyCode ?? '';
+      return `${curr ? curr + ' ' : ''}${num.toFixed(2)}`;
     },
   },
-  { field: 'currency', headerName: 'Curr', width: 80 },
-  { field: 'reference', headerName: 'Ref', flex: 1 },
+  {
+    field: 'proof',
+    headerName: 'Proof',
+    width: 100,
+    sortable: false,
+    filterable: false,
+    renderCell: (p: any) => {
+      const row = p.row || {};
+      const url = row.proofUrl || (row.attachments && row.attachments[0]?.url) || '';
+      if (!url) return null;
+      return (
+        <Tooltip title="Open proof in new tab">
+          <img
+            src={url}
+            alt={row.proofFilename || 'proof'}
+            style={{ width: 48, height: 48, objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }}
+            onClick={() => window.open(url, '_blank')}
+          />
+        </Tooltip>
+      );
+    },
+  },
+  { field: 'transactionReference', headerName: 'Ref', flex: 1 },
 ];
 
 const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loading, onPageChange, onPageSizeChange }) => {

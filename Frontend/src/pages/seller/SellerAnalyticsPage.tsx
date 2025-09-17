@@ -6,9 +6,9 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { selectedSellerService } from '../../services/sellerServiceSelector';
-import type { SellerAnalytics } from '../../types/seller';
-const SellerAnalyticsPage: React.FC = () => {
+import { selectedUserService } from '../../services/userServiceSelector';
+import type { UserAnalytics as SellerAnalytics } from '../../types/user';
+const UserAnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<SellerAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +16,7 @@ const SellerAnalyticsPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await selectedSellerService.getSellerAnalytics();
+  const data = await selectedUserService.getAnalytics();
       setAnalytics(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
@@ -108,4 +108,4 @@ const SellerAnalyticsPage: React.FC = () => {
     </Container>
   );
 };
-export default SellerAnalyticsPage;
+export default UserAnalyticsPage;

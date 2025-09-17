@@ -21,7 +21,7 @@ import { AccountBalance, CreditCard } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { selectedSellerService } from '../../services/sellerServiceSelector';
+import { selectedUserService } from '../../services/userServiceSelector';
 
 const withdrawalSchema = z.object({
   amount: z.number().min(10, 'Minimum withdrawal amount is $10').max(10000, 'Maximum withdrawal amount is $10,000'),
@@ -84,7 +84,7 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
         paymentMethod: data.method,
         notes: data.notes
       };
-      await selectedSellerService.requestWithdrawal(withdrawalRequest as any);
+  await selectedUserService.requestWithdrawal(withdrawalRequest as any);
       onSuccess();
       handleClose();
     } catch (err) {
@@ -123,8 +123,8 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
     switch (method) {
       case 'bank_transfer':
         return 'Account Number (e.g., 1234567890)';
-      case 'paypal':
-        return 'PayPal Email (e.g., seller@example.com)';
+    case 'paypal':
+      return 'PayPal Email (e.g., user@example.com)';
       case 'stripe':
         return 'Stripe Account ID';
       default:

@@ -5,28 +5,36 @@ export interface ProfileDetails {
   phoneNumber?: string;
   firstName: string;
   lastName: string;
-  address?: Address;
-  emailVerified: boolean;
-  phoneVerified: boolean;
-  profileCompleted: boolean;
-  completionPercentage: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Address {
-  street?: string;
+  profileImageUrl?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  address?: string;
   city?: string;
   state?: string;
-  postalCode?: string;
   country?: string;
+  postalCode?: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  profileCompleted: boolean;
+  completionPercentage: number;
+  profileCompleteness?: number; // backend name
+  kycStatus?: string;
+  roles?: string[];
+  created?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProfileUpdateRequest {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
-  address?: Address;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  profileImageUrl?: string;
 }
 
 export interface ChangePasswordRequest {

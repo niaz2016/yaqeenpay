@@ -917,6 +917,36 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("TopUps");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.TopUpProof", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TopUpId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TopUpId");
+
+                    b.ToTable("TopUpProofs");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Wallet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1036,6 +1066,9 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                     b.Property<Guid>("LastModifiedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
 
                     b.Property<string>("Reference")
                         .IsRequired()
@@ -1387,6 +1420,17 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.Navigation("User");
 
                     b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.TopUpProof", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.TopUp", "TopUp")
+                        .WithMany()
+                        .HasForeignKey("TopUpId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TopUp");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Wallet", b =>

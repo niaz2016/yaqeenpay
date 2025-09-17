@@ -15,6 +15,27 @@ class ProfileService {
     return apiService.put<ProfileDetails>('/profile', profileData);
   }
 
+  async uploadProfileImage(file: File, onUploadProgress?: (progressEvent: ProgressEvent) => void): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Let axios set the multipart boundary; override default content-type
+    const config = {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress
+    } as any;
+
+  const result = await apiService.post<any>('/profile/upload-image', formData, config);
+  // apiService.post unwraps ApiResponse wrappers and returns the inner data when possible.
+  // Support multiple possible shapes:
+  //  - { url: 'https://...' }
+  //  - { data: { url: '...' } }
+  //  - { success: true, data: { url: '...' } } (already unwrapped by apiService)
+  const url = result?.url || result?.data?.url || (result && result?.data?.data?.url) || null;
+  if (!url) throw new Error('Upload succeeded but server did not return file URL');
+  return { url };
+  }
+
   async changePassword(passwordData: ChangePasswordRequest): Promise<{ success: boolean; message?: string }> {
     return apiService.post<{ success: boolean; message?: string }>('/profile/change-password', passwordData);
   }

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Features.UserManagement.Commands.ApplyForSellerRole;
 
 namespace YaqeenPay.API.Controllers;
@@ -10,6 +9,13 @@ public class SellerRegistrationController : ApiControllerBase
 {
     [HttpPost("apply")]
     public async Task<IActionResult> ApplyForSellerRole(ApplyForSellerRoleCommand command)
+    {
+        return Ok(await Mediator.Send(command));
+    }
+
+    // Compatibility: accept ApplyForUserRoleCommand at the same endpoint
+    [HttpPost("apply-user")]
+    public async Task<IActionResult> ApplyForUserRole(YaqeenPay.Application.Features.UserManagement.Commands.ApplyForUserRole.ApplyForUserRoleCommand command)
     {
         return Ok(await Mediator.Send(command));
     }

@@ -13,7 +13,7 @@ import type {
   WithdrawalRequest,
   Withdrawal,
   ShippingInfo
-} from '../types/seller';
+} from '../types/user';
 
 export class SellerService {
   private static instance: SellerService;
@@ -171,19 +171,44 @@ export class SellerService {
   // Withdrawal Management
   async requestWithdrawal(data: WithdrawalRequest): Promise<Withdrawal> {
     // Transform frontend data to match backend RequestWithdrawalCommand structure
+    // Build notes to include bank account and account title when available, since backend RequestWithdrawalCommand accepts Notes
+    const bankDetails = (data as any).bankDetails;
+    let notes: string | undefined = data.notes;
+    if (!notes && bankDetails) {
+      const parts: string[] = [];
+      if (bankDetails.accountNumber) parts.push(`Account: ${bankDetails.accountNumber}`);
+      if (bankDetails.accountHolderName) parts.push(`Account Title: ${bankDetails.accountHolderName}`);
+      if (bankDetails.bankName) parts.push(`Bank: ${bankDetails.bankName}`);
+      if (parts.length > 0) notes = parts.join(' | ');
+    }
+
     const backendRequest = {
       Amount: data.amount,
       Currency: 'PKR',
       PaymentMethod: data.paymentMethod || (data as any).method || (data as any).PaymentMethod,
-      Notes: data.notes || (data as any).bankAccount ? `Account: ${(data as any).bankAccount}` : undefined
+      Notes: notes
     };
     
     console.log('Withdrawal request payload:', backendRequest);
     return apiService.post<Withdrawal>('/withdrawals', backendRequest);
   }
 
-  async getWithdrawals(): Promise<Withdrawal[]> {
-    return apiService.get<Withdrawal[]>('/withdrawals');
+  async approveWithdrawal(withdrawalId: string): Promise<Withdrawal> {
+    // Call backend endpoint to approve a withdrawal (admin action)
+    return apiService.post<Withdrawal>(`/withdrawals/${withdrawalId}/approve`, {});
+  }
+
+  async getWithdrawals(options?: { page?: number; pageSize?: number; status?: string; sellerId?: string; reference?: string }): Promise<Withdrawal[]> {
+    const params = new URLSearchParams();
+    if (options?.page) params.append('page', options.page.toString());
+    if (options?.pageSize) params.append('pageSize', options.pageSize.toString());
+    if (options?.status) params.append('status', options.status);
+    if (options?.sellerId) params.append('sellerId', options.sellerId);
+    if (options?.reference) params.append('reference', options.reference);
+
+    const queryString = params.toString();
+    const url = queryString ? `/withdrawals?${queryString}` : '/withdrawals';
+    return apiService.get<Withdrawal[]>(url);
   }
 
   async getWithdrawalById(withdrawalId: string): Promise<Withdrawal> {

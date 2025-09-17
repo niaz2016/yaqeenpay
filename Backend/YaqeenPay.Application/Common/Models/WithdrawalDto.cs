@@ -6,6 +6,7 @@ namespace YaqeenPay.Application.Common.Models
     {
         public Guid Id { get; set; }
         public Guid SellerId { get; set; }
+        public string? SellerName { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; } = null!;
         public WithdrawalChannel Channel { get; set; }
@@ -16,6 +17,7 @@ namespace YaqeenPay.Application.Common.Models
         public DateTime? SettledAt { get; set; }
         public DateTime? FailedAt { get; set; }
         public string? FailureReason { get; set; }
+        public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
     }

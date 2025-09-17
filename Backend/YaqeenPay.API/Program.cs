@@ -88,6 +88,9 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Serve static files (wwwroot) so uploaded files under wwwroot/uploads are accessible
+app.UseStaticFiles();
+
 app.MapControllers();
 
 // Apply migrations and seed data

@@ -431,10 +431,10 @@ const DashboardPage: React.FC = () => {
                         }
                         secondary={
                           <Box>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="div">
                               {isSeller ? `Buyer: ${(item as any).buyer}` : `Seller: ${(item as any).seller}`}
                             </Typography>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" component="div">
                               Amount: ${item.amount} • {item.date}
                             </Typography>
                           </Box>

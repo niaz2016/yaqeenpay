@@ -28,7 +28,7 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
     public async Task<UserProfileDto> Handle(UpdateProfileCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        if (userId == null)
+        if (userId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User is not authenticated");
         }
@@ -49,13 +49,15 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.State = request.State ?? user.State;
         user.Country = request.Country ?? user.Country;
         user.PostalCode = request.PostalCode ?? user.PostalCode;
+    // Allow updating profile image URL
+    user.ProfileImageUrl = request.ProfileImageUrl ?? user.ProfileImageUrl;
 
         // Calculate profile completeness
         user.UpdateProfileCompleteness();
 
         await _userManager.UpdateAsync(user);
 
-        // Get user roles
+    // Get user roles
         var roles = await _userManager.GetRolesAsync(user);
 
         return new UserProfileDto
@@ -73,8 +75,9 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
             State = user.State,
             Country = user.Country,
             PostalCode = user.PostalCode,
-            IsEmailVerified = user.IsEmailVerified,
-            IsPhoneVerified = user.IsPhoneVerified,
+            // Prefer explicit verified timestamps; fall back to Identity's confirmation flags
+            IsEmailVerified = user.IsEmailVerified || user.EmailConfirmed,
+            IsPhoneVerified = user.IsPhoneVerified || user.PhoneNumberConfirmed,
             KycStatus = user.KycStatus,
             ProfileCompleteness = user.ProfileCompleteness,
             Roles = roles.ToList(),

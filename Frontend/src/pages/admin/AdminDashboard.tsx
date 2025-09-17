@@ -10,7 +10,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent
@@ -52,7 +51,17 @@ const AdminDashboard: React.FC = () => {
     setError(null);
     try {
       const data = await adminService.getAdminStats();
-      setStats(data);
+      // Fetch additional counts: pending top-ups and withdrawals stats (backend may include these already)
+      try {
+        const [pendingTopUps, withdrawalsStats] = await Promise.all([
+          adminService.getPendingTopUpsCount(),
+          adminService.getWithdrawalsStats()
+        ]);
+        setStats({ ...data, pendingTopUps, totalWithdrawals: withdrawalsStats.total, pendingWithdrawals: withdrawalsStats.pending });
+      } catch (e) {
+        // Fallback: set whatever admin stats returned
+        setStats(data);
+      }
     } catch (e) {
       setError('Failed to load statistics');
     } finally {
@@ -203,10 +212,43 @@ const AdminDashboard: React.FC = () => {
         </Box>
 
         {/* Quick Stats Grid */}
-        <Box mb={2}>
-          <Button variant="contained" color="primary" onClick={() => setTopUpDialogOpen(true)}>
-            Review Wallet Top-Ups
-          </Button>
+        <Box mb={2} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+          {/* Replace simple button with a card-like action for consistency */}
+          <Card sx={{ mb: 2, cursor: 'pointer' }} onClick={() => setTopUpDialogOpen(true)}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="subtitle2" color="textSecondary">Pending Top-Ups</Typography>
+                  <Typography variant="h5" color="primary.main">
+                    {stats.pendingTopUps ?? 0}
+                  </Typography>
+                </Box>
+                <Box sx={{ color: 'primary.main', fontSize: 36 }}>
+                  <VerifiedUserIcon />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Withdrawals card: shows history link and pending count */}
+          <Card sx={{ mb: 2, cursor: 'pointer' }} onClick={() => handleCardClick('/admin/withdrawals')}>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="subtitle2" color="textSecondary">Withdrawals</Typography>
+                  <Typography variant="h5" color="secondary.main">
+                    {stats.totalWithdrawals ?? 0}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Pending: {stats.pendingWithdrawals ?? 0}
+                  </Typography>
+                </Box>
+                <Box sx={{ color: 'secondary.main', fontSize: 36 }}>
+                  <ShoppingCartIcon />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
         </Box>
         <Dialog open={topUpDialogOpen} onClose={() => setTopUpDialogOpen(false)} maxWidth="lg" fullWidth>
           <DialogTitle>Wallet Top-Up Approvals</DialogTitle>

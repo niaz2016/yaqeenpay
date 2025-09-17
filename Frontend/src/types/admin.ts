@@ -129,6 +129,10 @@ export interface AdminStats {
   openDisputes: number;
   totalTransactionVolume: number;
   monthlyGrowthRate: number;
+  // Added fields for dashboard cards
+  pendingTopUps?: number;
+  totalWithdrawals?: number;
+  pendingWithdrawals?: number;
 }
 
 export interface KycReviewRequest {

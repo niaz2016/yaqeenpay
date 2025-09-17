@@ -19,6 +19,7 @@ public interface IApplicationDbContext
     DbSet<Wallet> Wallets { get; }
     DbSet<WalletTransaction> WalletTransactions { get; }
     DbSet<TopUp> TopUps { get; }
+    DbSet<YaqeenPay.Domain.Entities.TopUpProof> TopUpProofs { get; }
 
     DbSet<Dispute> Disputes { get; }
     DbSet<YaqeenPay.Domain.Entities.AuditLog> AuditLogs { get; }

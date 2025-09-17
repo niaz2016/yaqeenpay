@@ -28,8 +28,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { sellerService } from '../../services/sellerService';
-import type { SellerOrder, ShippingInfo } from '../../types/seller';
+import { userService } from '../../services/userService';
+import type { SellerOrder, ShippingInfo } from '../../types/user';
 
 const shippingInfoSchema = z.object({
   trackingNumber: z.string().min(1, 'Tracking number is required'),
@@ -41,7 +41,7 @@ const shippingInfoSchema = z.object({
 
 type ShippingInfoFormData = z.infer<typeof shippingInfoSchema>;
 
-const SellerOrderDetailsPage: React.FC = () => {
+const UserOrderDetailsPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   
@@ -76,7 +76,7 @@ const SellerOrderDetailsPage: React.FC = () => {
     setError(null);
     
     try {
-      const orderData = await sellerService.getSellerOrderById(orderId);
+      const orderData = await userService.getSellerOrderById(orderId as string);
       setOrder(orderData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load order');
@@ -102,7 +102,7 @@ const SellerOrderDetailsPage: React.FC = () => {
         notes: data.notes || undefined
       };
 
-      await sellerService.updateShippingInfo(orderId, shippingInfo);
+  await userService.updateShippingInfo(orderId as string, shippingInfo as any);
       setShippingDialogOpen(false);
       reset();
       await loadOrder(); // Refresh order data
@@ -118,7 +118,7 @@ const SellerOrderDetailsPage: React.FC = () => {
     
     setActionLoading(true);
     try {
-      await sellerService.markOrderAsShipped(orderId, order.trackingNumber || '');
+  await userService.markOrderAsShipped(orderId as string, order.trackingNumber || '');
       await loadOrder(); // Refresh order data
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark order as shipped');
@@ -132,7 +132,7 @@ const SellerOrderDetailsPage: React.FC = () => {
     
     setActionLoading(true);
     try {
-      await sellerService.uploadShipmentProof(orderId, selectedFile);
+  await userService.uploadShipmentProof(orderId as string, selectedFile as File);
       setUploadDialogOpen(false);
       setSelectedFile(null);
       await loadOrder(); // Refresh order data
@@ -508,4 +508,4 @@ const SellerOrderDetailsPage: React.FC = () => {
   );
 };
 
-export default SellerOrderDetailsPage;
+export default UserOrderDetailsPage;

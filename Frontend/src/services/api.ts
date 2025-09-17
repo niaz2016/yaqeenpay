@@ -251,7 +251,9 @@ class ApiService {
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
         if (response.data.success) {
-          return response.data.data;
+          // Some backend endpoints return the payload directly under root (with success/message)
+          // and don't include a `data` property. In that case, return the whole response.data.
+          return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
           throw new Error(response.data.message || 'API error');
         }
@@ -267,13 +269,24 @@ class ApiService {
 
   public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      const response = await this.api.post<any>(url, data, this.withAuth(config));
+      const cfg = this.withAuth(config);
+      // If we're sending FormData, let the browser/axios set the Content-Type (including boundary)
+      if (data instanceof FormData) {
+        if (cfg && cfg.headers) {
+          // remove Content-Type so axios sets multipart/form-data with boundary
+          const headersAny = cfg.headers as any;
+          delete headersAny['Content-Type'];
+          delete headersAny['content-type'];
+        }
+      }
+
+      const response = await this.api.post<any>(url, data, cfg);
       console.log(`POST ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
         if (response.data.success) {
-          return response.data.data;
+          return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
           throw new Error(response.data.message || 'API error');
         }
@@ -289,13 +302,22 @@ class ApiService {
 
   public async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
-      const response = await this.api.put<any>(url, data, this.withAuth(config));
+      const cfg = this.withAuth(config);
+      if (data instanceof FormData) {
+        if (cfg && cfg.headers) {
+          const headersAny = cfg.headers as any;
+          delete headersAny['Content-Type'];
+          delete headersAny['content-type'];
+        }
+      }
+
+      const response = await this.api.put<any>(url, data, cfg);
       console.log(`PUT ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
         if (response.data.success) {
-          return response.data.data;
+          return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
           throw new Error(response.data.message || 'API error');
         }
@@ -317,7 +339,7 @@ class ApiService {
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
         if (response.data.success) {
-          return response.data.data;
+          return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
           throw new Error(response.data.message || 'API error');
         }

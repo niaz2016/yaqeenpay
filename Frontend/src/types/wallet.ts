@@ -19,6 +19,11 @@ export interface WalletTransaction {
   description?: string;
   createdAt: string;
   transactionReference?: string;
+  // Optional fields often provided by backend or legacy clients
+  currency?: string;
+  proofUrl?: string; // URL to proof of payment image
+  proofFilename?: string;
+  attachments?: { url: string; name?: string }[];
 }
 
 export interface TransactionQuery {

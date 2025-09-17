@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Features.UserManagement.Commands.UpdateProfile;
 using YaqeenPay.Application.Features.UserManagement.Queries.GetUserProfile;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace YaqeenPay.API.Controllers;
 
@@ -28,5 +30,29 @@ public class ProfileController : ApiControllerBase
     public async Task<IActionResult> UpdateProfile(UpdateProfileCommand command)
     {
         return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("upload-image")]
+    public async Task<IActionResult> UploadProfileImage([FromForm] IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { success = false, message = "No file provided" });
+
+        // Ensure uploads folder exists under wwwroot
+        var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+        if (!Directory.Exists(uploadsPath)) Directory.CreateDirectory(uploadsPath);
+
+        var ext = Path.GetExtension(file.FileName);
+        var fileName = $"{Guid.NewGuid().ToString()}_blob{ext}";
+        var filePath = Path.Combine(uploadsPath, fileName);
+
+        using (var stream = System.IO.File.Create(filePath))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var url = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
+        // Return wrapped ApiResponse { success: true, data: { url } } so frontend ApiService unwraps correctly
+        return Ok(new { success = true, data = new { url } });
     }
 }

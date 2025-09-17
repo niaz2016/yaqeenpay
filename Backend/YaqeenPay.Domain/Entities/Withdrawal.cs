@@ -1,4 +1,3 @@
-using System;
 using YaqeenPay.Domain.Common;
 using YaqeenPay.Domain.ValueObjects;
 
@@ -23,6 +22,8 @@ namespace YaqeenPay.Domain.Entities
     public class Withdrawal : AuditableEntity
     {
         public Guid SellerId { get; private set; }
+        // Optional free-form notes saved with the withdrawal (may include bank details submitted by seller)
+        public string? Notes { get; set; }
         public Money Amount { get; private set; } = null!;
         public WithdrawalChannel Channel { get; private set; }
         public string? ChannelReference { get; private set; }

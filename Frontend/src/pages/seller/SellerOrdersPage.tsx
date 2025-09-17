@@ -23,10 +23,10 @@ import {
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
-import { sellerService } from '../../services/sellerService';
-import type { SellerOrder, SellerOrdersFilters } from '../../types/seller';
+import { userService } from '../../services/userService';
+import type { SellerOrder, SellerOrdersFilters } from '../../types/user';
 
-const SellerOrdersPage: React.FC = () => {
+const UserOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +65,7 @@ const SellerOrdersPage: React.FC = () => {
         sortDirection: 'desc'
       };
 
-      const response = await sellerService.getSellerOrders(filters);
+  const response = await userService.getSellerOrders(filters as any);
       setOrders(response.items);
       setTotalCount(response.totalCount);
     } catch (err) {
@@ -271,4 +271,4 @@ const SellerOrdersPage: React.FC = () => {
   );
 };
 
-export default SellerOrdersPage;
+export default UserOrdersPage;

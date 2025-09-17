@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using YaqeenPay.Application.Common.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet;
 using YaqeenPay.Domain.Entities;
 using YaqeenPay.Domain.Enums;
 using YaqeenPay.Domain.Interfaces;
@@ -7,47 +9,56 @@ using YaqeenPay.Domain.ValueObjects;
 
 namespace YaqeenPay.Infrastructure.Services
 {
-    public class WalletService : IWalletService
+    public class WalletService(
+        IWalletRepository walletRepository,
+        IWalletTransactionRepository transactionRepository,
+        ITopUpRepository topUpRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<WalletService> logger,
+        YaqeenPay.Application.Common.Interfaces.IApplicationDbContext db) : IWalletService
     {
-        private readonly IWalletRepository _walletRepository;
-        private readonly IWalletTransactionRepository _transactionRepository;
-        private readonly ITopUpRepository _topUpRepository;
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly ILogger<WalletService> _logger;
+    private readonly IWalletRepository _walletRepository = walletRepository;
+    private readonly IWalletTransactionRepository _transactionRepository = transactionRepository;
+    private readonly ITopUpRepository _topUpRepository = topUpRepository;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly ILogger<WalletService> _logger = logger;
+    private readonly IApplicationDbContext _db = db;
 
         public async Task<List<Application.Common.Models.TopUpDto>> GetAllTopUpsAsync(int page = 1, int pageSize = 100)
         {
             var topUps = await _topUpRepository.GetAllAsync(page, pageSize);
-            // Map to DTOs
-            return topUps.Select(t => new Application.Common.Models.TopUpDto
-            {
-                Id = t.Id,
-                UserId = t.UserId,
-                WalletId = t.WalletId,
-                Amount = t.Amount.Amount,
-                Currency = t.Amount.Currency,
-                Channel = t.Channel,
-                Status = t.Status,
-                ExternalReference = t.ExternalReference,
-                RequestedAt = t.RequestedAt,
-                ConfirmedAt = t.ConfirmedAt,
-                FailedAt = t.FailedAt,
-                FailureReason = t.FailureReason
-            }).ToList();
-        }
+            var result = new List<Application.Common.Models.TopUpDto>();
 
-        public WalletService(
-            IWalletRepository walletRepository,
-            IWalletTransactionRepository transactionRepository,
-            ITopUpRepository topUpRepository,
-            IUnitOfWork unitOfWork,
-            ILogger<WalletService> logger)
-        {
-            _walletRepository = walletRepository;
-            _transactionRepository = transactionRepository;
-            _topUpRepository = topUpRepository;
-            _unitOfWork = unitOfWork;
-            _logger = logger;
+            foreach (var t in topUps)
+            {
+                var dto = new Application.Common.Models.TopUpDto
+                {
+                    Id = t.Id,
+                    UserId = t.UserId,
+                    WalletId = t.WalletId,
+                    Amount = t.Amount.Amount,
+                    Currency = t.Amount.Currency,
+                    Channel = t.Channel,
+                    Status = t.Status,
+                    ExternalReference = t.ExternalReference,
+                    RequestedAt = t.RequestedAt,
+                    ConfirmedAt = t.ConfirmedAt,
+                    FailedAt = t.FailedAt,
+                    FailureReason = t.FailureReason
+                };
+
+                // Load proofs for this top-up
+                var proofs = await _db.TopUpProofs.Where(p => p.TopUpId == dto.Id).ToListAsync();
+                if (proofs != null && proofs.Count > 0)
+                {
+                    dto.Proofs = proofs.Select(p => new TopUpProofDto { TopUpId = p.TopUpId, FileName = p.FileName, FileUrl = p.FileUrl, Notes = p.Notes, UploadedAt = p.UploadedAt }).ToList();
+                    dto.ProofUrl = dto.Proofs.FirstOrDefault()?.FileUrl;
+                }
+
+                result.Add(dto);
+            }
+
+            return result;
         }
 
         public async Task<Wallet> CreateWalletAsync(Guid userId, string currency = "PKR")

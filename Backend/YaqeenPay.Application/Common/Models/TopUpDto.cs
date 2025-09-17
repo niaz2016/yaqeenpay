@@ -1,4 +1,5 @@
 using YaqeenPay.Domain.Enums;
+using YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet;
 
 namespace YaqeenPay.Application.Common.Models
 {
@@ -16,5 +17,8 @@ namespace YaqeenPay.Application.Common.Models
         public DateTime? ConfirmedAt { get; set; }
         public DateTime? FailedAt { get; set; }
         public string? FailureReason { get; set; }
+        // Optional proof metadata for admin UI
+        public string? ProofUrl { get; set; }
+        public List<TopUpProofDto>? Proofs { get; set; }
     }
 }

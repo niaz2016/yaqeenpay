@@ -151,12 +151,14 @@ export interface WithdrawalRequest {
 export interface Withdrawal {
   id: string;
   sellerId: string;
+  sellerName?: string;
   amount: number;
   currency: string;
   channel: 'JazzCash' | 'Easypaisa' | 'BankTransfer';
   channelReference?: string;
   reference: string; // User-friendly reference like WDR-xxxxx
-  status: 'Initiated' | 'PendingProvider' | 'Settled' | 'Failed' | 'Reversed';
+  // Allow common status strings including Pending/Completed for easier frontend mapping
+  status: 'Initiated' | 'PendingProvider' | 'Settled' | 'Failed' | 'Reversed' | 'Pending' | 'Completed' | 'Rejected';
   requestedAt: string;
   settledAt?: string;
   failedAt?: string;
@@ -169,6 +171,11 @@ export interface Withdrawal {
   rejectedAt?: string;
   rejectionReason?: string;
   transactionId?: string;
+  // optional proof/attachments/notes that seller may attach when requesting withdrawal
+  proofUrl?: string;
+  attachments?: { url: string; name?: string }[];
+  notes?: string;
+  description?: string;
 }
 
 export const WithdrawalStatus = {

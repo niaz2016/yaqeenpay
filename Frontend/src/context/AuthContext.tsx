@@ -108,7 +108,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Check if tokens exist and are valid
       if (authService.isAuthenticated()) {
         try {
-          const user = await authService.getCurrentUser();
+          const fetched = await authService.getCurrentUser();
+          // Normalize roles to an array of strings for consistent downstream checks
+          const normalizeRoles = (rawRoles: any): string[] => {
+            if (!rawRoles) return [];
+            if (Array.isArray(rawRoles)) {
+              return rawRoles.map((r: any) => {
+                if (!r) return '';
+                if (typeof r === 'string') return r;
+                if (typeof r === 'object') return (r.name || r.role || r.type || '').toString();
+                return r.toString();
+              }).filter(Boolean);
+            }
+            if (typeof rawRoles === 'string') {
+              return rawRoles.split(',').map(s => s.trim()).filter(Boolean);
+            }
+            return [];
+          };
+
+          const user = {
+            ...fetched,
+            // Only consider 'seller' role active if user's KYC status is approved/verified.
+            // This prevents the frontend from granting seller UI/privileges before admin approval.
+            roles: (() => {
+              const raw = normalizeRoles((fetched as any).roles);
+              const kyc = ((fetched as any).kycStatus || '').toString().toLowerCase();
+              const kycApproved = kyc === 'verified' || kyc === 'approved';
+              return raw.filter(r => {
+                if (!r) return false;
+                if (r.toLowerCase() === 'seller') return kycApproved;
+                return true;
+              });
+            })(),
+          } as any;
+
           console.log('AuthContext - User loaded:', user);
           console.log('AuthContext - User roles:', user.roles);
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
@@ -159,7 +192,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update user function
   const updateUser = (user: User) => {
-    dispatch({ type: 'UPDATE_USER', payload: user });
+    // Ensure roles are normalized when updating
+    const normalizeRoles = (rawRoles: any): string[] => {
+      if (!rawRoles) return [];
+      if (Array.isArray(rawRoles)) {
+        return rawRoles.map((r: any) => {
+          if (!r) return '';
+          if (typeof r === 'string') return r;
+          if (typeof r === 'object') return (r.name || r.role || r.type || '').toString();
+          return r.toString();
+        }).filter(Boolean);
+      }
+      if (typeof rawRoles === 'string') {
+        return rawRoles.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      return [];
+    };
+
+    const normalizedUser = {
+      ...user,
+      roles: normalizeRoles((user as any).roles),
+    } as any;
+
+    dispatch({ type: 'UPDATE_USER', payload: normalizedUser });
   };
 
   const contextValue: AuthContextType = {

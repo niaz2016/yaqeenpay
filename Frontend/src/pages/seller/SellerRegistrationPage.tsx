@@ -1,5 +1,5 @@
 // src/pages/seller/SellerRegistrationPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -11,26 +11,44 @@ import {
   Container
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import BusinessProfileForm from '../../components/seller/BusinessProfileForm';
-import KycDocumentUpload from '../../components/seller/KycDocumentUpload';
-import RegistrationSummary from '../../components/seller/RegistrationSummary';
-import { sellerService } from '../../services/sellerService';
+import { useAuth } from '../../context/AuthContext';
+import { BusinessProfileForm, KycDocumentUpload, RegistrationSummary } from '../../components/user';
+import { userService } from '../../services/userService';
 import type {
   CreateBusinessProfileRequest,
   KycDocumentUpload as KycDocumentUploadType,
   SellerRegistrationRequest
-} from '../../types/seller';
+} from '../../types/user';
 
 const steps = ['Business Profile', 'KYC Documents', 'Review & Submit'];
 
-const SellerRegistrationPage: React.FC = () => {
+const UserRegistrationPage: React.FC = () => {
+  const { user, loading } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [businessProfile, setBusinessProfile] = useState<CreateBusinessProfileRequest | null>(null);
   const [kycDocuments, setKycDocuments] = useState<KycDocumentUploadType[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Redirect or hide page when user is already a seller or has submitted KYC
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return; // unauthenticated users may still access the page (registration flow)
+
+  const isSeller = (user.roles || []).some(r => r.toLowerCase() === 'seller');
+  const kycStatus = (user.kycStatus || '').toString().toLowerCase();
+  // Only block users who are already verified or explicitly rejected.
+  // Users in 'pending' should be allowed to view/edit their application.
+  const blockedStatuses = ['verified', 'rejected'];
+  const kycSubmitted = blockedStatuses.includes(kycStatus);
+
+    if (isSeller || kycSubmitted) {
+      // If the user already has KYC or is a seller, redirect to dashboard
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -56,7 +74,7 @@ const SellerRegistrationPage: React.FC = () => {
       return;
     }
 
-    setLoading(true);
+  setSubmitting(true);
     setError(null);
 
     try {
@@ -65,20 +83,63 @@ const SellerRegistrationPage: React.FC = () => {
         kycDocuments
       };
 
-      const response = await sellerService.applyForSellerRole(registrationData);
+      const response: any = await userService.applyForSellerRole(registrationData as any);
 
-      if (response.Success) {
-        setSuccess(response.Message);
+      // Normalize multiple possible API shapes so frontend doesn't crash
+      // Possible shapes observed in this codebase:
+      // 1) ApiResponse wrapper: { success: boolean, data: any, message?: string }
+      // 2) PascalCase wrapper: { Success: boolean, Message?: string, Data?: any }
+      // 3) Direct data or string
+      if (!response) {
+        setError('Empty response from server');
+        return;
+      }
+
+      const normalized = (() => {
+        if (typeof response === 'string') {
+          return { ok: true, message: response, data: null };
+        }
+
+        if (typeof response === 'object') {
+          if ('success' in response) {
+            return {
+              ok: Boolean((response as any).success),
+              message: (response as any).message || (response as any).data || '',
+              data: (response as any).data
+            };
+          }
+
+          if ('Success' in response) {
+            return {
+              ok: Boolean((response as any).Success),
+              message: (response as any).Message || (response as any).Data || '',
+              data: (response as any).Data || (response as any).data
+            };
+          }
+
+          // Fallback: if it has a message field, use it; otherwise treat as success
+          return {
+            ok: true,
+            message: (response as any).message || (response as any).Message || JSON.stringify(response),
+            data: response
+          };
+        }
+
+        return { ok: false, message: 'Unexpected server response', data: null };
+      })();
+
+      if (normalized.ok) {
+        setSuccess(typeof normalized.message === 'string' ? normalized.message : 'Registration submitted');
         setTimeout(() => {
           navigate('/dashboard');
         }, 3000);
       } else {
-        setError(response.Message);
+        setError(typeof normalized.message === 'string' ? normalized.message : 'Registration failed');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during registration');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -101,13 +162,13 @@ const SellerRegistrationPage: React.FC = () => {
         );
       case 2:
         return (
-          <RegistrationSummary
-            businessProfile={businessProfile!}
-            kycDocuments={kycDocuments}
-            onSubmit={handleFinalSubmit}
-            onBack={handleBack}
-            loading={loading}
-          />
+            <RegistrationSummary
+              businessProfile={businessProfile!}
+              kycDocuments={kycDocuments}
+              onSubmit={handleFinalSubmit}
+              onBack={handleBack}
+              loading={submitting}
+            />
         );
       default:
         return null;
@@ -152,4 +213,4 @@ const SellerRegistrationPage: React.FC = () => {
   );
 };
 
-export default SellerRegistrationPage;
+export default UserRegistrationPage;

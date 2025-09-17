@@ -22,9 +22,9 @@ import {
   AttachFile
 } from '@mui/icons-material';
 import type {
-  CreateBusinessProfileRequest,
-  KycDocumentUpload as KycDocumentUploadType
-} from '../../types/seller';
+    CreateBusinessProfileRequest,
+    KycDocumentUpload as KycDocumentUploadType
+} from '../../types/user';
 
 interface RegistrationSummaryProps {
   businessProfile: CreateBusinessProfileRequest;

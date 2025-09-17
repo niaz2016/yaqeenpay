@@ -1,7 +1,6 @@
         
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Features.Wallets.Commands.ConfirmTopUp;
 using YaqeenPay.Application.Features.Wallets.Commands.CreateWallet;
 using YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet;
@@ -27,12 +26,50 @@ namespace YaqeenPay.API.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
+            // Save file to wwwroot/uploads
+            var env = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+            var uploadsRoot = System.IO.Path.Combine(env.ContentRootPath, "wwwroot", "uploads");
+            System.IO.Directory.CreateDirectory(uploadsRoot);
+
+            var safeName = System.IO.Path.GetFileName(file.FileName ?? Guid.NewGuid().ToString());
+            // Ensure stored file has a proper extension so browsers can infer MIME type
+            var ext = System.IO.Path.GetExtension(safeName);
+            if (string.IsNullOrEmpty(ext))
+            {
+                // map common image content types to extensions
+                var ct = (file.ContentType ?? string.Empty).ToLowerInvariant();
+                ext = ct switch
+                {
+                    "image/jpeg" => ".jpg",
+                    "image/jpg" => ".jpg",
+                    "image/png" => ".png",
+                    "image/gif" => ".gif",
+                    "image/webp" => ".webp",
+                    "application/pdf" => ".pdf",
+                    _ => string.Empty
+                };
+
+                // if still unknown, try to infer from filename fallback; otherwise leave empty
+            }
+
+            var baseName = System.IO.Path.GetFileNameWithoutExtension(safeName);
+            var storedFileName = Guid.NewGuid().ToString() + "_" + baseName + ext;
+            var storedPath = System.IO.Path.Combine(uploadsRoot, storedFileName);
+            using (var fs = System.IO.File.Create(storedPath))
+            {
+                await file.CopyToAsync(fs);
+            }
+
+            // Build absolute URL to the uploaded file (so frontend dev server can request from API host)
+            var request = HttpContext.Request;
+            var baseUrl = $"{request.Scheme}://{request.Host.Value}".TrimEnd('/');
+            var fileUrl = $"{baseUrl}/uploads/{storedFileName}";
+
             var command = new YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet.UploadTopUpProofCommand
             {
                 TopUpId = id,
-                FileStream = file.OpenReadStream(),
-                FileName = file.FileName,
-                ContentType = file.ContentType,
+                FileName = safeName,
+                FileUrl = fileUrl,
                 Notes = notes
             };
             var result = await Mediator.Send(command);

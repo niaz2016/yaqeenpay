@@ -49,6 +49,11 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
             var withdrawalChannel = MapPaymentMethodToChannel(request.PaymentMethod);
             var amount = new Money(request.Amount, request.Currency);
             var withdrawal = new Withdrawal(userId, amount, withdrawalChannel);
+            if (!string.IsNullOrWhiteSpace(request.Notes))
+            {
+                // Persist free-form notes (may contain bank details submitted by seller)
+                withdrawal.Notes = request.Notes;
+            }
 
             // Add to database
             _context.Withdrawals.Add(withdrawal);

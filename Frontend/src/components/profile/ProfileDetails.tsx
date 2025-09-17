@@ -11,9 +11,7 @@ import {
   Paper,
   Alert,
   CircularProgress,
-  Divider,
   Chip,
-  LinearProgress,
   Stack,
 } from '@mui/material';
 import profileService from '../../services/profileService';
@@ -74,11 +72,11 @@ const ProfileDetails: React.FC = () => {
           firstName: profileData.firstName,
           lastName: profileData.lastName,
           phoneNumber: profileData.phoneNumber || '',
-          street: profileData.address?.street || '',
-          city: profileData.address?.city || '',
-          state: profileData.address?.state || '',
-          postalCode: profileData.address?.postalCode || '',
-          country: profileData.address?.country || '',
+          street: profileData.address || '',
+          city: profileData.city || '',
+          state: profileData.state || '',
+          postalCode: profileData.postalCode || '',
+          country: profileData.country || '',
         });
       } catch (err) {
         console.error('Failed to load profile:', err);
@@ -100,13 +98,11 @@ const ProfileDetails: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         phoneNumber: data.phoneNumber,
-        address: {
-          street: data.street,
-          city: data.city,
-          state: data.state,
-          postalCode: data.postalCode,
-          country: data.country,
-        },
+        address: data.street,
+        city: data.city,
+        state: data.state,
+        postalCode: data.postalCode,
+        country: data.country,
       });
       
       setProfile(updatedProfile);
@@ -118,6 +114,12 @@ const ProfileDetails: React.FC = () => {
           ...user,
           firstName: data.firstName,
           lastName: data.lastName,
+          phoneNumber: data.phoneNumber,
+          address: data.street,
+          city: data.city,
+          state: data.state,
+          country: data.country,
+          postalCode: data.postalCode,
         });
       }
       
@@ -172,34 +174,6 @@ const ProfileDetails: React.FC = () => {
 
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
-      <Typography variant="h5" component="h2" gutterBottom>
-        My Profile
-      </Typography>
-      
-      {profile && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Profile Completion
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Box sx={{ width: '100%', mr: 1 }}>
-              <LinearProgress 
-                variant="determinate" 
-                value={profile.completionPercentage} 
-                sx={{ height: 10, borderRadius: 5 }}
-              />
-            </Box>
-            <Box sx={{ minWidth: 35 }}>
-              <Typography variant="body2" color="text.secondary">
-                {`${Math.round(profile.completionPercentage)}%`}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      )}
-      
-      <Divider sx={{ my: 2 }} />
-      
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -269,14 +243,14 @@ const ProfileDetails: React.FC = () => {
                   endAdornment: (
                     <Chip 
                       size="small" 
-                      color={profile?.emailVerified ? "success" : "warning"}
-                      label={profile?.emailVerified ? "Verified" : "Unverified"}
+                      color={profile?.isEmailVerified ? "success" : "warning"}
+                      label={profile?.isEmailVerified ? "Verified" : "Unverified"}
                       sx={{ ml: 1 }}
                     />
                   ),
                 }}
               />
-              {!profile?.emailVerified && (
+              {!profile?.isEmailVerified && (
                 <Button 
                   size="small" 
                   onClick={handleVerifyEmail}
@@ -302,8 +276,8 @@ const ProfileDetails: React.FC = () => {
                       endAdornment: profile?.phoneNumber && (
                         <Chip 
                           size="small" 
-                          color={profile?.phoneVerified ? "success" : "warning"}
-                          label={profile?.phoneVerified ? "Verified" : "Unverified"}
+                          color={profile?.isPhoneVerified ? "success" : "warning"}
+                          label={profile?.isPhoneVerified ? "Verified" : "Unverified"}
                           sx={{ ml: 1 }}
                         />
                       ),
@@ -311,7 +285,7 @@ const ProfileDetails: React.FC = () => {
                   />
                 )}
               />
-              {profile?.phoneNumber && !profile?.phoneVerified && (
+              {profile?.phoneNumber && !profile?.isPhoneVerified && (
                 <Button 
                   size="small" 
                   onClick={handleVerifyPhone}

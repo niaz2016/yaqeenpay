@@ -23,7 +23,7 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
     public async Task<UserProfileDto> Handle(GetUserProfileQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        if (userId == null)
+        if (userId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User is not authenticated");
         }
@@ -36,7 +36,7 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
 
         var roles = await _userManager.GetRolesAsync(user);
 
-        return new UserProfileDto
+    return new UserProfileDto
         {
             Id = user.Id,
             Email = user.Email ?? string.Empty,
@@ -51,8 +51,9 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
             State = user.State,
             Country = user.Country,
             PostalCode = user.PostalCode,
-            IsEmailVerified = user.IsEmailVerified,
-            IsPhoneVerified = user.IsPhoneVerified,
+            // Use verified timestamps if present, otherwise fall back to Identity's confirmation fields
+            IsEmailVerified = user.IsEmailVerified || user.EmailConfirmed,
+            IsPhoneVerified = user.IsPhoneVerified || user.PhoneNumberConfirmed,
             KycStatus = user.KycStatus,
             ProfileCompleteness = user.ProfileCompleteness,
             Roles = roles.ToList(),

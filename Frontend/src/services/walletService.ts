@@ -38,6 +38,20 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+// Convert a File to a base64 data URL for persistent storage in localStorage
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string | ArrayBuffer | null;
+      if (typeof result === 'string') resolve(result);
+      else reject(new Error('Failed to read file as data URL'));
+    };
+    reader.onerror = (e) => reject(e);
+    reader.readAsDataURL(file);
+  });
+}
+
 function readLS<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -82,18 +96,31 @@ function sanitizeTransactions(items: WalletTransaction[]): WalletTransaction[] {
       dateStr = new Date(dateStr).toISOString();
     }
     
-    const amt = Number(t.amount);
+    const amt = Number((t as any).amount ?? t.amount);
     const fixedAmt = Number.isFinite(amt) ? amt : 0;
-    
+
+    // Normalize common legacy/variant field names
+    const currency = (t as any).currency ?? (t as any).curr ?? (t as any).currCode ?? '';
+    const transactionReference = (t as any).transactionReference ?? (t as any).reference ?? (t as any).ref ?? (t as any).externalReference ?? (t as any).receiptId ?? '';
+    // Proof can be posted as proofUrl, attachment, fileUrl or as attachments array
+    const proofUrl = (t as any).proofUrl ?? (t as any).fileUrl ?? (t as any).proof?.url ?? (Array.isArray((t as any).attachments) && (t as any).attachments[0]?.url) ?? '';
+
+    // Ensure id exists
+    const id = t.id || (t as any).transactionId || (t as any).txId || uuidv4?.() || (`tx_${Math.random().toString(36).slice(2, 9)}`);
+
     // Return transaction with proper structure
-    return { 
-      ...t, 
+    return {
+      ...t,
+      id,
       date: dateStr,
       createdAt: dateStr, // Ensure createdAt exists
       amount: fixedAmt,
       status: t.status || 'Completed', // Default status
-      type: t.type || 'Credit' // Default type
-    };
+      type: t.type || 'Credit', // Default type
+      currency,
+      transactionReference,
+      proofUrl,
+    } as WalletTransaction;
   });
 }
 
@@ -109,6 +136,44 @@ class WalletService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('notes', notes || '');
+    if (this.mockMode) {
+      // In mock mode, persist the file as a base64 data URL in localStorage so it survives reloads
+      try {
+        const key = getUserTransactionsKey();
+        const txs = readLS<WalletTransaction[]>(key, []);
+        const idx = txs.findIndex((t) => t.id === topUpId);
+        const dataUrl = await fileToDataUrl(file as any);
+        if (idx >= 0) {
+          const t = { ...txs[idx] } as any;
+          t.proofUrl = dataUrl;
+          t.proofFilename = file.name;
+          t.attachments = [{ url: dataUrl, name: file.name }];
+          txs[idx] = t;
+          writeLS(key, txs);
+        } else {
+          // If not found, create a pending proof record as a transaction-like entry
+          const now = new Date().toISOString();
+          const newTx: any = {
+            id: topUpId || (`tx_${Math.random().toString(36).slice(2, 9)}`),
+            date: now,
+            createdAt: now,
+            type: 'Credit',
+            amount: 0,
+            status: 'Pending',
+            description: notes || 'Top-up proof (mock)',
+            proofUrl: dataUrl,
+            proofFilename: file.name,
+            attachments: [{ url: dataUrl, name: file.name }]
+          };
+          txs.unshift(newTx as WalletTransaction);
+          writeLS(key, txs);
+        }
+      } catch (e) {
+        console.warn('Mock uploadTopUpProof failed to attach proof to local tx:', e);
+      }
+      return;
+    }
+
     await apiService.post(`/wallets/top-up/${topUpId}/proof`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -243,22 +308,34 @@ class WalletService {
       });
       let txs = readLS<WalletTransaction[]>(getUserTransactionsKey(), []);
       txs = sanitizeTransactions(txs);
-      const receiptId = uuidv4();
-      const newBalance = summary.balance + request.amount;
+  const newBalance = summary.balance + request.amount;
       const now = new Date().toISOString();
-      const tx: WalletTransaction = {
-        id: uuidv4(),
+      const txId = uuidv4();
+      const tx: any = {
+        id: txId,
         date: now,
         createdAt: now,
         type: 'Credit',
         amount: Number(request.amount),
         status: 'Completed',
-        description: `${request.channel} top-up`
+        description: `${request.channel} top-up`,
+        currency: request.currency || summary.currency || 'USD'
       };
       const newSummary: WalletSummary = { ...summary, balance: newBalance, updatedAt: nowIso() };
       writeLS(getUserWalletKey(), newSummary);
-      writeLS(getUserTransactionsKey(), [tx, ...txs]);
-      return { success: true, receiptId, newBalance };
+      writeLS(getUserTransactionsKey(), [tx as WalletTransaction, ...txs]);
+      // Return TopUpDto-like object so caller can upload proof against returned id in mock mode
+      const topUpDto: TopUpDto = {
+        id: txId,
+        userId: 'mock-user',
+        walletId: 'mock-wallet',
+        amount: request.amount,
+        currency: request.currency || summary.currency || 'USD',
+        channel: request.channel,
+        status: 'Completed',
+        requestedAt: now,
+      } as TopUpDto;
+      return topUpDto;
     }
 
     try {
@@ -310,6 +387,32 @@ class WalletService {
         debits30d: acc.debits30d + p.debits,
       }), { credits30d: 0, debits30d: 0 });
       return { series, totals };
+    });
+  }
+
+  /**
+   * Fetch top-ups with optional server-side filters (admin use).
+   * Filters: pageNumber, pageSize, status, dateFrom, dateTo
+   */
+  async getTopUps(filters?: { pageNumber?: number; pageSize?: number; status?: string; dateFrom?: string; dateTo?: string }): Promise<any> {
+    if (this.mockMode) {
+      // Fallback to mock: return all transactions that look like top-ups
+      const txs = readLS<WalletTransaction[]>(getUserTransactionsKey(), []);
+      const topups = txs.filter(t => (t.type || '').toLowerCase() === 'credit');
+      return { items: topups, total: topups.length };
+    }
+
+    const params = new URLSearchParams();
+    if (filters?.pageNumber) params.append('pageNumber', String(filters.pageNumber));
+    if (filters?.pageSize) params.append('pageSize', String(filters.pageSize));
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+
+    return this.tryGet<any>(`/wallets/top-ups?${params.toString()}`, async () => {
+      // fallback simple shape
+      const txs = readLS<WalletTransaction[]>(getUserTransactionsKey(), []);
+      return { items: txs, total: txs.length };
     });
   }
 

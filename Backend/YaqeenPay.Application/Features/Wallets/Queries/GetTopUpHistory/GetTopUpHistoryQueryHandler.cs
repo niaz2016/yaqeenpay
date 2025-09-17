@@ -30,10 +30,27 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetTopUpHistory
             
             // Get top-ups
             var topUps = await _topUpRepository.GetByUserIdAsync(
-                userId, 
-                request.PageNumber, 
+                userId,
+                request.PageNumber,
                 request.PageSize);
-            
+
+            // Apply server-side filtering if requested
+            if (!string.IsNullOrWhiteSpace(request.Status))
+            {
+                if (Enum.TryParse<YaqeenPay.Domain.Enums.TopUpStatus>(request.Status, true, out var parsedStatus))
+                {
+                    topUps = topUps.Where(t => t.Status == parsedStatus);
+                }
+            }
+            if (request.DateFrom.HasValue)
+            {
+                topUps = topUps.Where(t => t.RequestedAt >= request.DateFrom.Value);
+            }
+            if (request.DateTo.HasValue)
+            {
+                topUps = topUps.Where(t => t.RequestedAt <= request.DateTo.Value);
+            }
+
             // Map to DTOs
             var topUpDtos = topUps.Select(t => new TopUpDto
             {
@@ -50,11 +67,13 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetTopUpHistory
                 FailedAt = t.FailedAt,
                 FailureReason = t.FailureReason
             }).ToList();
-            
+
+            // Update totalCount to reflect filtered results
+            var filteredCount = topUpDtos.Count;
             return new PaginatedList<TopUpDto>(
-                topUpDtos, 
-                totalCount, 
-                request.PageNumber, 
+                topUpDtos,
+                filteredCount,
+                request.PageNumber,
                 request.PageSize);
         }
     }

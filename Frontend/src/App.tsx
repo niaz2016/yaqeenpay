@@ -16,6 +16,9 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
 
+// Public Pages
+import Terms from './pages/Terms.tsx';
+
 // Protected Pages
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ProfilePage from './pages/profile/ProfilePage';
@@ -26,21 +29,19 @@ import NewOrderPage from './pages/orders/NewOrderPage';
 import OrderDetailsPage from './pages/orders/OrderDetailsPage';
 
 // Seller Pages (Phase 4)
-import SellerRegistrationPage from './pages/seller/SellerRegistrationPage';
-import SellerOrdersPage from './pages/seller/SellerOrdersPage';
-import SellerOrderDetailsPage from './pages/seller/SellerOrderDetailsPage';
-import SellerAnalyticsPage from './pages/seller/SellerAnalyticsPage';
-import SellerWithdrawalsPage from './pages/seller/SellerWithdrawalsPage';
-
+import UserRegistrationPage from './pages/seller/SellerRegistrationPage';
+import UserOrdersPage from './pages/seller/SellerOrdersPage';
+import UserOrderDetailsPage from './pages/seller/SellerOrderDetailsPage';
+import UserAnalyticsPage from './pages/seller/SellerAnalyticsPage';
 // General Pages
-import WithdrawalsPage from './pages/WithdrawalsPage';
-
+import WithdrawalsPage from './pages/WithdrawalsPage.tsx';
 // Admin Pages (Phase 6)
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import KycVerification from './pages/admin/KycVerification';
 import SellerApproval from './pages/admin/SellerApproval';
 import OrderMonitoring from './pages/admin/OrderMonitoring';
+import AdminWithdrawals from './pages/admin/AdminWithdrawals';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 
 // Error Pages
@@ -49,6 +50,7 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 
 // Protected Route Component
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import Privacy from './pages/Privacy.tsx';
 
 
 // Theme configuration
@@ -80,6 +82,8 @@ const App: React.FC = () => {
               <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/verify-email" element={<VerifyOtpPage />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               
               {/* Debug routes removed */}
             </Route>
@@ -97,11 +101,11 @@ const App: React.FC = () => {
                 <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
                 
                 {/* Seller Dashboard */}
-                <Route path="/seller/register" element={<SellerRegistrationPage />} />
-                <Route path="/seller/orders" element={<SellerOrdersPage />} />
-                <Route path="/seller/orders/:orderId" element={<SellerOrderDetailsPage />} />
-                <Route path="/seller/analytics" element={<SellerAnalyticsPage />} />
-                <Route path="/seller/withdrawals" element={<SellerWithdrawalsPage />} />
+                <Route path="/seller/register" element={<UserRegistrationPage />} />
+                <Route path="/seller/orders" element={<UserOrdersPage />} />
+                <Route path="/seller/orders/:orderId" element={<UserOrderDetailsPage />} />
+                <Route path="/seller/analytics" element={<UserAnalyticsPage />} />
+                <Route path="/seller/withdrawals" element={<WithdrawalsPage />} />
                 
                 {/* Error pages */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -117,6 +121,7 @@ const App: React.FC = () => {
                 <Route path="/admin/kyc" element={<KycVerification />} />
                 <Route path="/admin/sellers" element={<SellerApproval />} />
                 <Route path="/admin/orders" element={<OrderMonitoring />} />
+                <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
               </Route>
             </Route>
 

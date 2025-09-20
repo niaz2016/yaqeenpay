@@ -31,6 +31,7 @@ const statusColor = (status: string) => {
     case 'Confirmed': return 'success';
     case 'Failed': return 'error';
     case 'PendingConfirmation': return 'warning';
+    case 'PendingAdminApproval': return 'info';
     default: return 'default';
   }
 };
@@ -40,7 +41,7 @@ const AdminTopUpReview: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [snackbar, setSnackbar] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('PendingConfirmation');
+  const [statusFilter, setStatusFilter] = useState<string>('PendingAdminApproval');
   const [daysFilter, setDaysFilter] = useState<number>(2);
   const [selectedTopUp, setSelectedTopUp] = useState<TopUp | null>(null);
   const [viewOpen, setViewOpen] = useState(false);
@@ -87,7 +88,8 @@ const AdminTopUpReview: React.FC = () => {
             <InputLabel id="status-filter-label">Status</InputLabel>
             <Select labelId="status-filter-label" value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value as string)}>
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="PendingConfirmation">Pending</MenuItem>
+              <MenuItem value="PendingConfirmation">Pending Confirmation</MenuItem>
+              <MenuItem value="PendingAdminApproval">Pending Admin Approval</MenuItem>
               <MenuItem value="Confirmed">Confirmed</MenuItem>
               <MenuItem value="Failed">Failed</MenuItem>
             </Select>
@@ -124,9 +126,9 @@ const AdminTopUpReview: React.FC = () => {
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </IconButton>
                       </Tooltip>
-                      <Button size="small" color="success" variant="contained" disabled={t.status === 'Confirmed'} onClick={() => handleReview(t.id, 'Paid')}>Paid</Button>
-                      <Button size="small" color="warning" variant="contained" disabled={t.status === 'Confirmed'} onClick={() => handleReview(t.id, 'Suspicious')}>Suspicious</Button>
-                      <Button size="small" color="error" variant="contained" disabled={t.status === 'Confirmed'} onClick={() => handleReview(t.id, 'NotPaid')}>Not Paid</Button>
+                      <Button size="small" color="success" variant="contained" disabled={t.status === 'Confirmed' || t.status === 'Failed'} onClick={() => handleReview(t.id, 'Paid')}>Paid</Button>
+                      <Button size="small" color="warning" variant="contained" disabled={t.status === 'Confirmed' || t.status === 'Failed'} onClick={() => handleReview(t.id, 'Suspicious')}>Suspicious</Button>
+                      <Button size="small" color="error" variant="contained" disabled={t.status === 'Confirmed' || t.status === 'Failed'} onClick={() => handleReview(t.id, 'NotPaid')}>Not Paid</Button>
                     </Stack>
                   </TableCell>
                 </TableRow>

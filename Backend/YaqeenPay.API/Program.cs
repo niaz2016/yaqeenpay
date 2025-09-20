@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Http;
 using YaqeenPay.API.Middleware;
 using YaqeenPay.API.Services;
 using YaqeenPay.Application;
@@ -46,6 +47,13 @@ builder.Services.AddSwaggerGen(c =>
             },
             new string[] { }
         }
+    });
+
+    // Configure Swagger to handle file uploads
+    c.MapType<IFormFile>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Format = "binary"
     });
 });
 

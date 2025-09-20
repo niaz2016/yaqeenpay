@@ -20,29 +20,23 @@ namespace YaqeenPay.Application.Features.Admin.Commands.ReviewTopUp
             if (topUp == null)
                 return false;
 
+            // Only allow review if status is PendingAdminApproval
+            if (topUp.Status != YaqeenPay.Domain.Enums.TopUpStatus.PendingAdminApproval)
+                return false;
+
             if (request.ReviewStatus == TopUpReviewStatus.Paid)
             {
-                // Only credit wallet if not already confirmed
-                if (topUp.Status != YaqeenPay.Domain.Enums.TopUpStatus.Confirmed)
-                {
-                    await _walletService.TopUpConfirmAsync(topUp.Id, "AdminApproved");
-                }
+                // Confirm the top-up
+                await _walletService.TopUpConfirmAsync(topUp.Id, "AdminApproved");
             }
             else if (request.ReviewStatus == TopUpReviewStatus.NotPaid)
             {
-                if (topUp.Status != YaqeenPay.Domain.Enums.TopUpStatus.Failed)
-                {
-                    await _walletService.TopUpFailAsync(topUp.Id, request.Notes ?? "Marked as Not Paid by Admin");
-                }
+                await _walletService.TopUpFailAsync(topUp.Id, request.Notes ?? "Marked as Not Paid by Admin");
             }
             else if (request.ReviewStatus == TopUpReviewStatus.Suspicious)
             {
-                // Optionally, set to Failed or another status, or just log/flag for further review
-                // For now, mark as Failed with Suspicious note
-                if (topUp.Status != YaqeenPay.Domain.Enums.TopUpStatus.Failed)
-                {
-                    await _walletService.TopUpFailAsync(topUp.Id, request.Notes ?? "Marked as Suspicious by Admin");
-                }
+                // Mark as Failed with Suspicious note
+                await _walletService.TopUpFailAsync(topUp.Id, request.Notes ?? "Marked as Suspicious by Admin");
             }
             return true;
         }

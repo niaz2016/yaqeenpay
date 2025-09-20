@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Domain.Entities;
+using YaqeenPay.Domain.Enums;
 
 namespace YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet
 {
@@ -33,6 +34,10 @@ namespace YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet
 
             var proof = new TopUpProof(request.TopUpId, fileName, fileUrl, request.Notes ?? string.Empty);
             _db.TopUpProofs.Add(proof);
+
+            // Update top-up status to pending admin approval
+            topUp.SetPendingAdminApproval();
+
             await _db.SaveChangesAsync(cancellationToken);
 
             return new TopUpProofDto

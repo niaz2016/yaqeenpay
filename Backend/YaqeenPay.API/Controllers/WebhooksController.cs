@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using YaqeenPay.API.Controllers;
+using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Features.Wallets.Commands.ConfirmTopUp;
 
 namespace YaqeenPay.API.Controllers
@@ -9,10 +10,12 @@ namespace YaqeenPay.API.Controllers
     public class WebhooksController : ApiControllerBase
     {
         private readonly ILogger<WebhooksController> _logger;
+        private readonly IWalletService _walletService;
 
-        public WebhooksController(ILogger<WebhooksController> logger)
+        public WebhooksController(ILogger<WebhooksController> logger, IWalletService walletService)
         {
             _logger = logger;
+            _walletService = walletService;
         }
         
         [HttpPost("jazzcash")]
@@ -24,6 +27,14 @@ namespace YaqeenPay.API.Controllers
             {
                 try
                 {
+                    // Check if top-up requires admin approval
+                    var topUp = await _walletService.GetTopUpAsync(topUpId);
+                    if (topUp != null && topUp.Status == Domain.Enums.TopUpStatus.PendingAdminApproval)
+                    {
+                        _logger.LogInformation("Top-up {TopUpId} is pending admin approval, skipping auto-confirmation", topUpId);
+                        return Ok(new { success = true, message = "Top-up marked as paid, pending admin approval" });
+                    }
+
                     var command = new ConfirmTopUpCommand
                     {
                         TopUpId = topUpId,
@@ -52,6 +63,14 @@ namespace YaqeenPay.API.Controllers
             {
                 try
                 {
+                    // Check if top-up requires admin approval
+                    var topUp = await _walletService.GetTopUpAsync(topUpId);
+                    if (topUp != null && topUp.Status == Domain.Enums.TopUpStatus.PendingAdminApproval)
+                    {
+                        _logger.LogInformation("Top-up {TopUpId} is pending admin approval, skipping auto-confirmation", topUpId);
+                        return Ok(new { success = true, message = "Top-up marked as paid, pending admin approval" });
+                    }
+
                     var command = new ConfirmTopUpCommand
                     {
                         TopUpId = topUpId,

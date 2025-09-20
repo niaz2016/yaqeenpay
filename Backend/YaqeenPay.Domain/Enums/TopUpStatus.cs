@@ -4,6 +4,7 @@ namespace YaqeenPay.Domain.Enums
     {
         Initiated,
         PendingConfirmation,
+        PendingAdminApproval,
         Confirmed,
         Failed,
         Cancelled

@@ -47,6 +47,14 @@ namespace YaqeenPay.Domain.Entities
             ExternalReference = externalReference;
         }
 
+        public void SetPendingAdminApproval()
+        {
+            if (Status != TopUpStatus.Initiated && Status != TopUpStatus.PendingConfirmation)
+                throw new InvalidOperationException($"Cannot set top-up to pending admin approval in status {Status}");
+
+            Status = TopUpStatus.PendingAdminApproval;
+        }
+
         public void Confirm(string externalReference)
         {
             if (Status != TopUpStatus.PendingConfirmation && Status != TopUpStatus.Initiated)

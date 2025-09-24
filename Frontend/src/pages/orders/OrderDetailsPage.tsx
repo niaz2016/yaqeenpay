@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Card, CardContent, Typography, Stack, Chip, Button, Divider, CircularProgress, Snackbar, Alert } from '@mui/material';
 import ordersService from '../../services/ordersService';
 import type { Order } from '../../types/order';
@@ -8,6 +8,7 @@ import DeliveryDecisionDialog from '../../components/orders/DeliveryDecisionDial
 
 const OrderDetailsPage: React.FC = () => {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +16,14 @@ const OrderDetailsPage: React.FC = () => {
   const [snack, setSnack] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
 
   const load = async () => {
-    if (!orderId) return;
+    // Validate orderId before making API call
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined') {
+      setError('Invalid order ID. Redirecting to orders list...');
+      setLoading(false);
+      setTimeout(() => navigate('/orders'), 2000);
+      return;
+    }
+    
     try {
       setLoading(true);
       const res = await ordersService.getById(orderId);
@@ -28,10 +36,15 @@ const OrderDetailsPage: React.FC = () => {
     }
   };
 
-  useEffect(() => { load(); }, [orderId]);
+  useEffect(() => { 
+    load(); 
+  }, [orderId]);
 
   const handleConfirmDelivery = async () => {
-    if (!orderId) return;
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined') {
+      setSnack({ open: true, message: 'Invalid order ID', severity: 'error' });
+      return;
+    }
     try {
       const updated = await ordersService.confirmDelivery(orderId);
       setOrder(updated);
@@ -42,7 +55,10 @@ const OrderDetailsPage: React.FC = () => {
   };
 
   const handleRejectDelivery = async (reason: string, evidenceUrls?: string[]) => {
-    if (!orderId) return;
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined') {
+      setSnack({ open: true, message: 'Invalid order ID', severity: 'error' });
+      return;
+    }
     try {
       const updated = await ordersService.rejectDelivery({ orderId, decision: 'reject', rejectionReason: reason, evidenceUrls });
       setOrder(updated);

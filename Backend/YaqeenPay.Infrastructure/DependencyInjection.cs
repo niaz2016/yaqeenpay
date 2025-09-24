@@ -40,6 +40,7 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IDocumentStorageService, LocalDocumentStorageService>();
         services.AddScoped<RoleSeedService>();
+        services.AddScoped<Application.Interfaces.IFileUploadService, FileUploadService>();
 
         // Identity services
         services.AddIdentity<ApplicationUser, ApplicationRole>()
@@ -129,6 +130,7 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<Application.Common.Interfaces.IIdentityService, IdentityService>();
+        services.AddScoped<IUserLookupService, UserLookupService>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IWalletService, WalletService>();

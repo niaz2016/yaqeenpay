@@ -12,8 +12,9 @@ namespace YaqeenPay.Domain.Entities
         public Guid EscrowId { get; private set; }
         public string Title { get; private set; } = string.Empty;
         public string Description { get; private set; } = string.Empty;
-        public Money DeclaredValue { get; private set; } = null!;
         public Money Amount { get; private set; } = null!;
+        public decimal DeclaredValue { get; private set; } // Added DeclaredValue property
+        public string DeclaredValueCurrency { get; private set; } = string.Empty; // Added currency for declared value
         public string? Courier { get; private set; }
         public string? TrackingNumber { get; private set; }
         public OrderStatus Status { get; private set; } = OrderStatus.Created;
@@ -27,6 +28,7 @@ namespace YaqeenPay.Domain.Entities
         public string? ShippingProof { get; private set; }
         public DateTime? DeliveryConfirmationExpiry { get; private set; }
         public string? DeliveryConfirmationCode { get; private set; }
+        public List<string> ImageUrls { get; private set; } = new List<string>();
         
         // Navigation properties
         public virtual Domain.Entities.Identity.ApplicationUser Buyer { get; private set; } = null!;
@@ -36,27 +38,31 @@ namespace YaqeenPay.Domain.Entities
 
         private Order() { } // For EF Core
 
-        public Order(Guid buyerId, Guid sellerId, Guid escrowId, string description, Money declaredValue)
+        public Order(Guid buyerId, Guid sellerId, Guid escrowId, string description, Money amount, List<string>? imageUrls = null)
         {
             BuyerId = buyerId;
             SellerId = sellerId;
             EscrowId = escrowId;
             Description = description;
-            DeclaredValue = declaredValue;
-            Amount = declaredValue;
+            Amount = new Money(amount.Amount, amount.Currency); // clone safety
+            DeclaredValue = amount.Amount; // Initialize DeclaredValue with Amount
+            DeclaredValueCurrency = amount.Currency; // Initialize currency
             Status = OrderStatus.Created;
+            ImageUrls = imageUrls ?? new List<string>();
         }
         
-        public Order(Guid buyerId, Guid sellerId, Guid escrowId, string title, string description, Money declaredValue)
+        public Order(Guid buyerId, Guid sellerId, Guid escrowId, string title, string description, Money amount, List<string>? imageUrls = null)
         {
             BuyerId = buyerId;
             SellerId = sellerId;
             EscrowId = escrowId;
             Title = title;
             Description = description;
-            DeclaredValue = declaredValue;
-            Amount = declaredValue;
+            Amount = new Money(amount.Amount, amount.Currency);
+            DeclaredValue = amount.Amount; // Initialize DeclaredValue with Amount
+            DeclaredValueCurrency = amount.Currency; // Initialize currency
             Status = OrderStatus.Created;
+            ImageUrls = imageUrls ?? new List<string>();
         }
 
         public void UpdateShippingDetails(string courier, string trackingNumber, string? shippingProof = null)

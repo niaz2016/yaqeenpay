@@ -406,7 +406,11 @@ const DashboardPage: React.FC = () => {
                       sx={{ px: 0 }}
                       secondaryAction={
                         <IconButton 
-                          onClick={() => navigate(`/orders/${item.id}`)}
+                          onClick={() => {
+                            if (item.id && item.id !== 'undefined') {
+                              navigate(`/orders/${item.id}`);
+                            }
+                          }}
                           edge="end"
                         >
                           <ArrowForwardIcon />

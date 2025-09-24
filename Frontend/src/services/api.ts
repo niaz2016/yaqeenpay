@@ -13,10 +13,10 @@ class ApiService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
+      // Remove global Content-Type so FormData can set multipart automatically
       headers: {
-        'Content-Type': 'application/json',
+        // Intentionally left blank; will set per request
       },
-      // Do not send cookies; we use Bearer tokens to avoid CORS credential constraints
       withCredentials: false,
     });
 
@@ -269,17 +269,19 @@ class ApiService {
 
   public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
+      const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
       const cfg = this.withAuth(config);
-      // If we're sending FormData, let the browser/axios set the Content-Type (including boundary)
-      if (data instanceof FormData) {
+      if (isFormData) {
         if (cfg && cfg.headers) {
-          // remove Content-Type so axios sets multipart/form-data with boundary
           const headersAny = cfg.headers as any;
           delete headersAny['Content-Type'];
           delete headersAny['content-type'];
         }
+      } else {
+        // Ensure JSON header only for non-FormData
+        cfg.headers = { ...(cfg.headers || {}), 'Content-Type': 'application/json' };
       }
-
+      console.log('POST debug', url, 'isFormData=', isFormData, 'final headers=', cfg.headers);
       const response = await this.api.post<any>(url, data, cfg);
       console.log(`POST ${url} response:`, response);
       

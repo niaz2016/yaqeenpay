@@ -16,6 +16,8 @@ export interface OrderItem {
   description?: string;
   quantity: number;
   unitPrice: number; // in minor units or decimal depending on backend; assume decimal for UI
+  images?: File[]; // For file uploads during creation
+  imageUrls?: string[]; // For displaying uploaded images
 }
 
 export interface ShipmentInfo {
@@ -45,16 +47,22 @@ export interface Order {
   updatedAt?: string;
   items?: OrderItem[];
   shipment?: ShipmentInfo;
+  // New fields for mobile-based user identification
+  targetUserMobile?: string; // Mobile number of the user this order is created for
+  creatorRole?: 'buyer' | 'seller'; // Role of the user who created this order
 }
 
 export interface CreateOrderPayload {
-  sellerId: string;
+  sellerId?: string; // Made optional since we might identify by mobile instead
+  targetUserMobile: string; // Mobile number of the target user (required)
   amount: number;
   currency: string;
   description?: string;
   items?: OrderItem[];
   // optional shipping
   shipment?: Partial<ShipmentInfo>;
+  // New fields for mobile-based targeting
+  creatorRole?: 'buyer' | 'seller'; // Role of the user creating the order
 }
 
 export interface AcceptRejectPayload {

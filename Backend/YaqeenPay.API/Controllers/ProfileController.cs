@@ -33,7 +33,7 @@ public class ProfileController : ApiControllerBase
     }
 
     [HttpPost("upload-image")]
-    public async Task<IActionResult> UploadProfileImage([FromForm] IFormFile file)
+    public async Task<IActionResult> UploadProfileImage(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { success = false, message = "No file provided" });

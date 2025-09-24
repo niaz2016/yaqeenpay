@@ -70,13 +70,19 @@ const UserOrderDetailsPage: React.FC = () => {
   });
 
   const loadOrder = async () => {
-    if (!orderId) return;
+    // Validate orderId before making API call
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined') {
+      setError('Invalid order ID. Redirecting to orders list...');
+      setLoading(false);
+      setTimeout(() => navigate('/seller/orders'), 2000);
+      return;
+    }
     
     setLoading(true);
     setError(null);
     
     try {
-      const orderData = await userService.getSellerOrderById(orderId as string);
+      const orderData = await userService.getSellerOrderById(orderId);
       setOrder(orderData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load order');
@@ -90,7 +96,10 @@ const UserOrderDetailsPage: React.FC = () => {
   }, [orderId]);
 
   const handleUpdateShipping = async (data: ShippingInfoFormData) => {
-    if (!orderId) return;
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined') {
+      setError('Invalid order ID');
+      return;
+    }
     
     setActionLoading(true);
     try {
@@ -114,11 +123,14 @@ const UserOrderDetailsPage: React.FC = () => {
   };
 
   const handleMarkAsShipped = async () => {
-    if (!orderId || !order) return;
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined' || !order) {
+      setError('Invalid order ID or order data');
+      return;
+    }
     
     setActionLoading(true);
     try {
-  await userService.markOrderAsShipped(orderId as string, order.trackingNumber || '');
+  await userService.markOrderAsShipped(orderId, order.trackingNumber || '');
       await loadOrder(); // Refresh order data
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark order as shipped');
@@ -128,11 +140,14 @@ const UserOrderDetailsPage: React.FC = () => {
   };
 
   const handleUploadProof = async () => {
-    if (!orderId || !selectedFile) return;
+    if (!orderId || orderId.trim() === '' || orderId === 'undefined' || !selectedFile) {
+      setError('Invalid order ID or no file selected');
+      return;
+    }
     
     setActionLoading(true);
     try {
-  await userService.uploadShipmentProof(orderId as string, selectedFile as File);
+  await userService.uploadShipmentProof(orderId, selectedFile);
       setUploadDialogOpen(false);
       setSelectedFile(null);
       await loadOrder(); // Refresh order data

@@ -28,12 +28,144 @@ const ordersService = {
     return api.get(`${base}?${params.toString()}`);
   },
 
+  async getBuyerOrders(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
+    const params = new URLSearchParams();
+    if (query.status) params.set('status', query.status);
+    if (query.page != null) params.set('pageNumber', String(query.page));
+    if (query.pageSize != null) params.set('pageSize', String(query.pageSize));
+    return api.get(`${base}/buyer?${params.toString()}`);
+  },
+
+  async getSellerOrdersPaginated(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
+    const params = new URLSearchParams();
+    if (query.status) params.set('status', query.status);
+    if (query.page != null) params.set('pageNumber', String(query.page));
+    if (query.pageSize != null) params.set('pageSize', String(query.pageSize));
+    return api.get(`${base}/seller?${params.toString()}`);
+  },
+
+  // Combined method to get all orders (both as buyer and seller)
+  async getAllUserOrders(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
+    try {
+      // Try the main endpoint first (should show both buyer and seller orders)
+      return await this.list(query);
+    } catch (error) {
+      console.warn('Failed to fetch from main orders endpoint, trying combined approach:', error);
+      
+      // Fallback: get both buyer and seller orders and combine them
+      try {
+        const [buyerResponse, sellerResponse] = await Promise.allSettled([
+          this.getBuyerOrders(query),
+          this.getSellerOrdersPaginated(query)
+        ]);
+
+        const buyerOrders = buyerResponse.status === 'fulfilled' ? buyerResponse.value.items : [];
+        const sellerOrders = sellerResponse.status === 'fulfilled' ? sellerResponse.value.items : [];
+
+        // Combine and deduplicate orders by ID
+        const allOrders = [...buyerOrders, ...sellerOrders];
+        const uniqueOrders = allOrders.filter((order, index, self) => 
+          index === self.findIndex(o => o.id === order.id)
+        );
+
+        // Sort by creation date, newest first
+        uniqueOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        return {
+          items: uniqueOrders,
+          total: uniqueOrders.length,
+          page: query.page || 1,
+          pageSize: query.pageSize || 10
+        };
+      } catch (fallbackError) {
+        console.error('Failed to fetch orders from both buyer and seller endpoints:', fallbackError);
+        throw fallbackError;
+      }
+    }
+  },
+
   async getById(orderId: string): Promise<Order> {
     return api.get(`${base}/${orderId}`);
   },
 
   async create(payload: CreateOrderPayload): Promise<Order> {
     return api.post(base, payload);
+  },
+
+  async createWithImages(
+    title: string,
+    description: string,
+    amount: number,
+    currency: string,
+    targetUserMobile: string,
+    images: File[],
+    creatorRole?: 'buyer' | 'seller'
+  ): Promise<Order> {
+    console.log('createWithImages called with mobile:', targetUserMobile, 'role:', creatorRole);
+    
+    // Use the new mobile-based order creation endpoint
+    const formData = new FormData();
+    formData.append('sellerMobileNumber', targetUserMobile);
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('amount', amount.toString());
+    formData.append('currency', currency);
+    
+    // Add images to FormData
+    images.forEach((image) => {
+      formData.append('images', image, image.name);
+    });
+    
+    // Debug log FormData contents
+    console.log('FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    
+    return api.post(`${base}/with-seller-mobile`, formData);
+  },
+
+  async createSellerRequest(
+    title: string,
+    description: string,
+    amount: number,
+    currency: string,
+    images: File[],
+    targetUserMobile?: string
+  ): Promise<Order> {
+    console.log('createSellerRequest called with:', { title, description, amount, currency, imageCount: images?.length || 0, targetUserMobile });
+    
+    // Use the existing seller-request endpoint
+    const formData = new FormData();
+    formData.append('Title', title);
+    formData.append('Description', description);
+    formData.append('Amount', amount.toString());
+    formData.append('Currency', currency);
+    
+    // Add images to FormData
+    if (images && images.length > 0) {
+      images.forEach((image) => {
+        console.log(`Appending image:`, image.name, image.type, image.size);
+        formData.append('Images', image, image.name);
+      });
+    } else {
+      formData.append('NoImages', 'true');
+    }
+    
+    console.log('About to POST seller-request. FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
+      } else {
+        console.log(`${key}: ${value}`);
+      }
+    }
+    
+    return api.post(`${base}/seller-request`, formData);
   },
 
   async confirmDelivery(orderId: string): Promise<Order> {
@@ -154,6 +286,49 @@ const ordersService = {
       
       return mockOrder;
     }
+  },
+
+  async getAvailableSellerRequests(params: {
+    pageNumber?: number;
+    pageSize?: number;
+    searchTerm?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    currency?: string;
+  } = {}): Promise<{
+    items: Array<{
+      id: string;
+      title: string;
+      description: string;
+      amount: number;
+      currency: string;
+      sellerName: string;
+      sellerId: string;
+      imageUrls: string[];
+      created: string;
+    }>;
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    
+    if (params.pageNumber) searchParams.append('pageNumber', params.pageNumber.toString());
+    if (params.pageSize) searchParams.append('pageSize', params.pageSize.toString());
+    if (params.searchTerm) searchParams.append('searchTerm', params.searchTerm);
+    if (params.minAmount) searchParams.append('minAmount', params.minAmount.toString());
+    if (params.maxAmount) searchParams.append('maxAmount', params.maxAmount.toString());
+    if (params.currency) searchParams.append('currency', params.currency);
+
+    return api.get(`${base}/available-seller-requests?${searchParams.toString()}`);
+  },
+
+  async acceptSellerRequest(params: {
+    sellerRequestId: string;
+    deliveryAddress?: string;
+    deliveryNotes?: string;
+  }): Promise<Order> {
+    return api.post(`${base}/accept-seller-request`, params);
   },
 };
 

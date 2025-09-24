@@ -1,28 +1,29 @@
 import React, { useState } from 'react';
-import { Box, Stack, Stepper, Step, StepLabel, TextField, Button, Typography, Divider } from '@mui/material';
+import { Box, Stack, Stepper, Step, StepLabel, TextField, Button, Typography, Divider, Alert } from '@mui/material';
 import type { CreateOrderPayload, OrderItem } from '../../types/order';
 import RoleSelector, { type UserRole } from './RoleSelector';
-import SellerBrowser, { type SellerInfo } from './SellerBrowser';
 import WalletValidator from './WalletValidator';
+import ImageUpload from '../common/ImageUpload';
 
 interface Props {
   submitting?: boolean;
-  onSubmit: (payload: CreateOrderPayload) => void | Promise<void>;
+  onSubmit: (payload: CreateOrderPayload | any) => void | Promise<void>;
 }
 
-const steps = ['Role', 'Seller', 'Details', 'Wallet', 'Confirm'];
+const steps = ['Role', 'Target User', 'Details', 'Wallet', 'Confirm'];
 
 const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
   const [activeStep, setActiveStep] = useState(0);
 
   // Form state
   const [userRole, setUserRole] = useState<UserRole>('buyer');
-  const [selectedSeller, setSelectedSeller] = useState<SellerInfo | null>(null);
+  const [targetUserMobile, setTargetUserMobile] = useState<string>(''); // Mobile number of target user
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState('PKR');
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
   const [walletValid, setWalletValid] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   // const [walletBalance, setWalletBalance] = useState(0); // Currently unused but may be needed for future features
 
   // Simple seller selection; in real app fetch from API
@@ -32,10 +33,12 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
   //   { id: 'seller-3', label: 'Northwind Export' },
   // ];
 
-  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: 0 }]);
+  const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: 0, images: [] }]);
   const updateItem = (idx: number, patch: Partial<OrderItem>) => {
+    console.log(`updateItem called for index ${idx}:`, patch);
     const next = [...items];
     next[idx] = { ...next[idx], ...patch };
+    console.log(`Updated item at index ${idx}:`, next[idx]);
     setItems(next);
   };
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -45,8 +48,32 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
 
   const canNext = () => {
     if (activeStep === 0) return !!userRole;
-    if (activeStep === 1) return userRole === 'seller' || !!selectedSeller;
-    if (activeStep === 2) return total > 0 && !!currency;
+    if (activeStep === 1) return !!targetUserMobile.trim();
+    if (activeStep === 2) {
+      // Check if total amount is valid
+      if (!(total > 0 && !!currency)) return false;
+      
+      // Seller: items optional (they may just list a single offering described in description)
+      if (userRole === 'seller') {
+        return true; // allow proceeding based on amount/currency only
+      }
+      
+      // Buyer flow: Require at least one item
+      if (items.length === 0) return false;
+      
+      // For buyer, require at least one image per item
+      if (userRole === 'buyer') {
+        return items.every(item => 
+          item.name.trim() !== '' && 
+          item.quantity > 0 && 
+          item.unitPrice > 0 &&
+          item.images && 
+          item.images.length > 0
+        );
+      }
+      
+      return true;
+    }
     if (activeStep === 3) return userRole === 'seller' || walletValid;
     return true;
   };
@@ -60,20 +87,85 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
   };
 
   const handleFinish = async () => {
-    if (userRole === 'seller') {
-      // TODO: Handle seller creating a request for buyers
-      alert('Seller order creation not yet implemented');
-      return;
-    }
+    setSubmitError(null);
+    try {
+      // Debug the current state
+      console.log('=== ORDER CREATION DEBUG ===');
+      console.log('Current items array:', items);
+      console.log('Items length:', items.length);
+      
+      // Collect all images from items first (common for both buyer and seller)
+      const allImages: File[] = [];
+      
+      console.log('Collecting images from items:', items.length, 'items');
+      items.forEach((item, index) => {
+        console.log(`Item ${index}:`, {
+          name: item.name,
+          hasImages: !!item.images,
+          imageCount: item.images?.length || 0,
+          images: item.images
+        });
+        if (item.images) {
+          console.log(`Adding ${item.images.length} images from item ${index}`);
+          allImages.push(...item.images);
+        }
+      });
+      
+      console.log('Total images collected:', allImages.length, allImages);
+      console.log('=== END DEBUG ===');
 
-    const payload: CreateOrderPayload = {
-      sellerId: selectedSeller?.id || '',
-      amount: Number(total.toFixed(2)),
-      currency,
-      description,
-      items: items.length ? items : undefined,
-    };
-    await onSubmit(payload);
+      if (userRole === 'seller') {
+        // Ensure description is not empty to satisfy backend validator
+        const effectiveDescription = description.trim().length > 0
+          ? description
+          : `Auto-generated listing for ${items.length > 0 ? items.map(i => i.name || 'item').join(', ') : 'unspecified product'} (created ${new Date().toLocaleDateString()})`;
+        if (description.trim().length === 0) {
+          console.warn('Seller description empty, injecting fallback description to pass validation.');
+        }
+        // Create seller request payload
+        const sellerRequestData = {
+          isSellerRequest: true,
+          title: (description.split('\n')[0].trim() || (items[0]?.name) || 'Product Listing'),
+          description: effectiveDescription,
+          amount: Number(total.toFixed(2)),
+          currency,
+          images: allImages,
+          targetUserMobile: targetUserMobile.trim(),
+          creatorRole: 'seller'
+        };
+        console.log('Seller request data (final):', sellerRequestData);
+        await onSubmit(sellerRequestData);
+        return;
+      }
+
+      // If we have images, use the new multipart format
+      if (allImages.length > 0) {
+        const createOrderData = {
+          title: description.split('\n')[0] || 'Product Order', // Use first line as title
+          description,
+          amount: Number(total.toFixed(2)),
+          currency,
+          targetUserMobile: targetUserMobile.trim(),
+          images: allImages,
+          creatorRole: 'buyer'
+        };
+        await onSubmit(createOrderData);
+      } else {
+        // Fall back to original format for orders without images
+        const payload: CreateOrderPayload = {
+          targetUserMobile: targetUserMobile.trim(),
+          amount: Number(total.toFixed(2)),
+          currency,
+          description,
+          items: items.length ? items : undefined,
+          creatorRole: 'buyer'
+        };
+        await onSubmit(payload);
+      }
+    } catch (e:any) {
+      console.error('Order creation failed:', e);
+      setSubmitError(e.message || 'Failed to create');
+    }
   };
 
   return (
@@ -94,22 +186,24 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
 
       {activeStep === 1 && (
         <Stack gap={2}>
-          {userRole === 'buyer' ? (
-            <SellerBrowser
-              onSellerSelect={setSelectedSeller}
-              selectedSeller={selectedSeller || undefined}
-            />
-          ) : (
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                Seller Mode: Create Order Request
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                As a seller, you'll create an order request that buyers can fulfill.
-                Buyers will see your request and can choose to create orders with you.
-              </Typography>
-            </Box>
-          )}
+          <Typography variant="h6" gutterBottom>
+            Enter Target User Mobile Number
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {userRole === 'buyer' 
+              ? 'Enter the mobile number of the seller you want to create this order for.'
+              : 'Enter the mobile number of the buyer you want to create this order for.'
+            }
+          </Typography>
+          <TextField
+            label={`${userRole === 'buyer' ? 'Seller' : 'Buyer'} Mobile Number`}
+            value={targetUserMobile}
+            onChange={(e) => setTargetUserMobile(e.target.value)}
+            placeholder="+92XXXXXXXXXX or 03XXXXXXXXX"
+            fullWidth
+            required
+            helperText="Enter the mobile number of the user this order is intended for"
+          />
         </Stack>
       )}
 
@@ -121,16 +215,58 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
             <TextField label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} sx={{ maxWidth: 160 }} />
           </Stack>
 
-          <Divider>Items (optional)</Divider>
+          <Divider>Product Items *</Divider>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {userRole === 'seller' 
+              ? 'Add your products that buyers can purchase. Images are optional but recommended.'
+              : 'Add at least one product item with images to proceed. Each item must have at least one product image.'
+            }
+          </Typography>
           <Stack gap={2}>
             {items.map((it, idx) => (
-              <Stack key={idx} direction={{ xs: 'column', md: 'row' }} gap={2} alignItems="center">
-                <TextField label="Name" value={it.name} onChange={(e) => updateItem(idx, { name: e.target.value })} sx={{ flex: 1 }} />
-                <TextField type="number" label="Qty" value={it.quantity} onChange={(e) => updateItem(idx, { quantity: parseInt(e.target.value) || 0 })} sx={{ maxWidth: 120 }} />
-                <TextField type="number" label="Unit Price" value={it.unitPrice} onChange={(e) => updateItem(idx, { unitPrice: parseFloat(e.target.value) || 0 })} sx={{ maxWidth: 180 }} />
-                <Button color="error" onClick={() => removeItem(idx)}>Remove</Button>
-              </Stack>
+              <Box key={idx} sx={{ border: '1px solid #e0e0e0', borderRadius: 2, p: 2 }}>
+                <Stack gap={2}>
+                  <Stack direction={{ xs: 'column', md: 'row' }} gap={2} alignItems="center">
+                    <TextField 
+                      label="Name" 
+                      value={it.name} 
+                      onChange={(e) => updateItem(idx, { name: e.target.value })} 
+                      sx={{ flex: 1 }} 
+                    />
+                    <TextField 
+                      type="number" 
+                      label="Qty" 
+                      value={it.quantity} 
+                      onChange={(e) => updateItem(idx, { quantity: parseInt(e.target.value) || 0 })} 
+                      sx={{ maxWidth: 120 }} 
+                    />
+                    <TextField 
+                      type="number" 
+                      label="Unit Price" 
+                      value={it.unitPrice} 
+                      onChange={(e) => updateItem(idx, { unitPrice: parseFloat(e.target.value) || 0 })} 
+                      sx={{ maxWidth: 180 }} 
+                    />
+                    <Button color="error" onClick={() => removeItem(idx)}>Remove</Button>
+                  </Stack>
+                  
+                  <ImageUpload
+                    images={it.images || []}
+                    onImagesChange={(images) => updateItem(idx, { images })}
+                    maxImages={3}
+                    required={userRole === 'buyer'}
+                    disabled={submitting}
+                  />
+                </Stack>
+              </Box>
             ))}
+            {items.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 3, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  No product items added yet. Click "Add Item" to get started.
+                </Typography>
+              </Box>
+            )}
             <Button onClick={addItem}>Add Item</Button>
             <Typography variant="subtitle1">Calculated total: {totalFromItems.toFixed(2)} {currency}</Typography>
           </Stack>
@@ -162,10 +298,22 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
 
       {activeStep === 4 && (
         <Stack gap={2}>
-          <Typography variant="h6">Order Summary</Typography>
+          <Typography variant="h6">
+            {userRole === 'seller' ? 'Product Listing Summary' : 'Order Summary'}
+          </Typography>
           <Typography>Role: {userRole === 'buyer' ? 'Buyer' : 'Seller'}</Typography>
-          {userRole === 'buyer' && selectedSeller && (
-            <Typography>Seller: {selectedSeller.businessName}</Typography>
+          <Typography>
+            Target User Mobile: {targetUserMobile || '-'}
+          </Typography>
+          {userRole === 'seller' && (
+            <Typography color="info.main">
+              Creating product listing for buyer with mobile: {targetUserMobile}
+            </Typography>
+          )}
+          {userRole === 'buyer' && (
+            <Typography color="info.main">
+              Creating order for seller with mobile: {targetUserMobile}
+            </Typography>
           )}
           <Typography>Description: {description || '-'}</Typography>
           <Typography>Total: {total.toFixed(2)} {currency}</Typography>
@@ -178,12 +326,37 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
             <>
               <Divider>Items</Divider>
               {items.map((it, i) => (
-                <Typography key={i}>{it.name} x {it.quantity} = {(it.quantity * it.unitPrice).toFixed(2)} {currency}</Typography>
+                <Box key={i} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    {it.name} x {it.quantity} = {(it.quantity * it.unitPrice).toFixed(2)} {currency}
+                  </Typography>
+                  {it.images && it.images.length > 0 && (
+                    <Stack direction="row" gap={1} mt={1} flexWrap="wrap">
+                      {it.images.map((image, imgIdx) => (
+                        <Box
+                          key={imgIdx}
+                          component="img"
+                          src={URL.createObjectURL(image)}
+                          alt={`${it.name} image ${imgIdx + 1}`}
+                          sx={{
+                            width: 60,
+                            height: 60,
+                            objectFit: 'cover',
+                            borderRadius: 1,
+                            border: '1px solid #ddd',
+                          }}
+                        />
+                      ))}
+                    </Stack>
+                  )}
+                </Box>
               ))}
             </>
           )}
         </Stack>
       )}
+
+      {submitError && <Alert severity="error" sx={{ mt:2 }}>{submitError}</Alert>}
 
       <Stack direction="row" justifyContent="space-between" mt={3}>
         <Button onClick={handleBack} disabled={activeStep === 0 || submitting}>Back</Button>

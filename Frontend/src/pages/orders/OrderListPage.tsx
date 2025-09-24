@@ -20,8 +20,9 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { type PagedResult } from '../../services/ordersService';
+import ordersService, { type PagedResult } from '../../services/ordersService';
 import type { Order } from '../../types/order';
+import { useAuth } from '../../context/AuthContext';
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -33,66 +34,154 @@ const statusColor = (status: string) => {
   }
 };
 
+// Helper function to map backend status to frontend OrderStatus
+const mapBackendStatusToFrontend = (backendStatus: string) => {
+  const statusMap: Record<string, string> = {
+    'Created': 'pending-payment',
+    'PaymentConfirmed': 'payment-confirmed', 
+    'AwaitingShipment': 'awaiting-shipment',
+    'Shipped': 'shipped',
+    'Delivered': 'delivered',
+    'Completed': 'completed',
+    'Rejected': 'rejected',
+    'Disputed': 'disputed',
+    'Cancelled': 'cancelled'
+  };
+  
+  return statusMap[backendStatus] || 'pending-payment';
+};
+
 const OrderListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PagedResult<Order>>({ items: [], total: 0, page: 1, pageSize: 10 });
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
 
+  // Helper function to determine user's role in an order
+  const getUserRole = (order: Order): 'buyer' | 'seller' | 'unknown' => {
+    if (!user?.id) return 'unknown';
+    if (order.buyerId === user.id) return 'buyer';
+    if (order.sellerId === user.id) return 'seller';
+    return 'unknown';
+  };
+
   const load = async (page = 1) => {
     try {
       setLoading(true);
-      // Temporarily show mock data since backend might not be ready
-      const mockData: PagedResult<Order> = {
-        items: [
-          {
-            id: '1',
-            code: 'ORD-2024-001',
-            sellerId: 'seller-1',
-            sellerName: 'Acme Supplies',
-            buyerId: 'buyer-1',
-            amount: 299.99,
-            currency: 'USD',
-            description: 'Premium Wireless Headphones',
-            status: 'shipped',
-            createdAt: new Date().toISOString(),
-            items: [
-              { id: '1', name: 'Wireless Headphones', quantity: 1, unitPrice: 299.99 }
-            ]
-          },
-          {
-            id: '2',
-            code: 'ORD-2024-002',
-            sellerId: 'seller-2',
-            sellerName: 'Tech Store',
-            buyerId: 'buyer-1',
-            amount: 149.99,
-            currency: 'USD',
-            description: 'Bluetooth Speaker',
-            status: 'delivered',
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            items: [
-              { id: '2', name: 'Bluetooth Speaker', quantity: 1, unitPrice: 149.99 }
-            ]
-          }
-        ],
-        total: 2,
-        page: page,
-        pageSize: 10
-      };
-      
-      setData(mockData);
       setError(null);
+      
+      // Wait for auth to finish loading before checking authentication
+      if (authLoading) {
+        setLoading(false);
+        return;
+      }
+      
+      // Check if user is authenticated using AuthContext
+      if (!isAuthenticated) {
+        setError('Please log in to view your orders.');
+        setData({ items: [], total: 0, page: 1, pageSize: 10 });
+        setLoading(false);
+        return;
+      }
+      
+      // Make real API call to fetch orders - use getAllUserOrders to get both buyer and seller orders
+      const result = await ordersService.getAllUserOrders({
+        status: status || undefined,
+        page: page,
+        pageSize: 10,
+        search: search || undefined
+      });
+      
+      console.log('API Response:', result); // Debug log
+      
+      // Handle the actual API response structure
+      let orders: Order[] = [];
+      let totalCount = 0;
+      
+      if (result && typeof result === 'object') {
+        const response = result as any; // Cast to any to handle different response structures
+        
+        // Check if the result has the expected pagination structure
+        if (Array.isArray(response.items)) {
+          // Standard paginated response
+          orders = response.items;
+          totalCount = response.total || orders.length;
+        } else if (Array.isArray(response.data)) {
+          // Backend returns {success: true, data: [...]}
+          orders = response.data;
+          totalCount = orders.length;
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          orders = response;
+          totalCount = orders.length;
+        }
+        
+        // Map the backend fields to frontend Order interface
+        const mappedOrders = orders.map(order => {
+          const backendOrder = order as any; // Cast to access backend-specific fields
+          return {
+            ...order,
+            // Map backend field names to frontend field names if needed
+            sellerName: order.sellerName || order.sellerId,
+            code: order.code || backendOrder.title || `ORD-${order.id?.slice(-8)}`, // Use title as code if no code exists
+            // Map backend status to frontend status
+            status: mapBackendStatusToFrontend(backendOrder.status) as any,
+            // Ensure description exists
+            description: order.description || backendOrder.title || 'Order'
+          };
+        });
+        
+        setData({
+          items: mappedOrders,
+          total: totalCount,
+          page: page,
+          pageSize: 10
+        });
+      } else {
+        // Fallback if API returns unexpected structure
+        console.warn('API returned unexpected structure:', result);
+        setData({ items: [], total: 0, page: 1, pageSize: 10 });
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load orders');
+      console.error('Failed to load orders:', e);
+      
+      // Check if it's a network error or API not available
+      const isNetworkError = e instanceof Error && (
+        e.message.includes('Network Error') ||
+        e.message.includes('ERR_CONNECTION_REFUSED') ||
+        e.message.includes('404')
+      );
+      
+      const isAuthError = e instanceof Error && (
+        e.message.includes('401') ||
+        e.message.includes('Unauthorized') ||
+        e.message.includes('403')
+      );
+      
+      if (isAuthError) {
+        setError('Authentication required. Please log in again.');
+      } else if (isNetworkError) {
+        setError('Unable to connect to the server. Please check if the backend is running.');
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to load orders');
+      }
+      
+      // If API fails, show empty state instead of mock data
+      setData({ items: [], total: 0, page: 1, pageSize: 10 });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(1); }, []);
+  useEffect(() => { 
+    if (!authLoading) {
+      load(1); 
+    }
+  }, [isAuthenticated, authLoading]);
+  
   // Debounced reload on filters
   useEffect(() => {
     const t = setTimeout(() => load(1), 400);
@@ -171,14 +260,32 @@ const OrderListPage: React.FC = () => {
         <Typography color="error">{error}</Typography>
       ) : (
         <Stack gap={2}>
-          {data.items.map(order => (
-            <Card key={order.id} onClick={() => navigate(`/orders/${order.id}`)} sx={{ cursor: 'pointer' }}>
+          {(data?.items || []).map(order => (
+            <Card 
+              key={order.id} 
+              onClick={() => {
+                if (order.id && order.id !== 'undefined') {
+                  navigate(`/orders/${order.id}`);
+                }
+              }} 
+              sx={{ cursor: 'pointer' }}
+            >
               <CardContent>
                 <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1}>
                   <Stack>
-                    <Typography variant="subtitle2" color="text.secondary">{order.code || order.id}</Typography>
+                    <Stack direction="row" alignItems="center" gap={1} mb={0.5}>
+                      <Typography variant="subtitle2" color="text.secondary">{order.code || order.id}</Typography>
+                      <Chip 
+                        label={getUserRole(order)} 
+                        size="small" 
+                        color={getUserRole(order) === 'buyer' ? 'primary' : 'secondary'} 
+                        variant="outlined"
+                      />
+                    </Stack>
                     <Typography variant="h6">{order.description || 'Escrow order'}</Typography>
-                    <Typography variant="body2" color="text.secondary">Seller: {order.sellerName || order.sellerId}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {getUserRole(order) === 'buyer' ? `Seller: ${order.sellerName || order.sellerId}` : `Buyer: ${order.buyerId}`}
+                    </Typography>
                   </Stack>
                   <Stack alignItems={{ xs: 'flex-start', md: 'flex-end' }}>
                     <Chip label={order.status} color={statusColor(order.status) as any} sx={{ mb: 1 }} />
@@ -192,8 +299,8 @@ const OrderListPage: React.FC = () => {
 
           <Stack alignItems="center" py={2}>
             <Pagination
-              count={Math.ceil(data.total / data.pageSize) || 1}
-              page={data.page}
+              count={Math.ceil((data?.total || 0) / (data?.pageSize || 10)) || 1}
+              page={data?.page || 1}
               onChange={(_, p) => load(p)}
             />
           </Stack>

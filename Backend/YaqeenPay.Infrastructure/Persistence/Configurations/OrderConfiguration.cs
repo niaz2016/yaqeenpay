@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using YaqeenPay.Domain.Entities;
 
 namespace YaqeenPay.Infrastructure.Persistence.Configurations;
@@ -20,6 +21,17 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.Description)
             .HasMaxLength(2000);
 
+        // Configure ImageUrls as JSON column
+        builder.Property(o => o.ImageUrls)
+            .HasConversion(
+                v => string.Join(';', v),
+                v => v.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList())
+            .HasColumnName("ImageUrls")
+            .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                (c1, c2) => (c1 == null && c2 == null) || (c1 != null && c2 != null && c1.SequenceEqual(c2)),
+                c => c == null ? 0 : c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                c => c == null ? new List<string>() : c.ToList()));
+
         // Configure value objects
         builder.OwnsOne(o => o.Amount, a =>
         {
@@ -29,18 +41,6 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
             a.Property(m => m.Currency)
                 .HasColumnName("Currency")
-                .HasMaxLength(3)
-                .IsRequired();
-        });
-
-        builder.OwnsOne(o => o.DeclaredValue, d =>
-        {
-            d.Property(m => m.Amount)
-                .HasColumnName("DeclaredValue")
-                .IsRequired();
-
-            d.Property(m => m.Currency)
-                .HasColumnName("DeclaredValueCurrency")
                 .HasMaxLength(3)
                 .IsRequired();
         });

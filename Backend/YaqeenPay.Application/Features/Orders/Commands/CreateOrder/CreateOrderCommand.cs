@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
+using YaqeenPay.Application.Interfaces;
 using YaqeenPay.Domain.Entities;
 using YaqeenPay.Domain.ValueObjects;
 
@@ -15,6 +16,7 @@ public record CreateOrderCommand : IRequest<ApiResponse<Guid>>
     public decimal Amount { get; set; }
     public string Currency { get; set; } = "USD";
     public Guid SellerId { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
 }
 
 public class CreateOrderCommandValidator : AbstractValidator<CreateOrderCommand>
@@ -51,7 +53,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
 
     public async Task<ApiResponse<Guid>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        if (_currentUserService.UserId == null)
+        if (_currentUserService.UserId == Guid.Empty)
         {
             return ApiResponse<Guid>.FailureResponse("User not authenticated");
         }
@@ -82,7 +84,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
             escrow.Id,
             request.Title,
             request.Description,
-            new Money(request.Amount, request.Currency));
+            new Money(request.Amount, request.Currency),
+            request.ImageUrls);
 
         _context.Orders.Add(order);
         

@@ -118,7 +118,11 @@ const UserOrdersPage: React.FC = () => {
         <Button
           variant="text"
           size="small"
-          onClick={() => navigate(`/seller/orders/${params.row.id}`)}
+          onClick={() => {
+            if (params.row.id && params.row.id !== 'undefined') {
+              navigate(`/seller/orders/${params.row.id}`);
+            }
+          }}
           sx={{ textTransform: 'none' }}
         >
           {params.value}
@@ -170,7 +174,11 @@ const UserOrdersPage: React.FC = () => {
         <Button
           size="small"
           variant="outlined"
-          onClick={() => navigate(`/seller/orders/${params.row.id}`)}
+          onClick={() => {
+            if (params.row.id && params.row.id !== 'undefined') {
+              navigate(`/seller/orders/${params.row.id}`);
+            }
+          }}
         >
           View
         </Button>

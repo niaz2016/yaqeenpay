@@ -751,6 +751,13 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.Property<Guid>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("DeclaredValue")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("DeclaredValueCurrency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DeliveredDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -773,6 +780,11 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                     b.Property<Guid>("EscrowId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ImageUrls")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ImageUrls");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -1334,36 +1346,10 @@ namespace YaqeenPay.Infrastructure.Migrations
                                 .HasForeignKey("OrderId");
                         });
 
-                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "DeclaredValue", b1 =>
-                        {
-                            b1.Property<Guid>("OrderId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<decimal>("Amount")
-                                .HasColumnType("numeric")
-                                .HasColumnName("DeclaredValue");
-
-                            b1.Property<string>("Currency")
-                                .IsRequired()
-                                .HasMaxLength(3)
-                                .HasColumnType("character varying(3)")
-                                .HasColumnName("DeclaredValueCurrency");
-
-                            b1.HasKey("OrderId");
-
-                            b1.ToTable("Orders");
-
-                            b1.WithOwner()
-                                .HasForeignKey("OrderId");
-                        });
-
                     b.Navigation("Amount")
                         .IsRequired();
 
                     b.Navigation("Buyer");
-
-                    b.Navigation("DeclaredValue")
-                        .IsRequired();
 
                     b.Navigation("Escrow");
 

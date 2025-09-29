@@ -1,0 +1,9 @@
+### Bank SMS Webhook test (Dev)
+POST https://localhost:7137/api/webhooks/bank-sms
+Content-Type: application/json
+X-Webhook-Secret: dev-secret
+
+{
+  "sms": "You have received PKR 1,234.00 via IBFT. Ref# WTU20250928123456 from Ali Khan at 2025-09-28 14:33.",
+  "userId": null
+}

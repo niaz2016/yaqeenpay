@@ -52,7 +52,7 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
         
         var query = _context.Orders
             .Include(o => o.Buyer)
-            .Where(o => o.SellerId == userId)
+            .Where(o => o.SellerId == userId) // Include all orders where user is seller (including seller requests)
             .AsQueryable();
         
         // Filter by status if provided

@@ -7,21 +7,24 @@ using System.Text;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Domain.Entities.Identity;
 using YaqeenPay.Domain.Entities;
+using YaqeenPay.Infrastructure.Services.Security;
+
 namespace YaqeenPay.Infrastructure.Services;
 public class JwtService : IJwtService
 {
     private readonly IConfiguration _configuration;
-    public JwtService(IConfiguration configuration)
+    private readonly JwtKeyMaterial? _material;
+    public JwtService(IConfiguration configuration, JwtKeyMaterial? material = null)
     {
         _configuration = configuration;
+        _material = material;
     }
     public string GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles)
     {
-        var secret = _configuration["JwtSettings:Secret"];
         var issuer = _configuration["JwtSettings:Issuer"];
         var audience = _configuration["JwtSettings:Audience"];
-        var expiryInMinutes = Convert.ToDouble(
-            _configuration["JwtSettings:ExpiryInMinutes"] ?? "60");
+        // Default to 15 minutes per architecture plan
+        var expiryInMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpiryInMinutes"] ?? "15");
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -47,20 +50,27 @@ public class JwtService : IJwtService
             }
         }
         
-        // Make sure we have a key that's at least 32 bytes (256 bits) for HS256
-        string keyString = secret ?? "ThisIsAVeryLongSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm";
-        byte[] keyBytes = Encoding.UTF8.GetBytes(keyString);
-        
-        // Ensure key is at least 32 bytes (256 bits)
-        if (keyBytes.Length < 32)
+        // Load RSA key for RS256 signing
+        // Prefer injected key material (may be generated in Development)
+        string? privateKeyBase64 = _material?.PrivateKeyBase64 ?? _configuration["JwtSettings:PrivateKey"]; // dev via user-secrets
+        if (string.IsNullOrWhiteSpace(privateKeyBase64))
         {
-            // Extend the key to 32 bytes by padding or using a derived key
-            using var sha256 = SHA256.Create();
-            keyBytes = sha256.ComputeHash(keyBytes);
+            throw new InvalidOperationException("Missing JwtSettings:PrivateKey for RSA signing.");
         }
-        
-        var key = new SymmetricSecurityKey(keyBytes);
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        byte[] privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+
+        // Build signing key from RSAParameters to avoid disposed RSA later during signing
+        RSAParameters rsaParams;
+        using (var rsaForParams = RSA.Create())
+        {
+            rsaForParams.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+            rsaParams = rsaForParams.ExportParameters(true);
+        }
+        var key = new RsaSecurityKey(rsaParams);
+        // Add key id (kid) if provided to support rotation/JWKS later
+        var kid = _material?.KeyId ?? _configuration["JwtSettings:KeyId"]; // optional
+        if (!string.IsNullOrEmpty(kid)) key.KeyId = kid;
+        var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
@@ -92,6 +102,7 @@ public class JwtService : IJwtService
         var hash = sha256.ComputeHash(bytes);
         return Convert.ToBase64String(hash);
     }
+    public string ComputeRefreshTokenHash(string token) => CreateTokenHash(token);
     public (string jwtToken, Domain.Entities.Identity.RefreshToken refreshToken) GenerateTokens(ApplicationUser user, IEnumerable<string> roles, string ipAddress)
     {
         var jwtToken = GenerateJwtToken(user, roles);
@@ -105,21 +116,26 @@ public class JwtService : IJwtService
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            string keyString = _configuration["JwtSettings:Secret"] ?? "ThisIsAVeryLongSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm";
-            byte[] keyBytes = Encoding.UTF8.GetBytes(keyString);
-            
-            // Ensure key is at least 32 bytes (256 bits)
-            if (keyBytes.Length < 32)
+            // Validate using RSA public key (SubjectPublicKeyInfo / X.509) in Base64
+            string? publicKeyBase64 = _material?.PublicKeyBase64 ?? _configuration["JwtSettings:PublicKey"];
+            if (string.IsNullOrWhiteSpace(publicKeyBase64))
             {
-                // Extend the key to 32 bytes by padding or using a derived key
-                using var sha256 = SHA256.Create();
-                keyBytes = sha256.ComputeHash(keyBytes);
+                throw new InvalidOperationException("Missing JwtSettings:PublicKey for JWT validation.");
             }
-            
+            byte[] publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
+
+            // Build validation key from RSAParameters to avoid disposed RSA later
+            RSAParameters rsaParams;
+            using (var rsaForParams = RSA.Create())
+            {
+                rsaForParams.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                rsaParams = rsaForParams.ExportParameters(false);
+            }
+            var rsaKey = new RsaSecurityKey(rsaParams);
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                IssuerSigningKey = rsaKey,
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidIssuer = _configuration["JwtSettings:Issuer"],

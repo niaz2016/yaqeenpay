@@ -27,42 +27,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirectPath} state={{ from: location }} replace />;
   }
 
-  // If roles are specified, check if user has required role
+  // If route restricts roles, verify user has one of the allowed roles (case-insensitive)
   if (allowedRoles.length > 0) {
-    console.log('ProtectedRoute - Checking roles:', {
-      userRoles: user.roles,
-      allowedRoles: allowedRoles,
-      userEmail: user.email,
-      userRolesLower: user.roles.map(r => r.toLowerCase()),
-      allowedRolesLower: allowedRoles.map(r => r.toLowerCase())
-    });
-    
-    const hasRequiredRole = user.roles.some(role => 
-      allowedRoles.map(r => r.toLowerCase()).includes(role.toLowerCase())
-    );
-    
-    // Temporary: Allow access if user has 'admin' role or if allowedRoles includes 'Admin'
-    const tempAdminAccess = user.roles.some(role => role.toLowerCase() === 'admin') && 
-                           allowedRoles.some(role => role.toLowerCase() === 'admin');
-    
-    // TEMPORARY: Allow specific test user to access admin (remove this in production)
-    const isTestAdmin = user.email && (
-      user.email.toLowerCase().includes('admin') || 
-      user.email.toLowerCase().includes('test')
-    );
-    
-    console.log('ProtectedRoute - Has required role:', hasRequiredRole);
-    console.log('ProtectedRoute - Temp admin access:', tempAdminAccess);
-    console.log('ProtectedRoute - Is test admin:', isTestAdmin);
-    
-    if (!hasRequiredRole && !tempAdminAccess && !isTestAdmin) {
-      console.log('ProtectedRoute - Access denied, redirecting to unauthorized');
-      // Redirect to unauthorized page or dashboard
-      return <Navigate to="/unauthorized" replace />;
+    const userRoles = (user.roles || []).map(r => r.toLowerCase());
+    const required = allowedRoles.map(r => r.toLowerCase());
+
+    // grant access if any match
+    const hasMatch = userRoles.some(r => required.includes(r));
+
+    if (!hasMatch) {
+      // Optional: temp allowances for admin/test accounts can be added here if needed
+      return <Navigate to={"/unauthorized"} replace />;
     }
   }
 
-  // If authenticated and has correct role, render the protected content
+  // If authenticated (and authorized if roles required), render the protected content
   return <Outlet />;
 };
 

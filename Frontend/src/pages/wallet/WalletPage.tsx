@@ -62,25 +62,26 @@ const WalletPage: React.FC = () => {
   }, [page, pageSize, txType]);
 
 
-  // Handler for QR modal submission (to be implemented)
-  const handleQrProofSubmit = async ({ amount, file, notes }: { amount: number; file: File; notes: string }) => {
+  // Handler for QR modal submission: use transactionId instead of image
+  const handleQrProofSubmit = async ({ amount, transactionId }: { amount: number; transactionId: string }) => {
     setTopUpSubmitting(true);
     try {
-      // 1. Initiate top-up (create a pending top-up record)
       const topUp: TopUpDto = await walletService.topUp({
         amount,
         currency: summary?.currency || 'PKR',
         channel: 'Easypaisa',
       }) as TopUpDto;
-      // 2. Upload proof
-      await walletService.uploadTopUpProof(topUp.id, file, notes);
-      setToast('Proof uploaded successfully. Awaiting admin approval.');
+
+      // submit the transaction id against the created topup
+      await walletService.submitTopUpReference(topUp.id, transactionId);
+
+      setToast('Transaction submitted. Awaiting admin approval.');
       setQrModalOpen(false);
       await loadSummary();
       await loadTx();
       await loadAnalytics();
     } catch (e: any) {
-      setToast(e?.message || 'Top-up proof upload failed');
+      setToast(e?.message || 'Top-up submit failed');
     } finally {
       setTopUpSubmitting(false);
     }

@@ -49,6 +49,14 @@ public class UpdateProfileCommandHandler : IRequestHandler<UpdateProfileCommand,
         user.State = request.State ?? user.State;
         user.Country = request.Country ?? user.Country;
         user.PostalCode = request.PostalCode ?? user.PostalCode;
+        // Update phone if provided
+        if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && request.PhoneNumber != user.PhoneNumber)
+        {
+            user.PhoneNumber = request.PhoneNumber;
+            // Reset phone verification when number changes
+            user.PhoneVerifiedAt = null;
+            user.PhoneNumberConfirmed = false;
+        }
     // Allow updating profile image URL
     user.ProfileImageUrl = request.ProfileImageUrl ?? user.ProfileImageUrl;
 

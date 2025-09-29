@@ -40,10 +40,6 @@ export class SellerService {
 
   // Seller Registration
   async applyForSellerRole(data: SellerRegistrationRequest): Promise<SellerRegistrationResponse> {
-    console.log('Applying for seller role with data:', {
-      businessProfile: data.businessProfile,
-      kycDocumentsCount: data.kycDocuments.length
-    });
 
     const formData = new FormData();
     
@@ -51,36 +47,18 @@ export class SellerService {
     Object.entries(data.businessProfile).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         formData.append(key, value.toString());
-        console.log(`Added business profile field: ${key} = ${value}`);
       }
     });
 
     // Add KYC documents
     data.kycDocuments.forEach((doc, index) => {
-      console.log(`Adding KYC document ${index}:`, {
-        documentType: doc.documentType,
-        fileName: doc.file.name,
-        fileSize: doc.file.size,
-        fileType: doc.file.type
-      });
-      
       formData.append(`kycDocuments[${index}].documentType`, doc.documentType);
       formData.append(`kycDocuments[${index}].file`, doc.file);
     });
 
     // Log all FormData entries
-    console.log('FormData entries:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-
     try {
       const response = await apiService.post<SellerRegistrationResponse>('/SellerRegistration/apply', formData);
-      console.log('Seller registration response:', response);
       return response;
     } catch (error) {
       console.error('Seller registration error:', error);
@@ -189,7 +167,6 @@ export class SellerService {
       Notes: notes
     };
     
-    console.log('Withdrawal request payload:', backendRequest);
     return apiService.post<Withdrawal>('/withdrawals', backendRequest);
   }
 

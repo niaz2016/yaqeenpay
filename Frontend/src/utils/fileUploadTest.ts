@@ -1,70 +1,54 @@
 // src/utils/fileUploadTest.ts
-// Utility for testing file upload functionality
+// Minimal client-side file validation helper for image uploads
 
-export const testFileUpload = async (file: File) => {
-  const formData = new FormData();
-  formData.append('test', file);
+export interface FileValidationResult {
+  isValid: boolean;
+  error?: string;
+}
 
-  // Test the FormData creation
-  console.log('FormData entries:');
-  for (const [key, value] of formData.entries()) {
-    console.log(key, value);
+// Defaults: 5 MB max, common image mime types
+const DEFAULT_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const DEFAULT_ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/heic',
+  'image/heif'
+];
+
+export function validateFileForUpload(
+  file: File,
+  options?: {
+    maxSizeBytes?: number;
+    allowedMimeTypes?: string[];
+  }
+): FileValidationResult {
+  const maxSize = options?.maxSizeBytes ?? DEFAULT_MAX_SIZE_BYTES;
+  const allowed = options?.allowedMimeTypes ?? DEFAULT_ALLOWED_TYPES;
+
+  if (!file) {
+    return { isValid: false, error: 'No file selected' };
   }
 
-  // Check if the file is properly appended
-  const appendedFile = formData.get('test') as File;
-  console.log('File details:', {
-    name: appendedFile?.name,
-    size: appendedFile?.size,
-    type: appendedFile?.type,
-    lastModified: appendedFile?.lastModified
-  });
-
-  return formData;
-};
-
-export const validateFileForUpload = (file: File): { isValid: boolean; error?: string } => {
-  // Validate file type
-  const allowedTypes = [
-    'image/jpeg',
-    'image/jpg', 
-    'image/png',
-    'application/pdf',
-    'image/gif'
-  ];
-
-  if (!allowedTypes.includes(file.type)) {
-    return {
-      isValid: false,
-      error: `File type ${file.type} is not supported. Please use JPG, PNG, PDF, or GIF files.`
-    };
-  }
-
-  // Validate file size (5MB max)
-  const maxSize = 5 * 1024 * 1024;
+  // Size check
   if (file.size > maxSize) {
-    return {
-      isValid: false,
-      error: `File size ${(file.size / 1024 / 1024).toFixed(2)}MB exceeds the 5MB limit.`
-    };
+    const mb = (maxSize / (1024 * 1024)).toFixed(1);
+    return { isValid: false, error: `File is too large. Max size is ${mb} MB.` };
   }
 
-  // Validate file name
-  if (!file.name || file.name.trim() === '') {
-    return {
-      isValid: false,
-      error: 'File must have a valid name.'
-    };
+  // Type check (fallback to extension if mime missing)
+  if (file.type) {
+    if (!allowed.includes(file.type)) {
+      return { isValid: false, error: 'Unsupported file type. Please upload an image.' };
+    }
+  } else {
+    const name = file.name?.toLowerCase() || '';
+    const extOk = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'].some(ext => name.endsWith(ext));
+    if (!extOk) {
+      return { isValid: false, error: 'Unsupported file type based on extension.' };
+    }
   }
 
   return { isValid: true };
-};
-
-export const getFileInfo = (file: File) => {
-  return {
-    name: file.name,
-    size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-    type: file.type,
-    lastModified: new Date(file.lastModified).toLocaleString()
-  };
-};
+}

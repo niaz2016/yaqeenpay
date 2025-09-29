@@ -72,7 +72,6 @@ const LoginForm: React.FC = () => {
         }
       }
       
-      console.log('LoginForm - Redirecting to:', redirectPath, 'User roles:', userFromStorage.roles);
       navigate(redirectPath, { replace: true });
       
     } catch (err) {

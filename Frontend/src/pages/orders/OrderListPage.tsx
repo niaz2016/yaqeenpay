@@ -20,7 +20,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import ordersService, { type PagedResult } from '../../services/ordersService';
+import { ordersService, type PagedResult } from '../../services/ordersService';
 import type { Order } from '../../types/order';
 import { useAuth } from '../../context/AuthContext';
 
@@ -95,7 +95,6 @@ const OrderListPage: React.FC = () => {
         search: search || undefined
       });
       
-      console.log('API Response:', result); // Debug log
       
       // Handle the actual API response structure
       let orders: Order[] = [];

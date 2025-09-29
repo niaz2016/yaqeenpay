@@ -41,7 +41,6 @@ class ApiService {
           } else {
             headersAny['Authorization'] = `Bearer ${token}`;
           }
-          console.log(`Setting Authorization header for ${config.url}:`, `Bearer ${token.substring(0, 10)}...`);
         } else {
           console.warn(`No token available for request to ${config.url}`);
         }
@@ -56,16 +55,13 @@ class ApiService {
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
         const status = error.response?.status;
-        
-        console.log(`API Error [${status}] for ${originalRequest.url}:`, error.message);
-        
+                
         // If error is 401 and not already retrying, attempt token refresh
         if (
           status === 401 &&
           !originalRequest._retry &&
           this.getRefreshToken()
         ) {
-          console.log('Attempting to refresh token for 401 error');
           originalRequest._retry = true;
 
           try {
@@ -76,7 +72,6 @@ class ApiService {
             
             // Wait for the refresh to complete
             const newToken = await this.refreshPromise;
-            console.log('Token refreshed successfully, retrying original request');
             
             // Reset for next refresh
             this.refreshPromise = null;
@@ -84,7 +79,6 @@ class ApiService {
             // Update the failed request with new token
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              console.log('Updated Authorization header for retry');
             }
             
             // Retry the original request
@@ -152,13 +146,11 @@ class ApiService {
   private getAccessToken(): string | null {
     // Try to get token with different possible keys
     const token = localStorage.getItem('access_token') || localStorage.getItem('token') || null;
-    console.log('getAccessToken() returned:', token ? `${token.substring(0, 10)}...` : 'null');
     return token;
   }
 
   private getRefreshToken(): string | null {
     const refreshToken = localStorage.getItem('refresh_token') || localStorage.getItem('refreshToken') || null;
-    console.log('getRefreshToken() returned:', refreshToken ? `${refreshToken.substring(0, 10)}...` : 'null');
     return refreshToken;
   }
 
@@ -167,12 +159,10 @@ class ApiService {
     if (tokenResponse.accessToken || tokenResponse.token) {
       const token = tokenResponse.accessToken || tokenResponse.token || '';
       localStorage.setItem('access_token', token);
-      console.log('Token stored in localStorage:', token ? `${token.substring(0, 10)}...` : 'empty string');
     }
     
     if (tokenResponse.refreshToken) {
       localStorage.setItem('refresh_token', tokenResponse.refreshToken);
-      console.log('Refresh token stored:', tokenResponse.refreshToken ? `${tokenResponse.refreshToken.substring(0, 10)}...` : 'empty string');
     }
     
     // Calculate and store expiry
@@ -181,14 +171,7 @@ class ApiService {
       : (Date.now() + (tokenResponse.expiresIn || 3600) * 1000);
       
     localStorage.setItem('token_expiry', expiryTime.toString());
-    console.log('Token expiry set to:', new Date(expiryTime).toISOString());
     
-    console.log('Tokens set:', {
-      accessToken: tokenResponse.accessToken || tokenResponse.token ? 
-        `${(tokenResponse.accessToken || tokenResponse.token || '').substring(0, 10)}...` : 'not set',
-      refreshToken: '***',
-      expires: new Date(parseInt(localStorage.getItem('token_expiry') || '0')).toISOString()
-    });
   }
 
   private clearTokens(): void {
@@ -201,20 +184,16 @@ class ApiService {
 
   private async refreshAccessToken(): Promise<string> {
     try {
-      console.log('Attempting to refresh token');
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
         throw new Error('No refresh token available');
       }
 
-      console.log('Calling refresh-token endpoint');
       const response = await axios.post<any>(
         `${API_BASE_URL}/auth/refresh-token`,
         { refreshToken: refreshToken }  // Match the property name expected by backend
       );
-      
-      console.log('Refresh token response:', response.data);
-      
+            
       // Handle ApiResponse wrapper
       const responseData = response.data?.success ? response.data.data : response.data;
       
@@ -246,7 +225,6 @@ class ApiService {
   public async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     try {
       const response = await this.api.get<any>(url, this.withAuth(config));
-      console.log(`GET ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
@@ -281,9 +259,7 @@ class ApiService {
         // Ensure JSON header only for non-FormData
         cfg.headers = { ...(cfg.headers || {}), 'Content-Type': 'application/json' };
       }
-      console.log('POST debug', url, 'isFormData=', isFormData, 'final headers=', cfg.headers);
       const response = await this.api.post<any>(url, data, cfg);
-      console.log(`POST ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
@@ -314,7 +290,6 @@ class ApiService {
       }
 
       const response = await this.api.put<any>(url, data, cfg);
-      console.log(`PUT ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
@@ -336,7 +311,6 @@ class ApiService {
   public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     try {
       const response = await this.api.delete<any>(url, this.withAuth(config));
-      console.log(`DELETE ${url} response:`, response);
       
       // Handle ApiResponse wrapper if present
       if (response.data && typeof response.data === 'object' && 'success' in response.data) {
@@ -361,7 +335,6 @@ class ApiService {
   }
 
   public logout(): void {
-    console.log('ApiService: Clearing tokens only (no API call)');
     this.clearTokens();
   }
 
@@ -370,12 +343,10 @@ class ApiService {
     const expiry = localStorage.getItem('token_expiry');
     
     if (!token) {
-      console.log('Authentication check failed: No token found');
       return false;
     }
     
     if (!expiry) {
-      console.log('Authentication check failed: No token expiry found');
       return false;
     }
     
@@ -383,12 +354,10 @@ class ApiService {
     const isExpired = Date.now() >= parseInt(expiry, 10);
     
     if (isExpired) {
-      console.log('Authentication check failed: Token is expired');
       // Consider clearing tokens here to prevent using expired tokens
       return false;
     }
     
-    console.log('Authentication check passed: Valid token found');
     return true;
   }
 }

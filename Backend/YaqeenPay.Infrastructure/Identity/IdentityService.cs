@@ -52,12 +52,26 @@ public class IdentityService : IIdentityService
         }
         return user.UserName ?? string.Empty;
     }
-    public async Task<(Result Result, Guid UserId)> CreateUserAsync(string userName, string email, string password)
+    public async Task<(Result Result, Guid UserId)> CreateUserAsync(
+        string userName,
+        string email,
+        string password,
+        string? firstName = null,
+        string? lastName = null,
+        string? phoneNumber = null)
     {
         var user = new ApplicationUser
         {
             UserName = userName,
-            Email = email
+            Email = email,
+            FirstName = firstName,
+            LastName = lastName,
+            PhoneNumber = phoneNumber,
+            // Mark as verified at registration time per requirement (no existing data/flows)
+            EmailConfirmed = !string.IsNullOrWhiteSpace(email),
+            EmailVerifiedAt = !string.IsNullOrWhiteSpace(email) ? DateTime.UtcNow : null,
+            PhoneNumberConfirmed = !string.IsNullOrWhiteSpace(phoneNumber),
+            PhoneVerifiedAt = !string.IsNullOrWhiteSpace(phoneNumber) ? DateTime.UtcNow : null
         };
         var result = await _userManager.CreateAsync(user, password);
         return (result.ToApplicationResult(), user.Id);

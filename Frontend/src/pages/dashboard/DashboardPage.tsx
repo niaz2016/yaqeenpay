@@ -45,7 +45,6 @@ const DashboardPage: React.FC = () => {
   // Redirect admin users to admin dashboard
   useEffect(() => {
     if (user?.roles?.some(role => role.toLowerCase() === 'admin')) {
-      console.log('Admin user detected, redirecting to admin dashboard');
       navigate('/admin', { replace: true });
       return;
     }

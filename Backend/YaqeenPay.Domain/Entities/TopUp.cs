@@ -55,9 +55,21 @@ namespace YaqeenPay.Domain.Entities
             Status = TopUpStatus.PendingAdminApproval;
         }
 
+        public void SubmitReference(string externalReference)
+        {
+            if (Status != TopUpStatus.Initiated && Status != TopUpStatus.PendingConfirmation)
+                throw new InvalidOperationException($"Cannot submit reference in status {Status}");
+
+            if (string.IsNullOrWhiteSpace(externalReference))
+                throw new ArgumentException("External reference is required", nameof(externalReference));
+
+            ExternalReference = externalReference.Trim();
+            Status = TopUpStatus.PendingAdminApproval;
+        }
+
         public void Confirm(string externalReference)
         {
-            if (Status != TopUpStatus.PendingConfirmation && Status != TopUpStatus.Initiated)
+            if (Status != TopUpStatus.PendingConfirmation && Status != TopUpStatus.Initiated && Status != TopUpStatus.PendingAdminApproval)
                 throw new InvalidOperationException($"Cannot confirm top-up in status {Status}");
 
             Status = TopUpStatus.Confirmed;

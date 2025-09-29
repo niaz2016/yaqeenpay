@@ -38,8 +38,10 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
     }
     public async Task<ApiResponse<AuthenticationResponse>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
     {
+        // Compute hash of the provided raw refresh token and match by hash
+        var providedHash = _jwtService.ComputeRefreshTokenHash(request.RefreshToken);
         var refreshToken = _context.RefreshTokens
-            .FirstOrDefault(rt => rt.TokenHash == request.RefreshToken);
+            .FirstOrDefault(rt => rt.TokenHash == providedHash);
         if (refreshToken == null)
         {
             return ApiResponse<AuthenticationResponse>.FailureResponse("Invalid refresh token");
@@ -69,7 +71,8 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
         return ApiResponse<AuthenticationResponse>.SuccessResponse(new AuthenticationResponse
         {
             Token = jwtToken,
-            RefreshToken = newRefreshToken.TokenHash,
+            // Return raw token to client
+            RefreshToken = newRefreshToken.Token,
             TokenExpires = newRefreshToken.ExpiresAt,
             UserId = user.Id,
             Email = user.Email!,

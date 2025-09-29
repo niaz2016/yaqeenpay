@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using YaqeenPay.Application.Interfaces;
 using YaqeenPay.Infrastructure.Services.Easypaisa.DTOs;
+using System.Security.Cryptography;
 
 namespace YaqeenPay.Infrastructure.Services.Easypaisa
 {
@@ -92,10 +93,62 @@ namespace YaqeenPay.Infrastructure.Services.Easypaisa
 
         public bool VerifySignature(string payload, string signature)
         {
-            // Implement signature verification logic using _settings.Secret
-            // For demonstration, always return true
-            // In production, use HMAC or similar
-            return true;
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_settings.Secret))
+                {
+                    _logger.LogWarning("Easypaisa secret not configured; rejecting signature verification");
+                    return false;
+                }
+
+                // Compute HMAC SHA256 over the raw payload using shared secret
+                var keyBytes = Encoding.UTF8.GetBytes(_settings.Secret);
+                using var hmac = new HMACSHA256(keyBytes);
+                var payloadBytes = Encoding.UTF8.GetBytes(payload ?? string.Empty);
+                var hash = hmac.ComputeHash(payloadBytes);
+
+                var sig = (signature ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(sig)) return false;
+
+                // Accept either hex or base64 encoded signatures
+                bool matches = false;
+                // Hex compare
+                var sb = new StringBuilder(hash.Length * 2);
+                foreach (var b in hash) sb.AppendFormat("{0:x2}", b);
+                var hex = sb.ToString();
+                if (ConstantTimeEquals(hex, sig) || ConstantTimeEquals(hex.ToUpperInvariant(), sig))
+                {
+                    matches = true;
+                }
+                else
+                {
+                    // Base64 compare
+                    var b64 = Convert.ToBase64String(hash);
+                    if (ConstantTimeEquals(b64, sig)) matches = true;
+                }
+
+                if (!matches)
+                {
+                    _logger.LogWarning("Easypaisa signature mismatch");
+                }
+                return matches;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying Easypaisa signature");
+                return false;
+            }
+        }
+
+        private static bool ConstantTimeEquals(string a, string b)
+        {
+            if (a == null || b == null || a.Length != b.Length) return false;
+            int result = 0;
+            for (int i = 0; i < a.Length; i++)
+            {
+                result |= a[i] ^ b[i];
+            }
+            return result == 0;
         }
     }
 }

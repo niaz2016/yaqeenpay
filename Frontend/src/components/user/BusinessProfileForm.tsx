@@ -1,5 +1,5 @@
 // src/components/user/BusinessProfileForm.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
 	Box,
 	TextField,
@@ -65,6 +65,7 @@ const BusinessProfileForm: React.FC<BusinessProfileFormProps> = ({ onSubmit, ini
 	const {
 		control,
 		handleSubmit,
+		reset,
 		formState: { errors, isSubmitting }
 	} = useForm<BusinessProfileFormData>({
 		resolver: zodResolver(businessProfileSchema),
@@ -83,6 +84,26 @@ const BusinessProfileForm: React.FC<BusinessProfileFormProps> = ({ onSubmit, ini
 			taxId: ''
 		}
 	});
+
+	// Keep form in sync when initialData arrives/changes after mount
+	useEffect(() => {
+		if (initialData) {
+			reset({
+				businessName: initialData.businessName || '',
+				businessType: initialData.businessType || '',
+				businessCategory: initialData.businessCategory || '',
+				description: initialData.description || '',
+				website: initialData.website || '',
+				phoneNumber: initialData.phoneNumber || '',
+				address: initialData.address || '',
+				city: initialData.city || '',
+				state: initialData.state || '',
+				country: initialData.country || '',
+				postalCode: initialData.postalCode || '',
+				taxId: initialData.taxId || ''
+			});
+		}
+	}, [initialData, reset]);
 
 	const handleFormSubmit = (data: BusinessProfileFormData) => {
 		// Remove empty website field if not provided

@@ -157,6 +157,70 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.BankSmsPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Processed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ProcessingResult")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RawText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SenderName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SenderPhone")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WalletId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WalletTopupLockId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BankSmsPayments");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Dispute", b =>
                 {
                     b.Property<Guid>("Id")
@@ -993,6 +1057,58 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("Wallets");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.WalletTopupLock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("LockedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TransactionReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("IX_WalletTopupLocks_ExpiresAt");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_WalletTopupLocks_Status");
+
+                    b.HasIndex("UserId", "Status")
+                        .HasDatabaseName("IX_WalletTopupLocks_UserId_Status");
+
+                    b.ToTable("WalletTopupLocks", (string)null);
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.WalletTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1451,6 +1567,43 @@ namespace YaqeenPay.Infrastructure.Migrations
                         });
 
                     b.Navigation("Balance")
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.WalletTopupLock", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "Amount", b1 =>
+                        {
+                            b1.Property<Guid>("WalletTopupLockId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("decimal(18,2)")
+                                .HasColumnName("Amount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("Currency");
+
+                            b1.HasKey("WalletTopupLockId");
+
+                            b1.ToTable("WalletTopupLocks");
+
+                            b1.WithOwner()
+                                .HasForeignKey("WalletTopupLockId");
+                        });
+
+                    b.Navigation("Amount")
                         .IsRequired();
 
                     b.Navigation("User");

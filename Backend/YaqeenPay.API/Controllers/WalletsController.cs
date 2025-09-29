@@ -10,15 +10,98 @@ using YaqeenPay.Application.Features.Wallets.Queries.GetWalletBalance;
 using YaqeenPay.Application.Features.Wallets.Queries.GetWalletSummary;
 using YaqeenPay.Application.Features.Wallets.Queries.GetWalletAnalytics;
 using YaqeenPay.Application.Features.Wallets.Queries.GetWalletTransactions;
+using YaqeenPay.Application.Features.Wallets.DTOs;
+using YaqeenPay.Application.Features.Wallets.Services;
+using YaqeenPay.Application.Common.Interfaces;
 
 namespace YaqeenPay.API.Controllers
 {
     [Authorize]
     public class WalletsController : ApiControllerBase
     {
-        [HttpPost("top-up/{id}/proof")]
-        [RequestSizeLimit(5_000_000)] // 5MB max
-        public async Task<IActionResult> UploadTopUpProof(Guid id)
+        private readonly IWalletTopupService _walletTopupService;
+        private readonly ICurrentUserService _currentUserService;
+
+        public WalletsController(IWalletTopupService walletTopupService, ICurrentUserService currentUserService)
+        {
+            _walletTopupService = walletTopupService;
+            _currentUserService = currentUserService;
+        }
+
+        // New QR-based topup endpoints
+        [HttpPost("create-qr-topup")]
+        public async Task<ActionResult<WalletTopupResponse>> CreateQrTopup([FromBody] WalletTopupRequest request)
+        {
+            try
+            {
+                // Add logging for debugging
+                Console.WriteLine($"CreateQrTopup called with request: Amount={request?.Amount}, PaymentMethod={request?.PaymentMethod}");
+                
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Request body is required" });
+                }
+                
+                var userId = GetCurrentUserId();
+                Console.WriteLine($"User ID retrieved: {userId}");
+                
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var response = await _walletTopupService.CreateTopupRequestAsync(userId, request, baseUrl);
+                
+                if (response.Success)
+                    return Ok(response);
+                else
+                    return BadRequest(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+            }
+        }
+
+        [HttpPost("verify-qr-payment")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyQrPayment([FromBody] QrPaymentVerificationRequest request)
+        {
+            try
+            {
+                var success = await _walletTopupService.VerifyAndCompleteTopupAsync(request.TransactionReference, request.Amount);
+                
+                if (success)
+                    return Ok(new { message = "Payment verified and wallet updated successfully" });
+                else
+                    return BadRequest(new { message = "Payment verification failed" });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while verifying payment" });
+            }
+        }
+
+        [HttpGet("qr-balance")]
+        public async Task<ActionResult<WalletBalanceResponse>> GetQrBalance()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var balance = await _walletTopupService.GetUserWalletBalanceAsync(userId);
+                return Ok(new WalletBalanceResponse { Balance = balance, Currency = "PKR" });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching balance" });
+            }
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            return _currentUserService.UserId;
+        }
+
+    // Deprecated: keep for backward compatibility; use /top-up/{id}/reference instead
+    [HttpPost("top-up/{id}/proof")]
+    [RequestSizeLimit(5_000_000)] // 5MB max
+    public async Task<IActionResult> UploadTopUpProof(Guid id)
         {
             var form = await Request.ReadFormAsync();
             var file = form.Files["file"];
@@ -74,6 +157,28 @@ namespace YaqeenPay.API.Controllers
             };
             var result = await Mediator.Send(command);
             return Ok(result);
+        }
+
+        // New: submit transaction ID string instead of file proof
+        [HttpPost("top-up/{id}/reference")]
+        public async Task<IActionResult> SubmitTopUpReference(Guid id, [FromBody] SubmitTopUpReferenceRequest request)
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.TransactionId))
+                return BadRequest("TransactionId is required");
+
+            var cmd = new YaqeenPay.Application.Features.Wallets.Commands.TopUpWallet.SubmitTopUpReferenceCommand
+            {
+                TopUpId = id,
+                TransactionId = request.TransactionId.Trim()
+            };
+
+            var result = await Mediator.Send(cmd);
+            return Ok(result);
+        }
+
+        public class SubmitTopUpReferenceRequest
+        {
+            public string TransactionId { get; set; } = string.Empty;
         }
         [HttpGet("balance")]
         public async Task<IActionResult> GetBalance([FromQuery] GetWalletBalanceQuery query)

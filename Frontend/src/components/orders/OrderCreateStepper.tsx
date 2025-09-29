@@ -35,10 +35,8 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
 
   const addItem = () => setItems([...items, { name: '', quantity: 1, unitPrice: 0, images: [] }]);
   const updateItem = (idx: number, patch: Partial<OrderItem>) => {
-    console.log(`updateItem called for index ${idx}:`, patch);
     const next = [...items];
     next[idx] = { ...next[idx], ...patch };
-    console.log(`Updated item at index ${idx}:`, next[idx]);
     setItems(next);
   };
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -90,30 +88,17 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
     setSubmitError(null);
     try {
       // Debug the current state
-      console.log('=== ORDER CREATION DEBUG ===');
-      console.log('Current items array:', items);
-      console.log('Items length:', items.length);
       
       // Collect all images from items first (common for both buyer and seller)
       const allImages: File[] = [];
       
-      console.log('Collecting images from items:', items.length, 'items');
-      items.forEach((item, index) => {
-        console.log(`Item ${index}:`, {
-          name: item.name,
-          hasImages: !!item.images,
-          imageCount: item.images?.length || 0,
-          images: item.images
-        });
+      items.forEach((item) => {
+        
         if (item.images) {
-          console.log(`Adding ${item.images.length} images from item ${index}`);
           allImages.push(...item.images);
         }
       });
       
-      console.log('Total images collected:', allImages.length, allImages);
-      console.log('=== END DEBUG ===');
-
       if (userRole === 'seller') {
         // Ensure description is not empty to satisfy backend validator
         const effectiveDescription = description.trim().length > 0
@@ -133,7 +118,6 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
           targetUserMobile: targetUserMobile.trim(),
           creatorRole: 'seller'
         };
-        console.log('Seller request data (final):', sellerRequestData);
         await onSubmit(sellerRequestData);
         return;
       }

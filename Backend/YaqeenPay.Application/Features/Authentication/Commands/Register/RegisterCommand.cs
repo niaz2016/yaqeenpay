@@ -55,7 +55,13 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, ApiRespon
 
     public async Task<ApiResponse<Guid>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var result = await _identityService.CreateUserAsync(request.UserName, request.Email, request.Password);
+        var result = await _identityService.CreateUserAsync(
+            request.UserName,
+            request.Email,
+            request.Password,
+            request.FirstName,
+            request.LastName,
+            request.PhoneNumber);
 
         if (!result.Result.Succeeded)
         {

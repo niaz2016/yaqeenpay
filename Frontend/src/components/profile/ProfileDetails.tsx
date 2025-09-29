@@ -44,6 +44,8 @@ const ProfileDetails: React.FC = () => {
     control,
     handleSubmit,
     reset,
+    getValues,
+    watch,
     formState: { errors, isDirty },
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -151,17 +153,94 @@ const ProfileDetails: React.FC = () => {
     }
   };
 
-  const handleVerifyPhone = async () => {
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpPhoneMasked, setOtpPhoneMasked] = useState<string | undefined>(undefined);
+  const [otpCode, setOtpCode] = useState('');
+
+  // Track if the phone input differs from the saved profile phone
+  const watchedPhone = watch('phoneNumber');
+  const savedPhone = (profile?.phoneNumber || '').trim();
+  const phoneEdited = (watchedPhone || '').trim() !== savedPhone;
+
+  const handleRequestPhoneOtp = async () => {
     try {
-      const result = await profileService.verifyPhone();
-      setSuccess(result.message);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Failed to send verification SMS. Please try again.');
+      setError(null);
+      // Ensure we send OTP to the current typed number, saving it first if changed
+      const currentPhone = (getValues('phoneNumber') || '').trim();
+      const savedPhone = (profile?.phoneNumber || '').trim();
+
+      if (!currentPhone) {
+        setError('Please enter a phone number before verifying.');
+        return;
       }
+
+      // If user edited phone and hasn't clicked Save, persist it now
+      if (currentPhone !== savedPhone) {
+        try {
+          const formVals = getValues();
+          const updated = await profileService.updateProfile({
+            firstName: formVals.firstName,
+            lastName: formVals.lastName,
+            phoneNumber: currentPhone,
+            address: formVals.street,
+            city: formVals.city,
+            state: formVals.state,
+            postalCode: formVals.postalCode,
+            country: formVals.country,
+          });
+          setProfile(updated);
+          if (user) {
+            updateUser({ ...user, phoneNumber: currentPhone });
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'Failed to save phone number before verifying.';
+          setError(msg);
+          return; // don't proceed to OTP if we couldn't save
+        }
+      }
+      const res = await profileService.requestPhoneVerification();
+      setOtpRequested(true);
+      setOtpPhoneMasked((res as any)?.phone);
+      setSuccess(res?.message || 'OTP sent to your phone');
+    } catch (err) {
+      if (err instanceof Error) setError(err.message); else setError('Failed to request OTP.');
+      setOtpRequested(false);
     }
+  };
+
+  const handleConfirmPhoneOtp = async () => {
+    try {
+      setError(null);
+      const res = await profileService.confirmPhoneVerification(otpCode);
+      if (res?.success) {
+        setSuccess(res.message || 'Phone verified successfully');
+        // refresh profile state so chip updates
+        const refreshed = await profileService.getProfile();
+        setProfile(refreshed);
+        if (user) {
+          updateUser({ ...user, isPhoneVerified: true });
+        }
+        setOtpRequested(false);
+        setOtpCode('');
+      } else {
+        setError(res?.message || 'Invalid or expired OTP');
+        // Return to the initial state so the Verify button shows again
+        setOtpRequested(false);
+        setOtpCode('');
+      }
+    } catch (err) {
+      if (err instanceof Error) setError(err.message); else setError('Failed to verify OTP.');
+      setOtpRequested(false);
+    }
+  };
+
+  const handleSavePhoneOnly = async () => {
+    // Save the entire form so we don't drop other edits
+    if (otpRequested) {
+      setOtpRequested(false);
+      setOtpCode('');
+    }
+    await handleSubmit(onSubmit)();
   };
 
   if (loading) {
@@ -272,12 +351,20 @@ const ProfileDetails: React.FC = () => {
                     label="Phone Number"
                     error={!!errors.phoneNumber}
                     helperText={errors.phoneNumber?.message}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      // If user edits phone during an OTP session, reset to show Verify button
+                      if (otpRequested) {
+                        setOtpRequested(false);
+                        setOtpCode('');
+                      }
+                    }}
                     InputProps={{
-                      endAdornment: profile?.phoneNumber && (
+                      endAdornment: (
                         <Chip 
                           size="small" 
-                          color={profile?.isPhoneVerified ? "success" : "warning"}
-                          label={profile?.isPhoneVerified ? "Verified" : "Unverified"}
+                          color={profile?.isPhoneVerified ? 'success' : 'warning'}
+                          label={profile?.isPhoneVerified ? 'Verified' : 'Unverified'}
                           sx={{ ml: 1 }}
                         />
                       ),
@@ -285,14 +372,37 @@ const ProfileDetails: React.FC = () => {
                   />
                 )}
               />
-              {profile?.phoneNumber && !profile?.isPhoneVerified && (
-                <Button 
-                  size="small" 
-                  onClick={handleVerifyPhone}
-                  sx={{ mt: 1 }}
-                >
-                  Verify Phone
-                </Button>
+              {!profile?.isPhoneVerified && (
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {phoneEdited ? (
+                    <Button size="small" variant="outlined" onClick={handleSavePhoneOnly} disabled={saving}>
+                      Save phone
+                    </Button>
+                  ) : profile?.phoneNumber ? (
+                    !otpRequested ? (
+                      <Button size="small" variant="outlined" onClick={handleRequestPhoneOtp}>
+                        Verify Phone
+                      </Button>
+                    ) : (
+                      <>
+                        <Typography variant="body2" color="text.secondary">
+                          Code sent to {otpPhoneMasked || 'your phone'}
+                        </Typography>
+                        <TextField
+                          size="small"
+                          label="OTP"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value)}
+                          inputProps={{ maxLength: 6 }}
+                          sx={{ width: 150 }}
+                        />
+                        <Button size="small" variant="contained" onClick={handleConfirmPhoneOtp}>
+                          Confirm
+                        </Button>
+                      </>
+                    )
+                  ) : null}
+                </Box>
               )}
             </Box>
           </Stack>

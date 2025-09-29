@@ -150,6 +150,23 @@ namespace YaqeenPay.Infrastructure.Services
                 throw new InvalidOperationException($"Top-up not found with ID {topUpId}");
             }
 
+            // Idempotency: if already confirmed with same (or any) external reference, no-op
+            if (topUp.Status == TopUpStatus.Confirmed)
+            {
+                _logger.LogInformation("Top-up {TopUpId} already confirmed; skipping", topUpId);
+                return topUp;
+            }
+
+            // Prevent duplicate confirmation by checking for another top-up with same external reference
+            if (!string.IsNullOrWhiteSpace(externalReference))
+            {
+                var existingRef = await _topUpRepository.GetByExternalReferenceAsync(externalReference);
+                if (existingRef != null && existingRef.Id != topUpId && existingRef.Status == TopUpStatus.Confirmed)
+                {
+                    throw new InvalidOperationException("External reference already used for a different top-up");
+                }
+            }
+
             var wallet = await _walletRepository.GetByIdAsync(topUp.WalletId);
             if (wallet == null)
             {

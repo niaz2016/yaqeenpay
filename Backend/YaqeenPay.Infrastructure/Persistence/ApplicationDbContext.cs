@@ -27,8 +27,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<WalletTopupLock> WalletTopupLocks => Set<WalletTopupLock>();
     public DbSet<TopUp> TopUps => Set<TopUp>();
     public DbSet<YaqeenPay.Domain.Entities.TopUpProof> TopUpProofs => Set<YaqeenPay.Domain.Entities.TopUpProof>();
+    public DbSet<YaqeenPay.Domain.Entities.BankSmsPayment> BankSmsPayments => Set<YaqeenPay.Domain.Entities.BankSmsPayment>();
     public DbSet<KycDocument> KycDocuments => Set<KycDocument>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
 

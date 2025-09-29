@@ -5,7 +5,6 @@ import type { LoginCredentials, RegisterCredentials, TokenResponse, User, OtpVer
 class AuthService {
   async login(credentials: LoginCredentials): Promise<User> {
     try {
-      console.log('Login attempt with credentials:', { email: credentials.email, password: '***' });
       
       // Direct API call to avoid potential circular dependencies or issues
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7137/api'}/auth/login`, {
@@ -16,7 +15,6 @@ class AuthService {
         body: JSON.stringify(credentials),
       });
       
-      console.log('Login response status:', response.status);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -25,7 +23,6 @@ class AuthService {
       }
       
       const responseData = await response.json();
-      console.log('Login raw response data:', responseData);
       
       // Extract data from ApiResponse wrapper
       let authData;
@@ -40,7 +37,6 @@ class AuthService {
         throw new Error('Invalid response: No authentication token received');
       }
       
-      console.log('Extracted auth data:', authData);
       
       // Handle both camelCase and PascalCase property names from backend
       const token = authData.token || authData.Token;
@@ -69,20 +65,13 @@ class AuthService {
         email: email,
         userName: userName
       };
-      
-      console.log('Mapped token response:', {
-        ...tokenResponse,
-        accessToken: tokenResponse.accessToken ? `${tokenResponse.accessToken.substring(0, 10)}...` : null,
-        refreshToken: tokenResponse.refreshToken ? `${tokenResponse.refreshToken.substring(0, 10)}...` : null
-      });
+
       
       // Explicitly set tokens in localStorage
       localStorage.setItem('access_token', token);
-      console.log('Access token stored in localStorage:', token ? `${token.substring(0, 10)}...` : 'empty');
       
       if (refreshToken) {
         localStorage.setItem('refresh_token', refreshToken);
-        console.log('Refresh token stored in localStorage');
       } else {
         console.warn('No refresh token available to store');
       }
@@ -93,7 +82,6 @@ class AuthService {
         : (Date.now() + (tokenResponse.expiresIn || 3600) * 1000);
         
       localStorage.setItem('token_expiry', expiryTime.toString());
-      console.log('Token expiry set to:', new Date(expiryTime).toISOString());
       
       // Import token debug tools to verify token storage
       import('../debug/tokenRefresher').then(tools => {
@@ -106,7 +94,6 @@ class AuthService {
       window.dispatchEvent(new CustomEvent('auth:tokens:updated'));
       
       // Fetch user profile after successful login
-      console.log('Fetching user profile after login...');
       return this.getCurrentUser();
     } catch (error) {
       console.error('Login error:', error);
@@ -145,7 +132,6 @@ class AuthService {
 
   async getCurrentUser(): Promise<User> {
     try {
-      console.log('Getting current user profile via apiService (axios)...');
       // Use axios instance so Authorization header is auto-attached via interceptor
       const userData = await apiService.get<any>('/profile');
 
@@ -200,7 +186,6 @@ class AuthService {
   logout(): void {
     // Clear tokens and state without calling the backend
     // Note: Backend doesn't have a /auth/logout endpoint currently
-    console.log('AuthService: Logging out user - client-side only (no API call)');
     
     // Clear tokens from localStorage
     localStorage.removeItem('access_token');
@@ -210,7 +195,6 @@ class AuthService {
     // Notify components about logout
     window.dispatchEvent(new CustomEvent('auth:logout'));
     
-    console.log('Logout completed - tokens cleared');
   }
 
   isAuthenticated(): boolean {

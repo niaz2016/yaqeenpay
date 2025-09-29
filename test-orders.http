@@ -1,0 +1,99 @@
+@baseUrl = https://localhost:7137
+@authToken = 
+@sellerToken = 
+@buyerToken = 
+
+### 1. Register Seller User
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "email": "seller@example.com",
+    "password": "Test123!",
+    "confirmPassword": "Test123!",
+    "firstName": "John",
+    "lastName": "Seller",
+    "phoneNumber": "03001111111"
+}
+
+###
+
+### 2. Register Buyer User  
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+    "email": "buyer@example.com",
+    "password": "Test123!",
+    "confirmPassword": "Test123!",
+    "firstName": "Jane",
+    "lastName": "Buyer",
+    "phoneNumber": "03002222222"
+}
+
+###
+
+### 3. Login as Seller
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "seller@example.com",
+    "password": "Test123!"
+}
+
+###
+
+### 4. Login as Buyer
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "buyer@example.com", 
+    "password": "Test123!"
+}
+
+###
+
+### 5. Create Order for Buyer (Seller creates, Buyer identified by mobile)
+POST {{baseUrl}}/api/orders/with-buyer-mobile
+Content-Type: application/json
+Authorization: Bearer {{sellerToken}}
+
+{
+    "buyerMobileNumber": "03002222222",
+    "title": "Test Order for Buyer",
+    "description": "This order should be visible to both seller and buyer",
+    "amount": 1500,
+    "currency": "PKR"
+}
+
+###
+
+### 6. Get Orders as Seller (should see the created order)
+GET {{baseUrl}}/api/orders?page=1&pageSize=10
+Accept: application/json
+Authorization: Bearer {{sellerToken}}
+
+###
+
+### 7. Get Orders as Buyer (should also see the same order)
+GET {{baseUrl}}/api/orders?page=1&pageSize=10
+Accept: application/json
+Authorization: Bearer {{buyerToken}}
+
+###
+
+### 8. Get Orders as Seller Only
+GET {{baseUrl}}/api/orders?page=1&pageSize=10&asSellerOnly=true
+Accept: application/json
+Authorization: Bearer {{sellerToken}}
+
+###
+
+### 9. Get Orders as Buyer Only
+GET {{baseUrl}}/api/orders?page=1&pageSize=10&asBuyerOnly=true
+Accept: application/json
+Authorization: Bearer {{buyerToken}}
+
+###

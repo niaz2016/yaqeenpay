@@ -32,6 +32,31 @@ const UserRegistrationPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Prefill business profile from user profile where possible
+  useEffect(() => {
+    if (!loading && user && !businessProfile) {
+      const guessedBusinessName = user.firstName || user.lastName
+        ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+        : user.email?.split('@')[0] || '';
+
+      const prefill: CreateBusinessProfileRequest = {
+        businessName: guessedBusinessName,
+        businessType: '',
+        businessCategory: '',
+        description: '',
+        website: '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        country: user.country || '',
+        postalCode: user.postalCode || '',
+        taxId: ''
+      };
+      setBusinessProfile(prefill);
+    }
+  }, [user, loading]);
+
   // Redirect or hide page when user is already a seller or has submitted KYC
   useEffect(() => {
     if (loading) return;

@@ -1,9 +1,7 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
 
-const SimpleAdminDashboard: React.FC = () => {
-  console.log('SimpleAdminDashboard rendering');
-  
+const SimpleAdminDashboard: React.FC = () => {  
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>

@@ -174,8 +174,6 @@
                     channel: channel
                 };
                 
-                console.log('Top-up request:', requestBody);
-                
                 const response = await fetch(`${API_BASE}/wallets/top-up`, {
                     method: 'POST',
                     headers: getAuthHeaders(),

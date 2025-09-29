@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,14 @@ namespace YaqeenPay.API.Controllers
             _logger = logger;
         }
 
+        private class CallbackDto
+        {
+            public string? TransactionId { get; set; }
+            public string? Status { get; set; }
+            public string? OrderId { get; set; }
+            public string? Amount { get; set; }
+        }
+
         [HttpPost("callback")]
         public async Task<IActionResult> Callback()
         {
@@ -31,19 +40,36 @@ namespace YaqeenPay.API.Controllers
             var body = await reader.ReadToEndAsync();
             var signature = Request.Headers["X-Easypaisa-Signature"].ToString();
             _logger.LogInformation("Received Easypaisa callback: {body}", body);
-            _logger.LogInformation("Signature: {signature}", signature);
+
             if (!_easypaisaService.VerifySignature(body, signature))
             {
                 _logger.LogWarning("Invalid Easypaisa signature");
-                return Unauthorized();
+                return Unauthorized(new { success = false, message = "Invalid signature" });
             }
-            // Parse transactionId from body (assume JSON with TransactionId)
-            var transactionId = ""; // TODO: parse from body
+
+            CallbackDto? parsed = null;
+            try
+            {
+                parsed = JsonSerializer.Deserialize<CallbackDto>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Failed to parse Easypaisa callback body");
+                return BadRequest(new { success = false, message = "Invalid callback payload" });
+            }
+
+            var transactionId = parsed?.TransactionId;
+            if (string.IsNullOrWhiteSpace(transactionId))
+            {
+                _logger.LogWarning("Easypaisa callback missing TransactionId");
+                return BadRequest(new { success = false, message = "Missing TransactionId" });
+            }
+
             var command = new ConfirmPaymentCommand { TransactionId = transactionId, Signature = signature };
             var result = await _mediator.Send(command);
             if (result)
-                return Ok();
-            return BadRequest();
+                return Ok(new { success = true });
+            return BadRequest(new { success = false, message = "Confirmation failed" });
         }
     }
 }

@@ -4,16 +4,21 @@ using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Application.Features.Orders.Queries.GetOrderById;
 using YaqeenPay.Domain.Entities;
+using YaqeenPay.Domain.Enums;
 
 namespace YaqeenPay.Application.Features.Orders.Queries.GetOrdersList;
 
-public record GetOrdersListQuery : IRequest<ApiResponse<List<OrderDto>>>
+public record GetOrdersListQuery : IRequest<ApiResponse<PaginatedList<OrderDto>>>
 {
     public bool? AsSellerOnly { get; set; }
     public bool? AsBuyerOnly { get; set; }
+    public int? Page { get; set; }
+    public int? PageSize { get; set; }
+    public string? Search { get; set; }
+    public string? Status { get; set; }
 }
 
-public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, ApiResponse<List<OrderDto>>>
+public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, ApiResponse<PaginatedList<OrderDto>>>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
@@ -26,14 +31,18 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
         _currentUserService = currentUserService;
     }
 
-    public async Task<ApiResponse<List<OrderDto>>> Handle(GetOrdersListQuery request, CancellationToken cancellationToken)
+    public async Task<ApiResponse<PaginatedList<OrderDto>>> Handle(GetOrdersListQuery request, CancellationToken cancellationToken)
     {
-        if (_currentUserService.UserId == null)
-        {
-            return ApiResponse<List<OrderDto>>.SuccessResponse(new List<OrderDto>());
-        }
-
         var userId = _currentUserService.UserId;
+        
+        // Debug logging
+        System.Console.WriteLine($"GetOrdersListQuery: Current user ID: {userId}");
+        
+        if (userId == Guid.Empty)
+        {
+            System.Console.WriteLine("GetOrdersListQuery: User ID is empty - returning empty list");
+            return ApiResponse<PaginatedList<OrderDto>>.SuccessResponse(new PaginatedList<OrderDto>(new List<OrderDto>(), 0, 1, 10));
+        }
 
         IQueryable<Order> query = _context.Orders
             .Include(o => o.Buyer)
@@ -43,7 +52,7 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
         // Filter by role if specified
         if (request.AsBuyerOnly == true)
         {
-            query = query.Where(o => o.BuyerId == userId);
+            query = query.Where(o => o.BuyerId == userId && o.BuyerId != o.SellerId);
         }
         else if (request.AsSellerOnly == true)
         {
@@ -55,10 +64,48 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
             query = query.Where(o => o.BuyerId == userId || o.SellerId == userId);
         }
 
+        // Filter by status if provided
+        if (!string.IsNullOrEmpty(request.Status) && Enum.TryParse<OrderStatus>(request.Status, true, out var status))
+        {
+            query = query.Where(o => o.Status == status);
+        }
+
+        // Filter by search term if provided
+        if (!string.IsNullOrEmpty(request.Search))
+        {
+            var searchTerm = request.Search.ToLower();
+            query = query.Where(o => 
+                o.Title.ToLower().Contains(searchTerm) ||
+                o.Description.ToLower().Contains(searchTerm) ||
+                (o.Buyer != null && o.Buyer.UserName != null && o.Buyer.UserName.ToLower().Contains(searchTerm)) ||
+                (o.Seller != null && o.Seller.UserName != null && o.Seller.UserName.ToLower().Contains(searchTerm))
+            );
+        }
+
         // Order by creation date, newest first
         query = query.OrderByDescending(o => o.CreatedAt);
 
-        var orders = await query.ToListAsync(cancellationToken);
+        // Apply pagination
+        var page = request.Page ?? 1;
+        var pageSize = request.PageSize ?? 10;
+        
+        // Ensure valid pagination values
+        page = Math.Max(1, page);
+        pageSize = Math.Max(1, Math.Min(100, pageSize)); // Limit max page size to 100
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        
+        var orders = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        // Debug logging
+        System.Console.WriteLine($"GetOrdersListQuery: Found {orders.Count} orders (page {page}/{Math.Ceiling((double)totalCount / pageSize)}) for user {userId}");
+        foreach (var order in orders)
+        {
+            System.Console.WriteLine($"Order: {order.Id}, BuyerId: {order.BuyerId}, SellerId: {order.SellerId}, Status: {order.Status}");
+        }
 
         var orderDtos = orders.Select(order => new OrderDto
         {
@@ -76,6 +123,7 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
             CompletedAt = order.CompletedDate
         }).ToList();
 
-        return ApiResponse<List<OrderDto>>.SuccessResponse(orderDtos);
+        var paginatedResult = new PaginatedList<OrderDto>(orderDtos, totalCount, page, pageSize);
+        return ApiResponse<PaginatedList<OrderDto>>.SuccessResponse(paginatedResult);
     }
 }

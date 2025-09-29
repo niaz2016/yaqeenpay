@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using YaqeenPay.Application.Common.Interfaces;
@@ -16,6 +15,9 @@ using YaqeenPay.Infrastructure.Identity;
 using YaqeenPay.Infrastructure.Persistence;
 using YaqeenPay.Infrastructure.Persistence.Repositories;
 using YaqeenPay.Infrastructure.Services;
+using StackExchange.Redis;
+using System.Security.Cryptography;
+using YaqeenPay.Infrastructure.Services.Security;
 
 namespace YaqeenPay.Infrastructure;
 
@@ -23,9 +25,25 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Easypaisa config and service registration
+        // Payment Gateway Services Configuration
         services.Configure<Services.Easypaisa.EasypaisaSettings>(configuration.GetSection("Easypaisa"));
+        // TODO: Re-enable Jazz Cash configuration when namespace issues are resolved
+        // services.Configure<Services.JazzCash.JazzCashSettings>(configuration.GetSection("JazzCash"));
+        
+        // HTTP Clients for Payment Services
         services.AddHttpClient<Services.Easypaisa.EasypaisaPaymentService>();
+        // TODO: Re-enable Jazz Cash HTTP client when namespace issues are resolved
+        // services.AddHttpClient<Services.JazzCash.JazzCashPaymentService>();
+        
+        // Register individual payment services
+        services.AddScoped<Services.Easypaisa.EasypaisaPaymentService>();
+        // TODO: Re-enable Jazz Cash service when namespace issues are resolved
+        // services.AddScoped<Services.JazzCash.JazzCashPaymentService>();
+        
+        // Register payment gateway factory (commented out temporarily)
+        // services.AddScoped<IPaymentGatewayFactory, PaymentGatewayFactory>();
+        
+        // Register default payment service (keeping backward compatibility)
         services.AddScoped<Application.Interfaces.IPaymentGatewayService, Services.Easypaisa.EasypaisaPaymentService>();
         // Add DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
@@ -62,18 +80,102 @@ public static class DependencyInjection
             options.User.RequireUniqueEmail = true;
         });
 
-        // JWT Authentication
+        // JWT Authentication (RSA)
         var jwtSettings = configuration.GetSection("JwtSettings");
-        var secret = jwtSettings["Secret"];
+        var environment = configuration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 
-        // Ensure key is at least 32 bytes (256 bits)
-        byte[] keyBytes = Encoding.UTF8.GetBytes(secret ?? "ThisIsAVeryLongSecretKeyThatIsAtLeast32BytesLongForHS256Algorithm");
-        if (keyBytes.Length < 32)
+        static bool TryGetDerBytes(string? maybeBase64OrPem, out byte[] der)
         {
-            // Extend the key using SHA256
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            keyBytes = sha256.ComputeHash(keyBytes);
+            der = Array.Empty<byte>();
+            if (string.IsNullOrWhiteSpace(maybeBase64OrPem)) return false;
+            if (maybeBase64OrPem.Contains("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase)) return false;
+
+            string trimmed = maybeBase64OrPem.Trim();
+            try
+            {
+                if (trimmed.Contains("BEGIN PUBLIC KEY") || trimmed.Contains("BEGIN PRIVATE KEY") || trimmed.Contains("BEGIN RSA"))
+                {
+                    // PEM: strip header/footer and whitespace
+                    var lines = trimmed.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                                       .Where(l => !l.StartsWith("---"))
+                                       .ToArray();
+                    var base64 = string.Concat(lines);
+                    der = Convert.FromBase64String(base64);
+                    return true;
+                }
+                // Assume Base64 DER
+                der = Convert.FromBase64String(trimmed);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
+
+        byte[]? publicKeyDer = null;
+        byte[]? privateKeyDer = null;
+        var keyId = jwtSettings["KeyId"];
+
+        // Try to read configured keys (Base64 or PEM)
+        TryGetDerBytes(jwtSettings["PublicKey"], out var pkDer1);
+        if (pkDer1?.Length > 0) publicKeyDer = pkDer1;
+        TryGetDerBytes(jwtSettings["PrivateKey"], out var skDer1);
+        if (skDer1?.Length > 0) privateKeyDer = skDer1;
+
+        // If public missing, try PEM alternatives if present
+        if (publicKeyDer == null)
+        {
+            TryGetDerBytes(jwtSettings["PublicKeyPem"], out var pkPemDer);
+            if (pkPemDer?.Length > 0) publicKeyDer = pkPemDer;
+        }
+        if (privateKeyDer == null)
+        {
+            TryGetDerBytes(jwtSettings["PrivateKeyPem"], out var skPemDer);
+            if (skPemDer?.Length > 0) privateKeyDer = skPemDer;
+        }
+
+        // Derive/generate as needed
+        if (publicKeyDer == null)
+        {
+            if (privateKeyDer != null)
+            {
+                using var rsaTmp = RSA.Create();
+                rsaTmp.ImportPkcs8PrivateKey(privateKeyDer, out _);
+                publicKeyDer = rsaTmp.ExportSubjectPublicKeyInfo();
+            }
+            else if (string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase))
+            {
+                // Generate ephemeral dev key material and make it available via DI for JwtService
+                using var rsaGen = RSA.Create(2048);
+                privateKeyDer = rsaGen.ExportPkcs8PrivateKey();
+                publicKeyDer = rsaGen.ExportSubjectPublicKeyInfo();
+                keyId ??= $"dev-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            }
+            else
+            {
+                throw new InvalidOperationException("Missing or invalid JwtSettings:PublicKey. Provide Base64 DER (SubjectPublicKeyInfo) or set valid keys. In non-development environments, keys are required.");
+            }
+        }
+
+        // Build RSA key for JWT validation using RSAParameters so no disposed object is referenced later
+        RSAParameters rsaParameters;
+        using (var rsaForParams = RSA.Create())
+        {
+            rsaForParams.ImportSubjectPublicKeyInfo(publicKeyDer, out _);
+            rsaParameters = rsaForParams.ExportParameters(false);
+        }
+        var rsaKey = new RsaSecurityKey(rsaParameters);
+        if (!string.IsNullOrEmpty(keyId)) rsaKey.KeyId = keyId;
+
+        // Expose key material (generated or configured) to JwtService via DI
+        var material = new JwtKeyMaterial
+        {
+            PublicKeyBase64 = Convert.ToBase64String(publicKeyDer),
+            PrivateKeyBase64 = privateKeyDer != null ? Convert.ToBase64String(privateKeyDer) : null,
+            KeyId = keyId
+        };
+        services.AddSingleton(material);
 
         services.AddAuthentication(options =>
         {
@@ -87,7 +189,7 @@ public static class DependencyInjection
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                IssuerSigningKey = rsaKey,
                 ValidateIssuer = true,
                 ValidIssuer = jwtSettings["Issuer"],
                 ValidateAudience = true,
@@ -135,14 +237,43 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IWalletService, WalletService>();
         
-    // Register repositories
-    services.AddScoped<IWalletRepository, WalletRepository>();
-    services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
-    services.AddScoped<ITopUpRepository, TopUpRepository>();
+        // Register new wallet topup services
+        services.AddScoped<YaqeenPay.Application.Features.Wallets.Services.IWalletTopupService, 
+                          YaqeenPay.Application.Features.Wallets.Services.WalletTopupService>();
+        services.AddScoped<YaqeenPay.Application.Features.Wallets.Services.IQrCodeService, 
+                          YaqeenPay.Application.Features.Wallets.Services.QrCodeService>();
+    services.AddScoped<YaqeenPay.Application.Features.Wallets.Services.IBankSmsProcessingService,
+              YaqeenPay.Application.Features.Wallets.Services.BankSmsProcessingService>();
+        
+        // Register background service for cleanup
+        services.AddHostedService<YaqeenPay.Infrastructure.Services.TopupLockCleanupService>();
+        
+        // Register repositories
+        services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
+        services.AddScoped<ITopUpRepository, TopUpRepository>();
 
-    // Register OutboxService for notifications
-    services.AddScoped<IOutboxService, OutboxService>();
+        // Register OutboxService for notifications
+        services.AddScoped<IOutboxService, OutboxService>();
+        services.Configure<Services.OutboxDispatcherOptions>(configuration.GetSection("OutboxDispatcher"));
+        services.Configure<Services.MacroDroidOptions>(configuration.GetSection("MacroDroid"));
+    services.AddHttpClient(); // default client for external calls (MacroDroid)
+    services.AddScoped<YaqeenPay.Application.Common.Interfaces.ISmsSender, YaqeenPay.Infrastructure.Services.Sms.MacroDroidSmsSender>();
+    services.AddHostedService<Services.OutboxDispatcherService>();
 
-    return services;
+        // Redis & OTP
+            // Redis & OTP (resilient connection)
+            var redisConnection = configuration.GetSection("Redis")["ConnectionString"] ?? "localhost:6379";
+        var redisOptions = ConfigurationOptions.Parse(redisConnection);
+        redisOptions.AllowAdmin = false;
+            // Ensure the multiplexer keeps retrying instead of throwing on startup
+            redisOptions.AbortOnConnectFail = false;
+            // Reasonable defaults for local/dev
+            if (redisOptions.ConnectRetry == 0) redisOptions.ConnectRetry = 3;
+            if (redisOptions.ConnectTimeout == 0) redisOptions.ConnectTimeout = 5000;
+            services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisOptions));
+        services.AddScoped<IOtpService, RedisOtpService>();
+
+        return services;
     }
 }

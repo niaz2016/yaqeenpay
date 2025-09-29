@@ -15,24 +15,40 @@ const NewOrderPage: React.FC = () => {
     try {
       setSubmitting(true);
 
-      // Check if this is a seller request
-      if (payload.isSellerRequest) {
+      // Check if this is a seller creating order for buyer (deprecated isSellerRequest flag)
+      if (payload.isSellerRequest || payload.creatorRole === 'seller') {
         const { title, description, amount, currency, images, targetUserMobile } = payload;
         
-        const order: Order = await ordersService.createSellerRequest(
+        if (!targetUserMobile || !targetUserMobile.trim()) {
+          setSnack({ open: true, message: 'Target user mobile number is required.', severity: 'error' });
+          return;
+        }
+
+        // Use the with-buyer-mobile endpoint for seller creating order for buyer
+        const order: Order = await ordersService.createWithImages(
           title,
           description,
           amount,
           currency,
-          images,
-          targetUserMobile
+          targetUserMobile.trim(),
+          images || []
         );
+        
+        // Send notification to the buyer
+        try {
+          await notificationService.notifyOrderCreated(
+            targetUserMobile.trim(),
+            amount,
+            currency,
+            order.id
+          );
+        } catch (notifError) {
+          console.warn('Failed to send notifications:', notifError);
+        }
         
         setSnack({ 
           open: true, 
-          message: targetUserMobile 
-            ? `Seller request created successfully for buyer ${targetUserMobile}! Your product listing for ${currency} ${amount.toLocaleString()} is now available.`
-            : `Seller request created successfully! Your product listing for ${currency} ${amount.toLocaleString()} is now available for buyers.`, 
+          message: `Order created successfully for buyer ${targetUserMobile}! Your product listing for ${currency} ${amount.toLocaleString()} is now available and the buyer has been notified.`, 
           severity: 'success' 
         });
         
@@ -61,8 +77,7 @@ const NewOrderPage: React.FC = () => {
           amount,
           currency,
           targetUserMobile.trim(),
-          images,
-          creatorRole
+          images
         );
         
         // Send notification based on creator role

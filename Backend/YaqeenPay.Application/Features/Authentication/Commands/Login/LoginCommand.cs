@@ -65,7 +65,8 @@ public class LoginCommandHandler(
         return ApiResponse<AuthenticationResponse>.SuccessResponse(new AuthenticationResponse
         {
             Token = jwtToken,
-            RefreshToken = refreshToken.TokenHash,
+            // Return the raw refresh token to the client; we store only the hash server-side
+            RefreshToken = refreshToken.Token,
             TokenExpires = refreshToken.ExpiresAt,
             UserId = user.Id,
             Email = user.Email!,

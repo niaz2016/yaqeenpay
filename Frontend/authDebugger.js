@@ -3,8 +3,6 @@
 // when facing authentication issues
 
 (function() {
-  console.clear();
-  console.log('======= YaqeenPay Auth Debugger =======');
   
   // Get all auth-related items from localStorage
   const tokenKeys = [
@@ -20,8 +18,6 @@
       : 'Not set';
   });
   
-  console.log('🔑 Auth Tokens:', tokens);
-  
   // Check token expiry
   const expiry = localStorage.getItem('token_expiry');
   if (expiry) {
@@ -32,7 +28,6 @@
       'EXPIRED' : 
       `${Math.round((expiryDate.getTime() - now.getTime()) / 1000 / 60)} minutes`;
     
-    console.log(`⏱️ Token expiry: ${expiryDate.toLocaleString()} (${timeLeft})`);
   } else {
     console.log('⏱️ Token expiry: Not set');
   }
@@ -94,18 +89,6 @@
   // Check API endpoint
   const apiUrl = localStorage.getItem('apiUrl') || 'https://localhost:7137/api';
   console.log(`🔌 API URL: ${apiUrl}`);
-  
-  // Provide debugging tips
-  console.log('\n🔍 Debugging tips:');
-  console.log('1. Check that token is not expired');
-  console.log('2. Verify API URL is correct');
-  console.log('3. Look for any CORS errors in the Console');
-  console.log('4. Check that the token format is valid');
-  console.log('5. Make sure localStorage has the correct token keys');
-  console.log('6. Try clearing tokens and logging in again');
-  
-  console.log('\n🧹 To clear all auth tokens, run:');
-  console.log('localStorage.removeItem("access_token"); localStorage.removeItem("token"); localStorage.removeItem("refresh_token"); localStorage.removeItem("refreshToken"); localStorage.removeItem("token_expiry");');
   
   console.log('\n======= End of Auth Debugger =======');
 })();

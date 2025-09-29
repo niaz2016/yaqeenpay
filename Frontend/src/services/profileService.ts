@@ -44,8 +44,17 @@ class ProfileService {
     return apiService.post<{ success: boolean; message: string }>('/profile/verify-email');
   }
 
-  async verifyPhone(): Promise<{ success: boolean; message: string }> {
-    return apiService.post<{ success: boolean; message: string }>('/profile/verify-phone');
+  // Request a phone verification OTP
+  async requestPhoneVerification(): Promise<{ phone?: string; expiresInSeconds?: number; success?: boolean; message?: string }> {
+    return apiService.post<any>('/profile/verify-phone/request');
+  }
+
+  // Confirm phone verification with OTP
+  async confirmPhoneVerification(otp: string): Promise<{ success: boolean; message?: string }> {
+    return apiService.post<{ success: boolean; message?: string }>(
+      '/profile/verify-phone/confirm',
+      { otp }
+    );
   }
 }
 

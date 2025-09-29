@@ -1,0 +1,77 @@
+### Jazz Cash Payment API Tests
+
+# Base URL for development
+@baseUrl = https://localhost:5001/api/jazzcash
+@contentType = application/json
+
+### 1. Create Mobile Account Payment Request
+POST {{baseUrl}}/create-payment
+Content-Type: {{contentType}}
+
+{
+  "amount": 1000.00,
+  "customerId": "customer123",
+  "callbackUrl": "https://yourapp.com/payment-success"
+}
+
+### 2. Create Voucher Payment Request
+POST {{baseUrl}}/create-voucher-payment
+Content-Type: {{contentType}}
+
+{
+  "amount": 500.00,
+  "customerId": "customer456",
+  "mobileNumber": "03001234567"
+}
+
+### 3. Get Transaction Status
+@transactionId = T20240925143022
+GET {{baseUrl}}/transaction-status/{{transactionId}}
+
+### 4. Refund Payment
+POST {{baseUrl}}/refund
+Content-Type: {{contentType}}
+
+{
+  "transactionId": "T20240925143022",
+  "amount": 500.00
+}
+
+### 5. Void Transaction
+POST {{baseUrl}}/void
+Content-Type: {{contentType}}
+
+{
+  "transactionId": "T20240925143022"
+}
+
+### 6. Test Payment Callback (This would normally come from Jazz Cash)
+POST {{baseUrl}}/callback
+Content-Type: application/x-www-form-urlencoded
+
+pp_TxnRefNo=T20240925143022&pp_ResponseCode=000&pp_ResponseMessage=Transaction completed successfully&pp_Amount=100000&pp_TxnCurrency=PKR&pp_SecureHash=test-hash
+
+### Sample successful callback parameters
+# pp_Amount=100000 (amount in paisa)
+# pp_AuthCode=123456
+# pp_BankID=TBANK
+# pp_BillReference=customer123
+# pp_Language=EN
+# pp_MerchantID=Test00127801
+# pp_ResponseCode=000
+# pp_ResponseMessage=Transaction completed successfully
+# pp_RetreivalReferenceNo=240925001234
+# pp_SubMerchantId=
+# pp_TxnCurrency=PKR
+# pp_TxnDateTime=20240925143022
+# pp_TxnRefNo=T20240925143022
+# pp_SettlementExpiry=20240927143022
+# pp_TxnType=MWALLET
+# pp_Version=1.1
+# pp_SecureHash=ABCD1234567890
+
+### Sample failed callback parameters
+POST {{baseUrl}}/callback
+Content-Type: application/x-www-form-urlencoded
+
+pp_TxnRefNo=T20240925143023&pp_ResponseCode=999&pp_ResponseMessage=Transaction failed due to insufficient funds&pp_Amount=100000&pp_TxnCurrency=PKR&pp_SecureHash=test-hash-failed

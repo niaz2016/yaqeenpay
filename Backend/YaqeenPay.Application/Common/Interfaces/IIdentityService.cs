@@ -6,7 +6,14 @@ public interface IIdentityService
     Task<string> GetUserNameAsync(Guid userId);
     Task<bool> IsInRoleAsync(Guid userId, string role);
     Task<bool> AuthorizeAsync(Guid userId, string policyName);
-    Task<(Result Result, Guid UserId)> CreateUserAsync(string userName, string email, string password);
+    // Create user and persist basic profile fields when provided
+    Task<(Result Result, Guid UserId)> CreateUserAsync(
+        string userName,
+        string email,
+        string password,
+        string? firstName = null,
+        string? lastName = null,
+        string? phoneNumber = null);
     Task<Result> AddUserToRoleAsync(Guid userId, string role);
     Task<Result> DeleteUserAsync(Guid userId);
     Task<(Result Result, ApplicationUser? User)> AuthenticateAsync(string email, string password);

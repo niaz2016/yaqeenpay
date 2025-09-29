@@ -89,7 +89,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const handleTokensUpdated = () => {
-      console.log('Token update detected, refreshing auth state...');
       checkAuth();
     };
 
@@ -142,8 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             })(),
           } as any;
 
-          console.log('AuthContext - User loaded:', user);
-          console.log('AuthContext - User roles:', user.roles);
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         } catch (error) {
           console.error('Failed to fetch user:', error);
@@ -185,7 +182,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout function
   const logout = () => {
-    console.log('AuthContext: Logging out user without API call');
     authService.logout();
     dispatch({ type: 'LOGOUT' });
   };

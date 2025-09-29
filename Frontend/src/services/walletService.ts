@@ -189,10 +189,8 @@ class WalletService {
     const isProduction = env.PROD || env.NODE_ENV === 'production';
     if (isProduction) {
       this.mockMode = false;
-      console.log('WalletService: Production mode - using database only');
     } else {
       this.mockMode = fromFlag === 'true';
-      console.log(`WalletService: Development mode - mockMode: ${this.mockMode}`);
     }
   }
 
@@ -200,16 +198,11 @@ class WalletService {
     if (this.mockMode) return await fallback();
     try {
       const result = await apiService.get<T>(url);
-      console.log(`WalletService: Successfully fetched from database: ${url}`);
       
       // Debug logging for transactions
       if (url.includes('/wallets/transactions')) {
-        console.log('DEBUG: Transactions data received:', result);
         const typedResult = result as any;
         if (typedResult.items && typedResult.items.length > 0) {
-          console.log('DEBUG: First transaction:', typedResult.items[0]);
-          console.log('DEBUG: First transaction amount:', typedResult.items[0].amount);
-          console.log('DEBUG: Amount type:', typeof typedResult.items[0].amount);
         }
       }
       
@@ -341,7 +334,6 @@ class WalletService {
     try {
       // Backend mode - return TopUpDto format
       const result = await apiService.post<TopUpDto>('/wallets/top-up', backendRequest);
-      console.log(`WalletService: Successfully posted to database: /wallets/top-up`);
       return result;
     } catch (e) {
       console.error(`WalletService: Database call failed for /wallets/top-up:`, e);
@@ -388,6 +380,38 @@ class WalletService {
       }), { credits30d: 0, debits30d: 0 });
       return { series, totals };
     });
+  }
+
+  /**
+   * Submit a transaction ID/reference for a previously created top-up.
+   * Backend endpoint: POST /wallets/top-up/{id}/reference { transactionId }
+   */
+  async submitTopUpReference(topUpId: string, transactionId: string): Promise<TopUpDto | void> {
+    if (!topUpId) throw new Error('topUpId is required');
+    if (!transactionId || !transactionId.trim()) throw new Error('transactionId is required');
+
+    if (this.mockMode) {
+      // Update local mock transaction to reflect pending admin approval and store reference
+      const key = getUserTransactionsKey();
+      const txs = readLS<WalletTransaction[]>(key, []);
+      const idx = txs.findIndex(t => t.id === topUpId);
+      if (idx >= 0) {
+        const t = { ...txs[idx] } as any;
+        t.status = 'Pending';
+        t.transactionReference = transactionId.trim();
+        txs[idx] = t as WalletTransaction;
+        writeLS(key, txs);
+      }
+      return;
+    }
+
+    try {
+      const result = await apiService.post<TopUpDto>(`/wallets/top-up/${topUpId}/reference`, { transactionId: transactionId.trim() });
+      return result;
+    } catch (e) {
+      console.error('WalletService: Failed to submit top-up reference:', e);
+      throw new Error('Failed to submit transaction ID. Please try again.');
+    }
   }
 
   /**

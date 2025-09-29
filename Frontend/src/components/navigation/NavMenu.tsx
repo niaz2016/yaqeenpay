@@ -12,16 +12,6 @@ const ShowSellerRegistrationLink: React.FC = () => {
   const navigate = useNavigate();
   if (!user) return null;
 
-  // DEBUG: Log user shape to help diagnose missing registration link
-  // (remove this log after verifying in browser console)
-  // eslint-disable-next-line no-console
-  console.log('NavMenu - user debug', {
-    id: user.id,
-    email: user.email,
-    roles: user.roles,
-    kycStatus: user.kycStatus,
-  });
-
   // Normalize roles which may be strings or objects depending on backend shape
   const rawRoles: any = user.roles || [];
   const roles: string[] = Array.isArray(rawRoles)

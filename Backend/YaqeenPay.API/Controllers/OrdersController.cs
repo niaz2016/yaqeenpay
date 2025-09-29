@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using YaqeenPay.Application.Features.Orders.Commands.CompleteOrder;
 using YaqeenPay.Application.Features.Orders.Commands.CreateOrder;
 using YaqeenPay.Application.Features.Orders.Commands.CreateSellerRequest;
 using YaqeenPay.Application.Features.Orders.Commands.CreateOrderWithSellerMobile;
+using YaqeenPay.Application.Features.Orders.Commands.CreateOrderWithBuyerMobile;
 using YaqeenPay.Application.Features.Orders.Commands.AcceptSellerRequest;
 using YaqeenPay.Application.Features.Orders.Commands.UpdateShippingDetails;
 using YaqeenPay.Application.Features.Orders.Commands.MarkOrderAsShipped;
@@ -66,6 +66,12 @@ public class OrdersController : ApiControllerBase
 
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderCommand command)
+    {
+        return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("with-buyer-mobile")]
+    public async Task<IActionResult> CreateWithBuyerMobile(CreateOrderWithBuyerMobileCommand command)
     {
         return Ok(await Mediator.Send(command));
     }

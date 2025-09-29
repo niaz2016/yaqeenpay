@@ -18,14 +18,52 @@ export interface PagedResult<T> {
   pageSize: number;
 }
 
-const ordersService = {
+export const ordersService = {
   async list(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
     const params = new URLSearchParams();
     if (query.status) params.set('status', query.status);
     if (query.page != null) params.set('page', String(query.page));
     if (query.pageSize != null) params.set('pageSize', String(query.pageSize));
     if (query.search) params.set('search', query.search);
-    return api.get(`${base}?${params.toString()}`);
+    
+    const url = `${base}?${params.toString()}`;
+    
+    const response = await api.get(url) as any;
+    
+    // Handle the new paginated response format from backend
+    if (response && response.success && response.data) {
+      const paginatedData = response.data;
+      return {
+        items: paginatedData.items || [],
+        total: paginatedData.totalCount || 0,
+        page: paginatedData.pageNumber || 1,
+        pageSize: query.pageSize || 10
+      };
+    } else if (response && response.items && Array.isArray(response.items)) {
+      // Direct paginated response (not wrapped in ApiResponse)
+      return {
+        items: response.items,
+        total: response.totalCount || 0,
+        page: response.pageNumber || 1,
+        pageSize: query.pageSize || 10
+      };
+    } else if (response && Array.isArray(response.data)) {
+      // Fallback for old format
+      return {
+        items: response.data,
+        total: response.data.length,
+        page: query.page || 1,
+        pageSize: query.pageSize || 10
+      };
+    } else {
+      console.warn('Unexpected response format:', response);
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 10
+      };
+    }
   },
 
   async getBuyerOrders(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
@@ -48,7 +86,8 @@ const ordersService = {
   async getAllUserOrders(query: OrdersQuery = {}): Promise<PagedResult<Order>> {
     try {
       // Try the main endpoint first (should show both buyer and seller orders)
-      return await this.list(query);
+      const result = await this.list(query);
+      return result;
     } catch (error) {
       console.warn('Failed to fetch from main orders endpoint, trying combined approach:', error);
       
@@ -99,13 +138,12 @@ const ordersService = {
     currency: string,
     targetUserMobile: string,
     images: File[],
-    creatorRole?: 'buyer' | 'seller'
   ): Promise<Order> {
-    console.log('createWithImages called with mobile:', targetUserMobile, 'role:', creatorRole);
     
     // Use the new mobile-based order creation endpoint
+    // Current user is the seller, targetUserMobile is the buyer
     const formData = new FormData();
-    formData.append('sellerMobileNumber', targetUserMobile);
+    formData.append('buyerMobileNumber', targetUserMobile);
     formData.append('title', title);
     formData.append('description', description);
     formData.append('amount', amount.toString());
@@ -116,17 +154,27 @@ const ordersService = {
       formData.append('images', image, image.name);
     });
     
-    // Debug log FormData contents
-    console.log('FormData contents:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
+    return api.post(`${base}/with-buyer-mobile`, formData);
+  },
+
+  // Method for when current user is seller, buyer identified by mobile
+  async createOrderForBuyer(
+    title: string,
+    description: string,
+    amount: number,
+    currency: string,
+    buyerMobile: string
+  ): Promise<Order> {
     
-    return api.post(`${base}/with-seller-mobile`, formData);
+    const payload = {
+      buyerMobileNumber: buyerMobile,
+      title,
+      description,
+      amount,
+      currency
+    };
+    
+    return api.post(`${base}/with-buyer-mobile`, payload);
   },
 
   async createSellerRequest(
@@ -332,4 +380,5 @@ const ordersService = {
   },
 };
 
+// Export both as default and named export to handle different import patterns
 export default ordersService;

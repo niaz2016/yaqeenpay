@@ -4,6 +4,8 @@ using YaqeenPay.API.Services;
 using YaqeenPay.Application;
 using YaqeenPay.Infrastructure;
 using YaqeenPay.Infrastructure.Identity;
+using Microsoft.EntityFrameworkCore;
+using YaqeenPay.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,6 +115,14 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        // Ensure database exists and apply any pending migrations
+        var dbContext = services.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("Applying database migrations...");
+        await dbContext.Database.MigrateAsync();
+        logger.LogInformation("Database is up-to-date.");
+
         var migrationService = services.GetRequiredService<DataMigrationService>();
         await migrationService.MigrateOldJwtDataAsync();
         

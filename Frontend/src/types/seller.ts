@@ -64,11 +64,14 @@ export const SellerVerificationStatus = {
 export type SellerVerificationStatus = typeof SellerVerificationStatus[keyof typeof SellerVerificationStatus];
 
 export const KycDocumentType = {
-  BusinessLicense: 'BusinessLicense',
+  CNIC: 'CNIC',
+  BusinessRegistration: 'BusinessRegistration',
   TaxCertificate: 'TaxCertificate',
+  UtilityBill: 'UtilityBill',
   BankStatement: 'BankStatement',
-  IdentityDocument: 'IdentityDocument',
-  AddressProof: 'AddressProof'
+  AddressProof: 'AddressProof',
+  IdentityPhoto: 'IdentityPhoto',
+  Other: 'Other'
 } as const;
 
 export type KycDocumentType = typeof KycDocumentType[keyof typeof KycDocumentType];

@@ -62,6 +62,25 @@ namespace YaqeenPay.Domain.Entities
             return Status == TopupLockStatus.Locked && !IsExpired();
         }
 
+        public bool IsAwaitingConfirmation()
+        {
+            return Status == TopupLockStatus.AwaitingConfirmation && !IsExpired();
+        }
+
+        public void MarkAwaitingConfirmation(int extendMinutes)
+        {
+            if (Status != TopupLockStatus.Locked && Status != TopupLockStatus.AwaitingConfirmation)
+                throw new InvalidOperationException("Can only mark awaiting confirmation from Locked or AwaitingConfirmation states");
+            if (IsExpired()) throw new InvalidOperationException("Cannot extend expired lock");
+            Status = TopupLockStatus.AwaitingConfirmation;
+            // Cap extension to +2 minutes from now (business rule)
+            var cap = DateTime.UtcNow.AddMinutes(Math.Min(extendMinutes, 2));
+            if (cap > ExpiresAt)
+            {
+                typeof(WalletTopupLock).GetProperty("ExpiresAt")!.SetValue(this, cap);
+            }
+        }
+
         private string GenerateTransactionReference()
         {
             return $"WTU{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";

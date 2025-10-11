@@ -1,7 +1,9 @@
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Domain.Entities;
+using YaqeenPay.Domain.Entities.Identity;
 using YaqeenPay.Domain.Enums;
 using YaqeenPay.Domain.ValueObjects;
 
@@ -13,17 +15,20 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
     private readonly ICurrentUserService _currentUserService;
     private readonly IWalletService _walletService;
     private readonly IOutboxService _outboxService;
+    private readonly UserManager<ApplicationUser> _userManager;
 
         public RequestWithdrawalCommandHandler(
             IApplicationDbContext context,
             ICurrentUserService currentUserService,
             IWalletService walletService,
-            IOutboxService outboxService)
+            IOutboxService outboxService,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _currentUserService = currentUserService;
             _walletService = walletService;
             _outboxService = outboxService;
+            _userManager = userManager;
         }
 
         public async Task<WithdrawalDto> Handle(RequestWithdrawalCommand request, CancellationToken cancellationToken)
@@ -63,18 +68,47 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Enqueue notification (withdrawal initiated)
-            await _outboxService.EnqueueAsync(
-                "WithdrawalInitiated",
-                new {
-                    UserId = userId,
-                    WithdrawalId = withdrawal.Id,
-                    Amount = withdrawal.Amount.Amount,
-                    Currency = withdrawal.Amount.Currency,
-                    Channel = withdrawal.Channel.ToString(),
-                    RequestedAt = withdrawal.RequestedAt
-                },
-                cancellationToken);
+            // Enqueue notifications after successful save - don't let notification failures affect the withdrawal
+            try
+            {
+                // Enqueue notification (withdrawal initiated)
+                await _outboxService.EnqueueAsync(
+                    "WithdrawalInitiated",
+                    new {
+                        UserId = userId,
+                        WithdrawalId = withdrawal.Id,
+                        Amount = withdrawal.Amount.Amount,
+                        Currency = withdrawal.Amount.Currency,
+                        Channel = withdrawal.Channel.ToString(),
+                        RequestedAt = withdrawal.RequestedAt
+                    },
+                    cancellationToken);
+
+                // Notify all admin users about the pending withdrawal request
+                var adminUsers = await _userManager.GetUsersInRoleAsync("Admin");
+                foreach (var admin in adminUsers)
+                {
+                    await _outboxService.EnqueueAsync(
+                        "WithdrawalPendingApproval",
+                        new {
+                            UserId = admin.Id,
+                            WithdrawalId = withdrawal.Id,
+                            RequesterName = $"{(await _context.Users.FindAsync(userId))?.FirstName} {(await _context.Users.FindAsync(userId))?.LastName}".Trim(),
+                            Amount = withdrawal.Amount.Amount,
+                            Currency = withdrawal.Amount.Currency,
+                            Channel = withdrawal.Channel.ToString(),
+                            RequestedAt = withdrawal.RequestedAt,
+                            Notes = withdrawal.Notes
+                        },
+                        cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log notification error but don't fail the withdrawal
+                // The withdrawal has already been saved successfully
+                Console.WriteLine($"Warning: Failed to enqueue withdrawal notifications: {ex.Message}");
+            }
 
             // Map to DTO
             return new WithdrawalDto

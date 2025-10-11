@@ -71,6 +71,14 @@ public class OutboxDispatcherService : BackgroundService
                                     msg.ProcessedOn = DateTime.UtcNow;
                                     msg.Error = null;
                                     break;
+                                case "withdrawalinitiated":
+                                case "withdrawalpendingapproval":
+                                case "topupconfirmed":
+                                    await ProcessNotificationAsync(msg, sp, stoppingToken);
+                                    msg.Processed = true;
+                                    msg.ProcessedOn = DateTime.UtcNow;
+                                    msg.Error = null;
+                                    break;
                                 default:
                                     // Skip unknown types but mark processed to avoid clogging the queue
                                     _logger.LogWarning("Skipping unsupported outbox type: {Type} (Id={Id})", msg.Type, msg.Id);
@@ -109,6 +117,76 @@ public class OutboxDispatcherService : BackgroundService
         _logger.LogInformation("Outbox dispatcher stopping.");
     }
 
+    private async Task ProcessNotificationAsync(Domain.Entities.OutboxMessage msg, IServiceProvider sp, CancellationToken ct)
+    {
+        var payload = JsonSerializer.Deserialize<NotificationPayload>(msg.Payload, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+        
+        if (payload?.UserId == null)
+        {
+            throw new InvalidOperationException("Invalid notification payload: UserId is required");
+        }
+
+        var db = sp.GetRequiredService<IApplicationDbContext>();
+        
+        string title, message;
+        int notificationType = 7; // Wallet = 7
+        
+                switch (msg.Type.ToLowerInvariant())
+                {
+                    case "withdrawalinitiated":
+                        title = "Withdrawal Initiated";
+                        message = $"Your withdrawal request of {payload.Currency} {payload.Amount:N0} via {payload.Channel} has been initiated.";
+                        break;
+                    case "withdrawalpendingapproval":
+                        title = "Withdrawal Approval Required";
+                        message = $"New withdrawal request from {payload.RequesterName}: {payload.Currency} {payload.Amount:N0} via {payload.Channel}";
+                        notificationType = 4; // System = 4
+                        break;
+                    case "withdrawalsettled":
+                        title = "Withdrawal Approved";
+                        message = $"Your withdrawal of {payload.Currency} {payload.Amount:N0} via {payload.Channel} has been approved and settled.";
+                        break;
+                    case "withdrawalreversed":
+                    case "withdrawalfailed":
+                        title = "Withdrawal Failed";
+                        message = $"Your withdrawal of {payload.Currency} {payload.Amount:N0} via {payload.Channel} could not be processed. Please check and try again.";
+                        break;
+                    default:
+                        throw new InvalidOperationException($"Unknown notification type: {msg.Type}");
+                }
+
+        // Create notification directly using SQL to avoid enum issues
+        var dbContext = (Microsoft.EntityFrameworkCore.DbContext)db;
+        var now = DateTime.UtcNow;
+        var newId = Guid.NewGuid();
+        var createdBy = payload.UserId.Value; // Use the user as the creator
+        
+        // Insert all NOT NULL columns explicitly, including IsActive and CreatedBy.
+        // Use proper non-null values for all required fields
+        await dbContext.Database.ExecuteSqlRawAsync(
+                @"INSERT INTO ""Notifications"" (""Id"", ""UserId"", ""Type"", ""Title"", ""Message"", ""Priority"", ""Status"", ""Metadata"", ""CreatedAt"", ""CreatedBy"", ""IsActive"", ""LastModifiedAt"", ""LastModifiedBy"") 
+                    VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12})",
+                newId,
+                payload.UserId.Value,
+                notificationType,
+                title,
+                message,
+                2, // Medium priority
+                1, // Unread status
+                msg.Payload,
+                now,
+                createdBy, // CreatedBy = user
+                true, // IsActive
+                (DateTime?)null, // LastModifiedAt - can be null
+                createdBy // LastModifiedBy - use same as CreatedBy since this is initial creation
+                );
+
+        _logger.LogInformation("Notification created (Id={NotificationId}) for user {UserId}: {Title}", newId, payload.UserId, title);
+    }
+
     private async Task ProcessSmsAsync(Domain.Entities.OutboxMessage msg, IServiceProvider sp, CancellationToken ct)
     {
         var payload = JsonSerializer.Deserialize<SmsPayload>(msg.Payload, new JsonSerializerOptions
@@ -131,6 +209,18 @@ public class OutboxDispatcherService : BackgroundService
         var code = string.Empty;
         for (int i = 0; i < length; i++) code += rng.Next(0, 10).ToString();
         return code;
+    }
+
+    private sealed class NotificationPayload
+    {
+        public Guid? UserId { get; set; }
+        public Guid? WithdrawalId { get; set; }
+        public string? RequesterName { get; set; }
+        public decimal Amount { get; set; }
+        public string? Currency { get; set; }
+        public string? Channel { get; set; }
+        public DateTime RequestedAt { get; set; }
+        public string? Notes { get; set; }
     }
 
     private sealed class SmsPayload

@@ -53,31 +53,61 @@ public class JwtService : IJwtService
         // Load RSA key for RS256 signing
         // Prefer injected key material (may be generated in Development)
         string? privateKeyBase64 = _material?.PrivateKeyBase64 ?? _configuration["JwtSettings:PrivateKey"]; // dev via user-secrets
-        if (string.IsNullOrWhiteSpace(privateKeyBase64))
+        if (string.IsNullOrWhiteSpace(privateKeyBase64) || privateKeyBase64.Contains("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Missing JwtSettings:PrivateKey for RSA signing.");
+            throw new InvalidOperationException("Missing or placeholder JwtSettings:PrivateKey for RSA signing. In development, keys should be auto-generated.");
         }
-        byte[] privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+        
+        byte[] privateKeyBytes;
+        try 
+        {
+            privateKeyBytes = Convert.FromBase64String(privateKeyBase64);
+        }
+        catch (FormatException ex)
+        {
+            throw new InvalidOperationException("Invalid Base64 format for JwtSettings:PrivateKey", ex);
+        }
 
         // Build signing key from RSAParameters to avoid disposed RSA later during signing
         RSAParameters rsaParams;
-        using (var rsaForParams = RSA.Create())
+        try
         {
-            rsaForParams.ImportPkcs8PrivateKey(privateKeyBytes, out _);
-            rsaParams = rsaForParams.ExportParameters(true);
+            using (var rsaForParams = RSA.Create())
+            {
+                rsaForParams.ImportPkcs8PrivateKey(privateKeyBytes, out _);
+                rsaParams = rsaForParams.ExportParameters(true);
+            }
         }
+        catch (CryptographicException ex)
+        {
+            throw new InvalidOperationException("Failed to import RSA private key. Ensure it's in PKCS#8 format.", ex);
+        }
+
         var key = new RsaSecurityKey(rsaParams);
-        // Add key id (kid) if provided to support rotation/JWKS later
-        var kid = _material?.KeyId ?? _configuration["JwtSettings:KeyId"]; // optional
-        if (!string.IsNullOrEmpty(kid)) key.KeyId = kid;
+        
+        // Add key id (kid) - ensure it's always set
+        var kid = _material?.KeyId ?? _configuration["JwtSettings:KeyId"];
+        if (string.IsNullOrEmpty(kid))
+        {
+            var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            kid = string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase) ? "dev-1" : "prod-1";
+        }
+        key.KeyId = kid;
+
         var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiryInMinutes),
-            signingCredentials: creds);
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes),
+            SigningCredentials = creds,
+            Issuer = issuer,
+            Audience = audience
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
     }
     public Domain.Entities.Identity.RefreshToken GenerateRefreshToken(string ipAddress)
     {
@@ -118,20 +148,47 @@ public class JwtService : IJwtService
             var tokenHandler = new JwtSecurityTokenHandler();
             // Validate using RSA public key (SubjectPublicKeyInfo / X.509) in Base64
             string? publicKeyBase64 = _material?.PublicKeyBase64 ?? _configuration["JwtSettings:PublicKey"];
-            if (string.IsNullOrWhiteSpace(publicKeyBase64))
+            if (string.IsNullOrWhiteSpace(publicKeyBase64) || publicKeyBase64.Contains("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Missing JwtSettings:PublicKey for JWT validation.");
+                throw new InvalidOperationException("Missing or placeholder JwtSettings:PublicKey for JWT validation.");
             }
-            byte[] publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
+            
+            byte[] publicKeyBytes;
+            try
+            {
+                publicKeyBytes = Convert.FromBase64String(publicKeyBase64);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidOperationException("Invalid Base64 format for JwtSettings:PublicKey", ex);
+            }
 
             // Build validation key from RSAParameters to avoid disposed RSA later
             RSAParameters rsaParams;
-            using (var rsaForParams = RSA.Create())
+            try
             {
-                rsaForParams.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-                rsaParams = rsaForParams.ExportParameters(false);
+                using (var rsaForParams = RSA.Create())
+                {
+                    rsaForParams.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
+                    rsaParams = rsaForParams.ExportParameters(false);
+                }
             }
+            catch (CryptographicException ex)
+            {
+                throw new InvalidOperationException("Failed to import RSA public key. Ensure it's in SubjectPublicKeyInfo format.", ex);
+            }
+
             var rsaKey = new RsaSecurityKey(rsaParams);
+            
+            // Ensure KeyId is set for validation
+            var kid = _material?.KeyId ?? _configuration["JwtSettings:KeyId"];
+            if (string.IsNullOrEmpty(kid))
+            {
+                var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+                kid = string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase) ? "dev-1" : "prod-1";
+            }
+            rsaKey.KeyId = kid;
+
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
@@ -140,7 +197,8 @@ public class JwtService : IJwtService
                 ValidateAudience = true,
                 ValidIssuer = _configuration["JwtSettings:Issuer"],
                 ValidAudience = _configuration["JwtSettings:Audience"],
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero,
+                RequireSignedTokens = true
             };
             var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
             var subClaim = principal.FindFirst(ClaimTypes.NameIdentifier) ?? 

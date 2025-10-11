@@ -1,5 +1,6 @@
 // src/services/walletService.ts
 import apiService from './api';
+import notificationTrigger from './notificationTrigger';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   WalletSummary,
@@ -334,9 +335,37 @@ class WalletService {
     try {
       // Backend mode - return TopUpDto format
       const result = await apiService.post<TopUpDto>('/wallets/top-up', backendRequest);
+      
+      // Trigger notification for successful top-up
+      if (result.status === 'Completed' || result.status === 'PendingConfirmation') {
+        try {
+          await notificationTrigger.onWalletTopUp({
+            amount: result.amount,
+            currency: result.currency,
+            method: result.channel,
+            transactionId: result.id,
+            newBalance: result.amount // Will need to get actual new balance
+          }, result.userId);
+        } catch (error) {
+          console.warn('Failed to trigger wallet top-up notification:', error);
+        }
+      }
+      
       return result;
     } catch (e) {
       console.error(`WalletService: Database call failed for /wallets/top-up:`, e);
+      
+      // Trigger notification for failed top-up
+      try {
+        await notificationTrigger.onWalletTopUpFailed({
+          amount: request.amount,
+          currency: request.currency || 'PKR',
+          method: request.channel
+        }, 'Database connection failed');
+      } catch (error) {
+        console.warn('Failed to trigger wallet top-up failed notification:', error);
+      }
+      
       // In database-only mode, throw the error instead of falling back
       throw new Error(`Database connection failed for /wallets/top-up. Please ensure the backend server is running.`);
     }

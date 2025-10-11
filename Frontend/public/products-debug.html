@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products API Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #e6ffe6; color: green; }
+        .error { background-color: #ffe6e6; color: red; }
+        .loading { background-color: #fff3e0; color: orange; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Products API Debug Test</h1>
+    <p>This page tests both the buyer and seller products endpoints to debug visibility issues.</p>
+
+    <div class="test-section">
+        <h3>API Tests</h3>
+        <button onclick="testBuyerEndpoint()">Test Buyer Endpoint (/products)</button>
+        <button onclick="testSellerEndpoint()">Test Seller Endpoint (/products/seller)</button>
+        <button onclick="testBothEndpoints()">Test Both Endpoints</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div class="comparison">
+        <div>
+            <h3>Buyer Endpoint Results</h3>
+            <div id="buyerResults" class="test-section">
+                Not tested yet
+            </div>
+        </div>
+        
+        <div>
+            <h3>Seller Endpoint Results</h3>
+            <div id="sellerResults" class="test-section">
+                Not tested yet
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Comparison Summary</h3>
+        <div id="comparisonSummary">
+            Run tests to see comparison
+        </div>
+    </div>
+
+    <script>
+        async function testBuyerEndpoint() {
+            updateResults('buyerResults', 'Testing buyer endpoint (/products)...', 'loading');
+            
+            try {
+                const response = await fetch('http://localhost:7137/api/products?page=1&pageSize=10');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\\n${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                updateResults('buyerResults', `
+                    <h4>✅ Buyer Endpoint Success</h4>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Data Type:</strong> ${typeof data}</p>
+                    <p><strong>Keys:</strong> ${data ? Object.keys(data).join(', ') : 'none'}</p>
+                    <p><strong>Products Found:</strong> ${getProductCount(data)}</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `, 'success');
+                
+                return data;
+                
+            } catch (error) {
+                updateResults('buyerResults', `
+                    <h4>❌ Buyer Endpoint Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+                
+                return null;
+            }
+        }
+
+        async function testSellerEndpoint() {
+            updateResults('sellerResults', 'Testing seller endpoint (/products/seller)...', 'loading');
+            
+            try {
+                const response = await fetch('http://localhost:7137/api/products/seller?page=1&pageSize=10', {
+                    headers: {
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE' // Note: This will fail without auth
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    // If it's unauthorized, that's expected
+                    if (response.status === 401) {
+                        updateResults('sellerResults', `
+                            <h4>⚠️ Seller Endpoint (Expected Auth Failure)</h4>
+                            <p><strong>Status:</strong> ${response.status} Unauthorized</p>
+                            <p><strong>Note:</strong> This is expected - seller endpoint requires authentication</p>
+                            <p>We can test this logged in as a seller in the actual app</p>
+                        `, 'loading');
+                        return null;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\\n${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                updateResults('sellerResults', `
+                    <h4>✅ Seller Endpoint Success</h4>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Data Type:</strong> ${typeof data}</p>
+                    <p><strong>Keys:</strong> ${data ? Object.keys(data).join(', ') : 'none'}</p>
+                    <p><strong>Products Found:</strong> ${getProductCount(data)}</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `, 'success');
+                
+                return data;
+                
+            } catch (error) {
+                updateResults('sellerResults', `
+                    <h4>❌ Seller Endpoint Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+                
+                return null;
+            }
+        }
+
+        async function testBothEndpoints() {
+            const buyerData = await testBuyerEndpoint();
+            const sellerData = await testSellerEndpoint();
+            
+            // Update comparison
+            const buyerCount = getProductCount(buyerData);
+            const sellerCount = getProductCount(sellerData);
+            
+            document.getElementById('comparisonSummary').innerHTML = `
+                <h4>Comparison Results</h4>
+                <p><strong>Buyer Endpoint Products:</strong> ${buyerCount}</p>
+                <p><strong>Seller Endpoint Products:</strong> ${sellerCount || 'Unable to test (auth required)'}</p>
+                <p><strong>Issue Analysis:</strong></p>
+                <ul>
+                    <li>If buyer count is 0 but products exist in database: Check Status and IsActive filters</li>
+                    <li>If seller count > buyer count: Products might not be Active or IsActive=false</li>
+                    <li>If both are 0: Products might not be properly created or database connection issue</li>
+                </ul>
+            `;
+        }
+
+        function getProductCount(data) {
+            if (!data) return 0;
+            
+            // Try different response structures
+            if (data.data && Array.isArray(data.data.items)) return data.data.items.length;
+            if (data.data && Array.isArray(data.data.products)) return data.data.products.length;
+            if (data.data && Array.isArray(data.data)) return data.data.length;
+            if (Array.isArray(data.products)) return data.products.length;
+            if (Array.isArray(data)) return data.length;
+            
+            return 'Unknown structure';
+        }
+
+        function updateResults(elementId, content, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = `test-section ${type}`;
+        }
+
+        function clearResults() {
+            updateResults('buyerResults', 'Not tested yet', '');
+            updateResults('sellerResults', 'Not tested yet', '');
+            document.getElementById('comparisonSummary').innerHTML = 'Run tests to see comparison';
+        }
+
+        // Auto-run buyer test on page load
+        window.addEventListener('load', function() {
+            console.log('Products API debug page loaded');
+            testBuyerEndpoint();
+        });
+    </script>
+</body>
+</html>

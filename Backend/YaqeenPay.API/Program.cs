@@ -4,6 +4,7 @@ using YaqeenPay.API.Services;
 using YaqeenPay.Application;
 using YaqeenPay.Infrastructure;
 using YaqeenPay.Infrastructure.Identity;
+using YaqeenPay.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using YaqeenPay.Infrastructure.Persistence;
 
@@ -12,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add Memory Cache for AdminConfigurationService
+builder.Services.AddMemoryCache();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -109,6 +113,9 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
+// Lightweight health endpoint for Docker healthcheck
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 // Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
@@ -129,6 +136,10 @@ using (var scope = app.Services.CreateScope())
         // Seed roles
         var roleSeedService = services.GetRequiredService<RoleSeedService>();
         await roleSeedService.SeedRolesAsync();
+        
+        // Seed categories
+        var categorySeedService = services.GetRequiredService<CategorySeedService>();
+        await categorySeedService.SeedDefaultCategoriesAsync();
     }
     catch (Exception ex)
     {

@@ -54,7 +54,7 @@ const RoleSelector: React.FC<Props> = ({ role, onRoleChange, disabled = false })
             Buyer
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
-            I want to purchase items using escrow protection
+            I want to create a purchase order from a seller
           </Typography>
         </ToggleButton>
 
@@ -79,7 +79,7 @@ const RoleSelector: React.FC<Props> = ({ role, onRoleChange, disabled = false })
             Seller
           </Typography>
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
-            I want to sell items and receive guaranteed payments
+            I want to create a product listing for a buyer
           </Typography>
         </ToggleButton>
       </ToggleButtonGroup>
@@ -88,8 +88,8 @@ const RoleSelector: React.FC<Props> = ({ role, onRoleChange, disabled = false })
         <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
           <Typography variant="body2" color="text.secondary">
             {role === 'buyer' 
-              ? '🛒 As a buyer, you can browse sellers, create orders, and your payment will be held in escrow until you confirm receipt of items.'
-              : '🏪 As a seller, you will receive orders from buyers, ship items, and receive payment once the buyer confirms receipt.'
+              ? '🛒 As a buyer, you create purchase orders from sellers. Enter the seller\'s mobile number and your payment will be held in escrow until you confirm receipt.'
+              : '🏪 As a seller, you create product listings for buyers. Enter the buyer\'s mobile number to create a listing they can purchase.'
             }
           </Typography>
         </Box>

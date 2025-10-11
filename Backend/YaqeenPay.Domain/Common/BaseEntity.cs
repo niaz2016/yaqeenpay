@@ -4,7 +4,9 @@ namespace YaqeenPay.Domain.Common
     public abstract class BaseEntity
     {
         public Guid Id { get; set; }
-        public bool IsActive { get; set; }
+        // Default entities to active unless explicitly deactivated. This prevents NOT NULL violations
+        // when new entities forget to set the flag (e.g., Notifications created by background jobs).
+        public bool IsActive { get; set; } = true;
     }
 
     public abstract class AuditableEntity : BaseEntity

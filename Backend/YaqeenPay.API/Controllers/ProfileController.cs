@@ -1,14 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Features.UserManagement.Commands.UpdateProfile;
 using YaqeenPay.Application.Features.UserManagement.Queries.GetUserProfile;
-using Microsoft.AspNetCore.Http;
-using System.IO;
 using YaqeenPay.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using YaqeenPay.Domain.Entities.Identity;
-using YaqeenPay.Domain.Interfaces;
 
 namespace YaqeenPay.API.Controllers;
 

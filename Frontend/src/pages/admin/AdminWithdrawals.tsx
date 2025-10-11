@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import adminService from '../../services/adminService';
 import type { UserWithdrawal as Withdrawal } from '../../types/user';
+import { useNotifications } from '../../context/NotificationContext';
 
 const API_HOST = (import.meta.env.VITE_API_URL || 'https://localhost:7137/api').replace(/\/api\/?$/i, '');
 
@@ -43,6 +44,7 @@ const AdminWithdrawals: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedApproveId, setSelectedApproveId] = useState<string | null>(null);
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null);
+  const { fetchNewNotifications } = useNotifications();
 
   const fetchWithdrawals = async () => {
     setLoading(true);
@@ -88,10 +90,44 @@ const AdminWithdrawals: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-  await adminService.approveWithdrawal(id);
+      // Find the withdrawal details for notification
+      const withdrawal = withdrawals.find(w => w.id === id);
+      
+      await adminService.approveWithdrawal(id);
       setSnack({ open: true, message: 'Withdrawal approved', severity: 'success' });
+      
+      // Send approval notification to the user
+      if (withdrawal) {
+        try {
+          // Import notification service dynamically to avoid circular dependencies
+          const { default: notificationService } = await import('../../services/notificationService');
+          await notificationService.notifyWithdrawalApproved(
+            withdrawal.sellerId, // Use sellerId as the user ID
+            withdrawal.amount,
+            withdrawal.currency || 'PKR',
+            withdrawal.channel || withdrawal.paymentMethod || 'Bank Transfer'
+          );
+          console.log('Withdrawal approval notification sent to user:', withdrawal.sellerId);
+        } catch (notifError) {
+          console.error('Failed to send withdrawal approval notification:', notifError);
+          // Don't fail the whole approval process if notification fails
+        }
+      }
+      
       // Update local list: mark approved/Settled
       setWithdrawals((prev) => prev.map(w => w.id === id ? { ...w, status: 'Settled' } : w));
+      
+      // Trigger notification refresh to pick up any new notifications
+      // Wait a bit for the backend to process the notification, then refresh multiple times
+      setTimeout(() => {
+        fetchNewNotifications({ limit: 15 });
+      }, 500);
+      setTimeout(() => {
+        fetchNewNotifications({ limit: 15 });
+      }, 2000);
+      setTimeout(() => {
+        fetchNewNotifications({ limit: 15 });
+      }, 5000);
     } catch (e) {
       console.error('Approve failed', e);
       setSnack({ open: true, message: 'Failed to approve withdrawal', severity: 'error' });

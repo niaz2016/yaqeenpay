@@ -67,11 +67,11 @@ public class IdentityService : IIdentityService
             FirstName = firstName,
             LastName = lastName,
             PhoneNumber = phoneNumber,
-            // Mark as verified at registration time per requirement (no existing data/flows)
-            EmailConfirmed = !string.IsNullOrWhiteSpace(email),
-            EmailVerifiedAt = !string.IsNullOrWhiteSpace(email) ? DateTime.UtcNow : null,
-            PhoneNumberConfirmed = !string.IsNullOrWhiteSpace(phoneNumber),
-            PhoneVerifiedAt = !string.IsNullOrWhiteSpace(phoneNumber) ? DateTime.UtcNow : null
+            // Phone and email should be unverified by default - only mark as confirmed after OTP verification
+            EmailConfirmed = false,
+            EmailVerifiedAt = null,
+            PhoneNumberConfirmed = false,
+            PhoneVerifiedAt = null
         };
         var result = await _userManager.CreateAsync(user, password);
         return (result.ToApplicationResult(), user.Id);

@@ -31,6 +31,7 @@ public class SellerOrderDto
     public bool CanUpdateShipping { get; set; }
     public bool CanDispute { get; set; }
     public DateTime Created { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
 }
 
 public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery, PaginatedList<SellerOrderDto>>
@@ -49,6 +50,15 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
     public async Task<PaginatedList<SellerOrderDto>> Handle(GetSellerOrdersQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
+        
+        System.Console.WriteLine($"GetSellerOrdersQuery: Current user ID: {userId}");
+        
+        // First, let's see all orders in the system for debugging
+        var allOrdersCount = await _context.Orders.CountAsync(cancellationToken);
+        var ordersForUser = await _context.Orders.CountAsync(o => o.SellerId == userId, cancellationToken);
+        
+        System.Console.WriteLine($"GetSellerOrdersQuery: Total orders in system: {allOrdersCount}");
+        System.Console.WriteLine($"GetSellerOrdersQuery: Orders where user {userId} is seller: {ordersForUser}");
         
         var query = _context.Orders
             .Include(o => o.Buyer)
@@ -76,11 +86,13 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
                 TrackingNumber = o.TrackingNumber,
                 ShippedDate = o.ShippedDate,
                 DeliveredDate = o.DeliveredDate,
-                CanShip = o.Status == OrderStatus.Confirmed,
+                CanShip = o.Status == OrderStatus.AwaitingShipment,
                 CanMarkDelivered = o.Status == OrderStatus.Shipped,
-                CanUpdateShipping = o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Shipped,
+                CanUpdateShipping = o.Status == OrderStatus.AwaitingShipment || o.Status == OrderStatus.Shipped,
                 CanDispute = o.Status == OrderStatus.DeliveredPendingDecision || o.Status == OrderStatus.Rejected,
                 Created = o.CreatedAt
+                ,
+                ImageUrls = o.ImageUrls
             });
 
         return await Task.FromResult(PaginatedList<SellerOrderDto>.Create(orders, request.PageNumber, request.PageSize));

@@ -1,5 +1,20 @@
 // src/types/order.ts
 export type OrderStatus =
+  | 'Created'
+  | 'PaymentPending'
+  | 'PaymentConfirmed'
+  | 'AwaitingShipment'
+  | 'Confirmed'
+  | 'Shipped'
+  | 'Delivered'
+  | 'DeliveredPendingDecision'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Rejected'
+  | 'Disputed'
+  | 'DisputeResolved'
+  // Legacy frontend status names for backwards compatibility
+  | 'created'
   | 'pending-payment'
   | 'payment-confirmed'
   | 'awaiting-shipment'
@@ -38,7 +53,11 @@ export interface Order {
   code?: string; // human-readable code
   sellerId: string;
   sellerName?: string;
+  sellerBusinessName?: string; // Business name for display
+  sellerPhone?: string; // Seller's phone number
   buyerId: string;
+  buyerName?: string; // Buyer's name
+  buyerPhone?: string; // Buyer's phone number
   amount: number;
   currency: string;
   description?: string;
@@ -47,6 +66,11 @@ export interface Order {
   updatedAt?: string;
   items?: OrderItem[];
   shipment?: ShipmentInfo;
+  imageUrls?: string[];
+  // Payment-related fields
+  paymentDate?: string;
+  frozenAmount?: number;
+  isAmountFrozen?: boolean;
   // New fields for mobile-based user identification
   targetUserMobile?: string; // Mobile number of the user this order is created for
   creatorRole?: 'buyer' | 'seller'; // Role of the user who created this order

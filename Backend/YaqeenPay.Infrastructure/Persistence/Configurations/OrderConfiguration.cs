@@ -45,6 +45,18 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
                 .IsRequired();
         });
 
+        // Configure FrozenAmount as nullable owned entity
+        builder.OwnsOne(o => o.FrozenAmount, fa =>
+        {
+            fa.Property(m => m.Amount)
+                .HasColumnName("FrozenAmount")
+                .HasColumnType("decimal(18,2)"); // Remove IsRequired since this is nullable
+
+            fa.Property(m => m.Currency)
+                .HasColumnName("FrozenAmountCurrency")
+                .HasMaxLength(3);
+        });
+
         // Configure relationships
         builder.HasOne(o => o.Buyer)
             .WithMany()

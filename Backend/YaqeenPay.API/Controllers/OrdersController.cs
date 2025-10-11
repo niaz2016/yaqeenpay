@@ -12,13 +12,21 @@ using YaqeenPay.Application.Features.Orders.Commands.MarkOrderAsDelivered;
 using YaqeenPay.Application.Features.Orders.Commands.RejectOrder;
 using YaqeenPay.Application.Features.Orders.Commands.CancelOrder;
 using YaqeenPay.Application.Features.Orders.Commands.CreateDispute;
+using YaqeenPay.Application.Features.Orders.Commands.PayForOrder;
+using YaqeenPay.Application.Features.Orders.Commands.MarkParcelBooked;
+using YaqeenPay.Application.Features.Orders.Commands.RejectDelivery;
 using YaqeenPay.Application.Features.Orders.Queries.GetOrderById;
 using YaqeenPay.Application.Features.Orders.Queries.GetOrdersList;
 using YaqeenPay.Application.Features.Orders.Queries.GetBuyerOrders;
 using YaqeenPay.Application.Features.Orders.Queries.GetSellerOrders;
 using YaqeenPay.Application.Features.Orders.Queries.GetAvailableSellerRequests;
+
 using YaqeenPay.Application.Interfaces;
 using YaqeenPay.API.Models;
+using YaqeenPay.Application.Features.Orders.Commands.ConfirmShipped;
+using YaqeenPay.Application.Features.Orders.Commands.CreateOrderFromCart;
+
+using YaqeenPay.Application.Common.Interfaces;
 
 namespace YaqeenPay.API.Controllers;
 
@@ -27,11 +35,13 @@ public class OrdersController : ApiControllerBase
 {
     private readonly IFileUploadService _fileUploadService;
     private readonly ILogger<OrdersController> _logger;
+    private readonly ICurrentUserService _currentUserService;
 
-    public OrdersController(IFileUploadService fileUploadService, ILogger<OrdersController> logger)
+    public OrdersController(IFileUploadService fileUploadService, ILogger<OrdersController> logger, ICurrentUserService currentUserService)
     {
         _fileUploadService = fileUploadService;
         _logger = logger;
+        _currentUserService = currentUserService;
     }
     
     [HttpGet]
@@ -64,8 +74,20 @@ public class OrdersController : ApiControllerBase
         return Ok(await Mediator.Send(new GetOrderByIdQuery { OrderId = id }));
     }
 
+    [HttpGet("{id}/tracking")]
+    public async Task<IActionResult> GetTracking(Guid id)
+    {
+        return Ok(await Mediator.Send(new YaqeenPay.Application.Features.Orders.Queries.GetOrderTracking.GetOrderTrackingQuery { OrderId = id }));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateOrderCommand command)
+    {
+        return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("from-cart")]
+    public async Task<IActionResult> CreateFromCart(CreateOrderFromCartCommand command)
     {
         return Ok(await Mediator.Send(command));
     }
@@ -74,6 +96,66 @@ public class OrdersController : ApiControllerBase
     public async Task<IActionResult> CreateWithBuyerMobile(CreateOrderWithBuyerMobileCommand command)
     {
         return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("with-buyer-mobile-images")]
+    [DisableRequestSizeLimit]
+    public async Task<IActionResult> CreateWithBuyerMobileImages([FromForm] CreateOrderWithBuyerMobileRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Order with buyer mobile and images request received. BuyerMobile={BuyerMobile}, FileCount={FileCount}",
+                request.BuyerMobileNumber,
+                Request.Form?.Files?.Count ?? 0);
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("ModelState invalid for order with buyer mobile images: {Errors}", 
+                    string.Join(" | ", ModelState.Select(kvp => kvp.Key + ":" + string.Join(',', kvp.Value!.Errors.Select(e => e.ErrorMessage)))));
+                return BadRequest(ModelState);
+            }
+
+            var imageUrls = new List<string>();
+
+            // Upload images if provided
+            if (request.Images != null && request.Images.Count > 0)
+            {
+                foreach (var image in request.Images)
+                {
+                    if (!_fileUploadService.IsValidImageFile(image.FileName, image.Length))
+                    {
+                        return BadRequest($"Invalid image file: {image.FileName}");
+                    }
+                }
+
+                // Convert IFormFile to Stream for the service
+                var fileStreams = new List<(Stream fileStream, string fileName)>();
+                foreach (var image in request.Images)
+                {
+                    fileStreams.Add((image.OpenReadStream(), image.FileName));
+                }
+
+                var uploadedPaths = await _fileUploadService.UploadFilesAsync(fileStreams, "orders");
+                imageUrls = uploadedPaths.Select(path => _fileUploadService.GetFileUrl(path)).ToList();
+            }
+
+            // Create the command
+            var command = new CreateOrderWithBuyerMobileCommand
+            {
+                BuyerMobileNumber = request.BuyerMobileNumber,
+                Title = request.Title,
+                Description = request.Description,
+                Amount = request.Amount,
+                Currency = request.Currency,
+                ImageUrls = imageUrls
+            };
+
+            return Ok(await Mediator.Send(command));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Error creating order with buyer mobile and images: {ex.Message}");
+        }
     }
 
     [HttpPost("with-images")]
@@ -200,6 +282,13 @@ public class OrdersController : ApiControllerBase
                 return BadRequest(ModelState);
             }
 
+            // Validate phone number format before sending command
+            if (!IsValidPhoneNumberFormat(request.SellerMobileNumber))
+            {
+                _logger.LogWarning("Invalid phone number format for CreateOrderWithSellerMobile: '{PhoneNumber}'", request.SellerMobileNumber);
+                return BadRequest($"Invalid mobile number format. Must be 8-16 digits, optionally starting with +. Received: '{request.SellerMobileNumber}'");
+            }
+
             var imageUrls = new List<string>();
 
             // Upload images if provided
@@ -235,10 +324,30 @@ public class OrdersController : ApiControllerBase
                 ImageUrls = imageUrls
             };
 
-            return Ok(await Mediator.Send(command));
+            // Log command properties for debugging
+            _logger.LogInformation("Sending CreateOrderWithSellerMobileCommand: SellerMobile='{SellerMobile}', Title='{Title}', Description='{Description}', Amount={Amount}, Currency='{Currency}', ImageCount={ImageCount}",
+                command.SellerMobileNumber, command.Title, command.Description, command.Amount, command.Currency, command.ImageUrls.Count);
+
+            try
+            {
+                return Ok(await Mediator.Send(command));
+            }
+            catch (YaqeenPay.Application.Common.Exceptions.ValidationException validationEx)
+            {
+                _logger.LogWarning("Detailed validation errors for CreateOrderWithSellerMobile: {@ValidationErrors}", validationEx.Errors);
+                _logger.LogWarning("Command values - SellerMobile: '{SellerMobile}', Title: '{Title}', Description: '{Description}', Amount: {Amount}, Currency: '{Currency}'", 
+                    command.SellerMobileNumber, command.Title, command.Description, command.Amount, command.Currency);
+                
+                return BadRequest(new 
+                { 
+                    message = "Validation failed", 
+                    errors = validationEx.Errors 
+                });
+            }
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating order with seller mobile");
             return BadRequest($"Error creating order with seller mobile: {ex.Message}");
         }
     }
@@ -283,6 +392,13 @@ public class OrdersController : ApiControllerBase
         return Ok(await Mediator.Send(command));
     }
 
+    [HttpPost("{id}/reject-delivery")]
+    public async Task<IActionResult> RejectDelivery(Guid id, RejectDeliveryCommand command)
+    {
+        command.OrderId = id;
+        return Ok(await Mediator.Send(command));
+    }
+
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> Cancel(Guid id)
     {
@@ -294,5 +410,46 @@ public class OrdersController : ApiControllerBase
     {
         command.OrderId = id;
         return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("{id}/pay")]
+    public async Task<IActionResult> PayForOrder(Guid id)
+    {
+        return Ok(await Mediator.Send(new PayForOrderCommand { OrderId = id }));
+    }
+
+    [HttpPost("{id}/mark-parcel-booked")]
+    public async Task<IActionResult> MarkParcelBooked(Guid id, MarkParcelBookedCommand command)
+    {
+        command.OrderId = id;
+        return Ok(await Mediator.Send(command));
+    }
+
+    [HttpPost("{id}/confirm-shipped")]
+    public async Task<IActionResult> ConfirmShipped(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        return Ok(await Mediator.Send(new ConfirmShippedCommand(id, userId)));
+    }
+
+    [HttpPost("{id}/confirm-delivery")]
+    public async Task<IActionResult> ConfirmDelivery(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        return Ok(await Mediator.Send(new YaqeenPay.Application.Features.Orders.Commands.ConfirmDelivery.ConfirmDeliveryCommand(id, userId)));
+    }
+
+    private Guid GetCurrentUserId()
+    {
+        return _currentUserService.UserId;
+    }
+
+    private static bool IsValidPhoneNumberFormat(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+            return false;
+            
+        // Updated regex pattern to allow numbers starting with 0 (for Pakistani format like 03031234561)
+        return System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, @"^\+?[0-9]\d{7,15}$");
     }
 }

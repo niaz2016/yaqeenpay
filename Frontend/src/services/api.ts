@@ -3,8 +3,11 @@ import axios from 'axios';
 import type { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import type { TokenResponse } from '../types/auth';
 
-// API base URL from environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7137/api';
+// API base URL from environment.
+// Default to '/api' so that when the app is served behind Nginx (same origin),
+// requests are proxied to the backend container via the /api location block.
+// You can override at build time with VITE_API_URL, e.g. VITE_API_URL=https://staging.example.com/api
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiService {
   private api: AxiosInstance;
@@ -128,18 +131,19 @@ class ApiService {
   }
 
   // Ensure Authorization header is present on the request if a token exists
-  private withAuth<TConfig extends AxiosRequestConfig | undefined>(config?: TConfig): TConfig {
+  private withAuth<TConfig extends AxiosRequestConfig | undefined>(config?: TConfig): AxiosRequestConfig {
     const token = this.getAccessToken();
-    if (!token) return (config as TConfig);
+    const baseConfig: AxiosRequestConfig = config || {};
+    
+    if (!token) return baseConfig;
 
-    const merged: AxiosRequestConfig = {
-      ...(config || {}),
+    return {
+      ...baseConfig,
       headers: {
-        ...(config?.headers as any),
-        Authorization: (config?.headers as any)?.Authorization || `Bearer ${token}`,
+        ...(baseConfig.headers as any),
+        Authorization: (baseConfig.headers as any)?.Authorization || `Bearer ${token}`,
       },
     };
-    return merged as TConfig;
   }
 
   // Token management methods
@@ -248,7 +252,7 @@ class ApiService {
   public async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     try {
       const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-      const cfg = this.withAuth(config);
+      const cfg = this.withAuth(config) || {};
       if (isFormData) {
         if (cfg && cfg.headers) {
           const headersAny = cfg.headers as any;

@@ -1,0 +1,14 @@
+### Direct image access test
+GET http://localhost:5000/uploads/15b02559-bb89-452b-beba-409adaaf55c9_blob.png
+
+###
+
+### Test another image
+GET http://localhost:5000/uploads/28013b48-e360-45c6-a169-e2c9ff05c8ca_blob.png
+
+###
+
+### Test products API and see actual response
+GET http://localhost:5000/api/products
+
+###

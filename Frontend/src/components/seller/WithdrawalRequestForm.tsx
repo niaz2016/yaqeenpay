@@ -22,6 +22,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { selectedUserService } from '../../services/userServiceSelector';
+import { useAuth } from '../../context/AuthContext';
+import notificationService from '../../services/notificationService';
 
 const withdrawalSchema = z.object({
   amount: z.number().min(10, 'Minimum withdrawal amount is $10').max(10000, 'Maximum withdrawal amount is $10,000'),
@@ -36,16 +38,19 @@ interface WithdrawalRequestFormProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  availableBalance: number;
+  availableBalance: number; // total wallet balance
+  currentlyFrozen?: number; // amount that must remain (cannot be withdrawn)
 }
 
 const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
   open,
   onClose,
   onSuccess,
-  availableBalance
+  availableBalance,
+  currentlyFrozen = 0,
 }) => {
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -84,7 +89,21 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
         paymentMethod: data.method,
         notes: data.notes
       };
-  await selectedUserService.requestWithdrawal(withdrawalRequest as any);
+      await selectedUserService.requestWithdrawal(withdrawalRequest as any);
+      
+      // Call the notification service to send notifications to backend
+      try {
+        await notificationService.notifyWithdrawalInitiated(
+          user?.id || '',
+          data.amount,
+          'PKR',
+          getMethodLabel(data.method)
+        );
+      } catch (notifError) {
+        console.warn('Failed to send withdrawal notification:', notifError);
+        // Don't fail the withdrawal if notification fails
+      }
+      
       onSuccess();
       handleClose();
     } catch (err) {
@@ -132,8 +151,11 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
     }
   };
 
+  const safeFrozen = Math.max(0, currentlyFrozen);
+  const withdrawableBalance = Math.max(0, availableBalance - safeFrozen);
   const processingFee = selectedAmount * 0.025; // 2.5% processing fee
   const netAmount = selectedAmount - processingFee;
+  const exceedsWithdrawable = selectedAmount > withdrawableBalance;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -150,8 +172,14 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Available Balance
             </Typography>
-            <Typography variant="h5" color="success.main">
-              ${availableBalance.toLocaleString()}
+            <Typography variant="h5" color="success.main" sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <span>${availableBalance.toLocaleString()}</span>
+              {safeFrozen > 0 && (
+                <Chip size="small" color="warning" label={`Frozen: $${safeFrozen.toLocaleString()}`} />
+              )}
+              {safeFrozen > 0 && (
+                <Chip size="small" variant="outlined" color="primary" label={`Withdrawable: $${withdrawableBalance.toLocaleString()}`} />
+              )}
             </Typography>
           </Box>
 
@@ -173,7 +201,7 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
                   fullWidth
                   required
                   error={!!errors.amount}
-                  helperText={errors.amount?.message}
+                  helperText={errors.amount?.message || (exceedsWithdrawable ? `Amount exceeds withdrawable balance ($${withdrawableBalance.toLocaleString()})` : undefined)}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
@@ -299,7 +327,7 @@ const WithdrawalRequestForm: React.FC<WithdrawalRequestFormProps> = ({
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting || selectedAmount <= 0 || selectedAmount > availableBalance}
+            disabled={submitting || selectedAmount <= 0 || exceedsWithdrawable}
           >
             {submitting ? 'Processing...' : 'Request Withdrawal'}
           </Button>

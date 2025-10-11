@@ -8,12 +8,17 @@ namespace YaqeenPay.Domain.ValueObjects
         public string Currency { get; private set; } = string.Empty;
         public decimal Value => Amount; // Alias for Amount to maintain compatibility
 
-        private Money() { } // For EF Core
+        private Money() 
+        { 
+            // For EF Core - initialize with safe default values
+            Amount = 0m;
+            Currency = "PKR";
+        }
 
         public Money(decimal amount, string currency)
         {
             if (string.IsNullOrWhiteSpace(currency))
-                throw new ArgumentException("Currency cannot be empty", nameof(currency));
+                currency = "PKR"; // Default to PKR if currency is not provided
 
             Amount = amount;
             Currency = currency.ToUpperInvariant();

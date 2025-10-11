@@ -36,7 +36,7 @@ public class GetAdminStatsQueryHandler : IRequestHandler<GetAdminStatsQuery, Adm
 
         var activeOrders = await _context.Orders
             .Where(o => o.Status == OrderStatus.Created || 
-                       o.Status == OrderStatus.Confirmed || 
+                       o.Status == OrderStatus.PaymentConfirmed || 
                        o.Status == OrderStatus.Shipped ||
                        o.Status == OrderStatus.DeliveredPendingDecision)
             .CountAsync(cancellationToken);

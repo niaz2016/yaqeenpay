@@ -63,15 +63,18 @@ public class CreateOrderWithBuyerMobileCommandHandler : IRequestHandler<CreateOr
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUserLookupService _userLookupService;
+    private readonly YaqeenPay.Application.Interfaces.IOrderNotificationService _orderNotificationService;
 
     public CreateOrderWithBuyerMobileCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
-        IUserLookupService userLookupService)
+        IUserLookupService userLookupService,
+        YaqeenPay.Application.Interfaces.IOrderNotificationService orderNotificationService)
     {
         _context = context;
         _currentUserService = currentUserService;
         _userLookupService = userLookupService;
+        _orderNotificationService = orderNotificationService;
     }
 
     public async Task<ApiResponse<Guid>> Handle(CreateOrderWithBuyerMobileCommand request, CancellationToken cancellationToken)
@@ -125,6 +128,17 @@ public class CreateOrderWithBuyerMobileCommandHandler : IRequestHandler<CreateOr
         await _context.SaveChangesAsync(cancellationToken);
 
         System.Console.WriteLine($"CreateOrderWithBuyerMobile: Created order {order.Id} - Seller: {sellerId}, Buyer: {buyerId} (mobile: {request.BuyerMobileNumber})");
+
+        // Send notifications to both buyer and seller
+        try
+        {
+            await _orderNotificationService.NotifyOrderCreated(order);
+        }
+        catch (Exception ex)
+        {
+            // Log notification error but don't fail the order creation
+            System.Console.WriteLine($"Failed to send order creation notifications: {ex.Message}");
+        }
 
         return ApiResponse<Guid>.SuccessResponse(order.Id);
     }

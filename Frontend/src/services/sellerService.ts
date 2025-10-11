@@ -1,5 +1,6 @@
 // src/services/sellerService.ts
 import apiService from './api';
+import notificationTrigger from './notificationTrigger';
 import type {
   BusinessProfile,
   CreateBusinessProfileRequest,
@@ -40,28 +41,88 @@ export class SellerService {
 
   // Seller Registration
   async applyForSellerRole(data: SellerRegistrationRequest): Promise<SellerRegistrationResponse> {
-
-    const formData = new FormData();
     
-    // Add business profile data
-    Object.entries(data.businessProfile).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value.toString());
-      }
-    });
+    // Helper function to convert file to Base64
+    const fileToBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+      });
+    };
 
-    // Add KYC documents
-    data.kycDocuments.forEach((doc, index) => {
-      formData.append(`kycDocuments[${index}].documentType`, doc.documentType);
-      formData.append(`kycDocuments[${index}].file`, doc.file);
-    });
-
-    // Log all FormData entries
     try {
-      const response = await apiService.post<SellerRegistrationResponse>('/SellerRegistration/apply', formData);
+      // Validate inputs
+      if (!data.businessProfile) {
+        throw new Error('Business profile is required');
+      }
+      
+      if (!data.kycDocuments || data.kycDocuments.length === 0) {
+        throw new Error('At least one KYC document is required');
+      }
+
+      // Convert all documents to Base64 first
+      const documentsWithBase64 = await Promise.all(
+        data.kycDocuments.map(async (doc) => {
+          if (!doc.file) {
+            throw new Error(`File is required for document type: ${doc.documentType}`);
+          }
+          
+          return {
+            documentType: doc.documentType,
+            documentNumber: '', // Default empty string since frontend doesn't collect this
+            documentBase64: await fileToBase64(doc.file),
+            fileName: doc.file.name
+          };
+        })
+      );
+
+      // Create the request payload that matches the backend DTO structure
+      const requestPayload = {
+        // Business profile fields
+        businessName: data.businessProfile.businessName || '',
+        businessType: data.businessProfile.businessType || '',
+        businessCategory: data.businessProfile.businessCategory || '',
+        description: data.businessProfile.description || '',
+        website: data.businessProfile.website || '',
+        phoneNumber: data.businessProfile.phoneNumber || '',
+        address: data.businessProfile.address || '',
+        city: data.businessProfile.city || '',
+        state: data.businessProfile.state || '',
+        country: data.businessProfile.country || '',
+        postalCode: data.businessProfile.postalCode || '',
+        taxId: data.businessProfile.taxId || '',
+        
+        // KYC documents
+        documents: documentsWithBase64
+      };
+
+      console.log('Applying for seller role with payload structure:', {
+        businessName: requestPayload.businessName,
+        documentCount: requestPayload.documents.length,
+        documentTypes: requestPayload.documents.map(d => d.documentType)
+      });
+      
+      const response = await apiService.post<SellerRegistrationResponse>('/SellerRegistration/apply', requestPayload);
       return response;
     } catch (error) {
       console.error('Seller registration error:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof Error && error.message.includes('Failed to execute \'readAsDataURL\'')) {
+        throw new Error('Failed to process uploaded files. Please try again with different files.');
+      }
+      
+      if (error instanceof Error && error.message.includes('415')) {
+        throw new Error('File format not supported. Please ensure files are properly formatted images or PDFs.');
+      }
+      
       throw error;
     }
   }
@@ -72,7 +133,21 @@ export class SellerService {
     formData.append('documentType', documentType);
     formData.append('file', file);
 
-    return apiService.post<KycDocument>('/SellerRegistration/kyc-document', formData);
+    try {
+      const result = await apiService.post<KycDocument>('/SellerRegistration/kyc-document', formData);
+      
+      // Trigger notification for successful document upload
+      await notificationTrigger.onKycDocumentUploaded({
+        type: documentType,
+        name: file.name,
+        size: file.size
+      });
+      
+      return result;
+    } catch (error) {
+      console.error('Error uploading KYC document:', error);
+      throw error;
+    }
   }
 
   async getKycDocuments(): Promise<KycDocument[]> {
@@ -88,7 +163,7 @@ export class SellerService {
     const params = new URLSearchParams();
     
     if (filters?.status) params.append('status', filters.status);
-    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.page) params.append('pageNumber', filters.page.toString());
     if (filters?.pageSize) params.append('pageSize', filters.pageSize.toString());
     if (filters?.sortBy) params.append('sortBy', filters.sortBy);
     if (filters?.sortDirection) params.append('sortDirection', filters.sortDirection);
@@ -108,7 +183,14 @@ export class SellerService {
   }
 
   async markOrderAsShipped(orderId: string, trackingNumber: string): Promise<SellerOrder> {
-    return apiService.post<SellerOrder>(`/Orders/${orderId}/ship`, { trackingNumber });
+    const order = await apiService.post<SellerOrder>(`/Orders/${orderId}/ship`, { trackingNumber });
+    // Fire notification so buyer is informed (defensive in case other path not hit)
+    try {
+      await notificationTrigger.onOrderShipped(order, { trackingNumber });
+    } catch (err) {
+      console.warn('Failed to trigger onOrderShipped notification (sellerService):', err);
+    }
+    return order;
   }
 
   async uploadShipmentProof(orderId: string, file: File): Promise<void> {

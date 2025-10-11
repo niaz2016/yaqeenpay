@@ -31,6 +31,7 @@ public class BuyerOrderDto
     public bool CanComplete { get; set; }
     public bool CanDispute { get; set; }
     public DateTime Created { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
 }
 
 public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, PaginatedList<BuyerOrderDto>>
@@ -83,6 +84,8 @@ public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, P
                 CanComplete = o.Status == OrderStatus.DeliveredPendingDecision,
                 CanDispute = o.Status == OrderStatus.DeliveredPendingDecision || o.Status == OrderStatus.Rejected,
                 Created = o.CreatedAt
+                ,
+                ImageUrls = o.ImageUrls
             });
 
         var totalCount = await queryable.CountAsync(cancellationToken);

@@ -22,6 +22,9 @@ namespace YaqeenPay.Domain.Entities
         public DateTime? ShippedDate { get; private set; }
         public DateTime? DeliveredDate { get; private set; }
         public DateTime? RejectedDate { get; private set; }
+        public DateTime? PaymentDate { get; private set; }
+        public Money? FrozenAmount { get; private set; }
+        public bool IsAmountFrozen { get; private set; } = false;
         public string? DeliveryAddress { get; private set; }
         public string? RejectionReason { get; private set; }
         public string? DeliveryNotes { get; private set; }
@@ -29,12 +32,13 @@ namespace YaqeenPay.Domain.Entities
         public DateTime? DeliveryConfirmationExpiry { get; private set; }
         public string? DeliveryConfirmationCode { get; private set; }
         public List<string> ImageUrls { get; private set; } = new List<string>();
+        public virtual Identity.ApplicationUser Buyer { get; set; } = null!;
+        public virtual Identity.ApplicationUser Seller { get; set; } = null!;
         
         // Navigation properties
-        public virtual Domain.Entities.Identity.ApplicationUser Buyer { get; private set; } = null!;
-        public virtual Domain.Entities.Identity.ApplicationUser Seller { get; private set; } = null!;
         public virtual Escrow Escrow { get; private set; } = null!;
         public virtual ICollection<Dispute> Disputes { get; private set; } = new List<Dispute>();
+        public virtual ICollection<OrderItem> OrderItems { get; private set; } = new List<OrderItem>();
 
         private Order() { } // For EF Core
 
@@ -78,17 +82,43 @@ namespace YaqeenPay.Domain.Entities
             DeliveryNotes = notes;
         }
 
-        public void ConfirmOrder()
+        public void MarkPaymentPending()
         {
             if (Status != OrderStatus.Created)
-                throw new InvalidOperationException($"Cannot confirm order in status {Status}");
+                throw new InvalidOperationException($"Cannot mark payment pending for order in status {Status}");
             
-            Status = OrderStatus.Confirmed;
+            Status = OrderStatus.PaymentPending;
+        }
+
+        public void ConfirmPayment(Money frozenAmount)
+        {
+            if (Status != OrderStatus.PaymentPending && Status != OrderStatus.Created)
+                throw new InvalidOperationException($"Cannot confirm payment for order in status {Status}");
+            
+            if (frozenAmount.Currency != Amount.Currency)
+                throw new ArgumentException($"Currency mismatch. Order currency: {Amount.Currency}, Frozen amount currency: {frozenAmount.Currency}");
+                
+            if (frozenAmount.Amount != Amount.Amount)
+                throw new ArgumentException($"Amount mismatch. Order amount: {Amount.Amount}, Frozen amount: {frozenAmount.Amount}");
+            
+            Status = OrderStatus.AwaitingShipment;
+            PaymentDate = DateTime.UtcNow;
+            FrozenAmount = new Money(frozenAmount.Amount, frozenAmount.Currency);
+            IsAmountFrozen = true;
+        }
+
+        public void ConfirmShipment()
+        {
+            if (Status != OrderStatus.AwaitingShipment)
+                throw new InvalidOperationException($"Cannot confirm shipment for order in status {Status}. Order must be awaiting shipment.");
+            
+            Status = OrderStatus.Shipped;
+            ShippedDate = DateTime.UtcNow;
         }
 
         public void MarkAsShipped()
         {
-            if (Status != OrderStatus.Confirmed)
+            if (Status != OrderStatus.AwaitingShipment)
                 throw new InvalidOperationException($"Cannot mark order as shipped in status {Status}");
             
             Status = OrderStatus.Shipped;
@@ -120,6 +150,7 @@ namespace YaqeenPay.Domain.Entities
             
             Status = OrderStatus.Completed;
             CompletedDate = DateTime.UtcNow;
+            IsAmountFrozen = false; // Unfreeze amount as order is completed
         }
         
         public void Complete()
@@ -129,10 +160,12 @@ namespace YaqeenPay.Domain.Entities
 
         public void CancelOrder()
         {
-            if (Status != OrderStatus.Created && Status != OrderStatus.Confirmed)
+            if (Status != OrderStatus.Created && Status != OrderStatus.PaymentPending && 
+                Status != OrderStatus.PaymentConfirmed && Status != OrderStatus.AwaitingShipment)
                 throw new InvalidOperationException($"Cannot cancel order in status {Status}");
             
             Status = OrderStatus.Cancelled;
+            IsAmountFrozen = false; // Unfreeze amount as order is cancelled
         }
 
         public void RejectOrder(string reason)
@@ -140,6 +173,20 @@ namespace YaqeenPay.Domain.Entities
             if (Status != OrderStatus.DeliveredPendingDecision)
                 throw new InvalidOperationException($"Cannot reject order in status {Status}");
             
+            Status = OrderStatus.Rejected;
+            RejectedDate = DateTime.UtcNow;
+            RejectionReason = reason;
+        }
+
+        // Early rejection before any payment or shipment has occurred
+        public void RejectBeforeShipment(string reason)
+        {
+            // Allowed only if order is still pre-payment and not shipped
+            if (Status != OrderStatus.Created && Status != OrderStatus.PaymentPending)
+                throw new InvalidOperationException($"Cannot early-reject order in status {Status}. Only Created or PaymentPending allowed.");
+            if (IsAmountFrozen || PaymentDate.HasValue)
+                throw new InvalidOperationException("Cannot early-reject after payment has been made.");
+
             Status = OrderStatus.Rejected;
             RejectedDate = DateTime.UtcNow;
             RejectionReason = reason;
@@ -186,6 +233,16 @@ namespace YaqeenPay.Domain.Entities
             {
                 CompleteOrder();
             }
+        }
+
+        public void SetTitle(string title)
+        {
+            Title = title;
+        }
+
+        public void SetDeliveryNotes(string notes)
+        {
+            DeliveryNotes = notes;
         }
     }
 }

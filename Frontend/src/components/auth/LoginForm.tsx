@@ -14,7 +14,7 @@ import {
   Alert
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { loginSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import type { z } from 'zod';
@@ -24,12 +24,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 const LoginForm: React.FC = () => {
   const { login, error } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
 
   const { 
     control, 
@@ -48,31 +45,8 @@ const LoginForm: React.FC = () => {
       setIsSubmitting(true);
       await login(data.email, data.password);
       
-      // After successful login, determine redirect path based on user role
-      // Note: The user context should be updated by the login function
-      const userFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      // Determine redirect path based on user role
-      let redirectPath = '/dashboard';
-      if (userFromStorage.roles?.some((role: string) => role.toLowerCase() === 'admin')) {
-        redirectPath = '/admin';
-      }
-      
-      // Check if the intended path is appropriate for the user
-      if (from && from !== '/dashboard') {
-        const isAdminRoute = from.startsWith('/admin');
-        const isAdmin = userFromStorage.roles?.some((role: string) => role.toLowerCase() === 'admin');
-        
-        if (isAdminRoute && !isAdmin) {
-          // Non-admin trying to access admin route, redirect to dashboard
-          redirectPath = '/dashboard';
-        } else if (!isAdminRoute || isAdmin) {
-          // Either non-admin route, or admin accessing admin route
-          redirectPath = from;
-        }
-      }
-      
-      navigate(redirectPath, { replace: true });
+      // Always redirect to dashboard after login
+      navigate('/dashboard', { replace: true });
       
     } catch (err) {
       // Error handling is managed by the auth context

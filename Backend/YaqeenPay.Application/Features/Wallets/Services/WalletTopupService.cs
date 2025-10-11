@@ -15,6 +15,7 @@ namespace YaqeenPay.Application.Features.Wallets.Services
         Task<bool> VerifyAndCompleteTopupAsync(string transactionReference, decimal paidAmount);
         Task CleanupExpiredLocksAsync();
         Task<decimal> GetUserWalletBalanceAsync(Guid userId);
+        Task<WalletTopupResponse?> MarkPaymentInitiatedAsync(Guid userId, string transactionReference);
     }
 
     public class WalletTopupService : IWalletTopupService
@@ -201,6 +202,39 @@ namespace YaqeenPay.Application.Features.Wallets.Services
         {
             var wallet = await _context.Wallets.FirstOrDefaultAsync(x => x.UserId == userId);
             return wallet?.Balance.Amount ?? 0;
+        }
+
+        public async Task<WalletTopupResponse?> MarkPaymentInitiatedAsync(Guid userId, string transactionReference)
+        {
+            try
+            {
+                var topupLock = await _context.WalletTopupLocks.FirstOrDefaultAsync(x => x.TransactionReference == transactionReference && x.UserId == userId);
+                if (topupLock == null) return null;
+                if (topupLock.IsExpired())
+                {
+                    topupLock.MarkAsExpired();
+                    await _context.SaveChangesAsync(CancellationToken.None);
+                    return new WalletTopupResponse { Success = false, Message = "Lock expired" };
+                }
+                // Extend / mark awaiting confirmation
+                topupLock.MarkAwaitingConfirmation(2);
+                await _context.SaveChangesAsync(CancellationToken.None);
+                return new WalletTopupResponse
+                {
+                    Success = true,
+                    Message = "Payment marked as initiated. Awaiting confirmation.",
+                    EffectiveAmount = topupLock.Amount.Amount,
+                    SuggestedAmount = topupLock.Amount.Amount,
+                    TransactionReference = topupLock.TransactionReference,
+                    CurrentBalance = await GetUserWalletBalanceAsync(userId),
+                    ExpiresAt = topupLock.ExpiresAt
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking payment initiated for {TransactionReference}", transactionReference);
+                return new WalletTopupResponse { Success = false, Message = "Failed to mark payment initiated" };
+            }
         }
     }
 }

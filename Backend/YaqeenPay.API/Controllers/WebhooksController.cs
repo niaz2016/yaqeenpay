@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Features.Wallets.Commands.ConfirmTopUp;
-using Microsoft.Extensions.Configuration;
 using System.Globalization;
 
 namespace YaqeenPay.API.Controllers

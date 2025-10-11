@@ -15,7 +15,8 @@ namespace YaqeenPay.Infrastructure.Services
         ITopUpRepository topUpRepository,
         IUnitOfWork unitOfWork,
         ILogger<WalletService> logger,
-        YaqeenPay.Application.Common.Interfaces.IApplicationDbContext db) : IWalletService
+        YaqeenPay.Application.Common.Interfaces.IApplicationDbContext db,
+        YaqeenPay.Application.Common.Interfaces.IOutboxService outboxService) : IWalletService
     {
     private readonly IWalletRepository _walletRepository = walletRepository;
     private readonly IWalletTransactionRepository _transactionRepository = transactionRepository;
@@ -23,6 +24,7 @@ namespace YaqeenPay.Infrastructure.Services
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly ILogger<WalletService> _logger = logger;
     private readonly IApplicationDbContext _db = db;
+    private readonly IOutboxService _outboxService = outboxService;
 
         public async Task<List<Application.Common.Models.TopUpDto>> GetAllTopUpsAsync(int page = 1, int pageSize = 100)
         {
@@ -195,7 +197,24 @@ namespace YaqeenPay.Infrastructure.Services
                 await _topUpRepository.UpdateAsync(topUp);
                 
                 await _unitOfWork.CommitTransactionAsync();
-                
+
+                // Enqueue a notification about successful top-up. Do not let notification failures break the flow.
+                try
+                {
+                    await _outboxService.EnqueueAsync("TopUpConfirmed", new {
+                        UserId = topUp.UserId,
+                        TopUpId = topUp.Id,
+                        Amount = topUp.Amount.Amount,
+                        Currency = topUp.Amount.Currency,
+                        ExternalReference = externalReference,
+                        ConfirmedAt = topUp.ConfirmedAt
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to enqueue top-up notification for TopUpId={TopUpId}", topUp.Id);
+                }
+
                 return topUp;
             }
             catch (Exception ex)

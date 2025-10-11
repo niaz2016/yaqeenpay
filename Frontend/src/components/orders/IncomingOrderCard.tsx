@@ -98,7 +98,7 @@ const IncomingOrderCard: React.FC<Props> = ({ order, onApprove, onReject, disabl
               <Box>
                 <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <ShoppingCart />
-                  Order #{order.code || order.id.slice(0, 8)}
+                  Order #{order.code || order.id?.slice(0, 8) || 'N/A'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Created: {formatDate(order.createdAt)}

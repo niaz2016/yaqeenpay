@@ -1,5 +1,6 @@
 // src/services/ordersService.ts
 import api from './api';
+import notificationTrigger from './notificationTrigger';
 import type { Order, CreateOrderPayload, AcceptRejectPayload } from '../types/order';
 
 const base = '/orders';
@@ -128,7 +129,16 @@ export const ordersService = {
   },
 
   async create(payload: CreateOrderPayload): Promise<Order> {
-    return api.post(base, payload);
+    const order = await api.post<Order>(base, payload);
+    
+    // Trigger notification for order creation
+    try {
+      await notificationTrigger.onOrderCreated(order);
+    } catch (error) {
+      console.warn('Failed to trigger order creation notification:', error);
+    }
+    
+    return order;
   },
 
   async createWithImages(
@@ -138,26 +148,56 @@ export const ordersService = {
     currency: string,
     targetUserMobile: string,
     images: File[],
+    creatorRole?: 'buyer' | 'seller'
   ): Promise<Order> {
     
-    // Use the new mobile-based order creation endpoint
-    // Current user is the seller, targetUserMobile is the buyer
+    // IMPORTANT: Fix the role confusion bug
+    // The interpretation depends on who is creating the order (creatorRole)
+    
     const formData = new FormData();
-    formData.append('buyerMobileNumber', targetUserMobile);
-    formData.append('title', title);
-    formData.append('description', description);
-    formData.append('amount', amount.toString());
-    formData.append('currency', currency);
+    formData.append('Title', title);
+    formData.append('Description', description);
+    formData.append('Amount', amount.toString());
+    formData.append('Currency', currency);
     
     // Add images to FormData
     images.forEach((image) => {
-      formData.append('images', image, image.name);
+      formData.append('Images', image, image.name);
     });
     
-    return api.post(`${base}/with-buyer-mobile`, formData);
+    let endpoint = '';
+    
+    if (creatorRole === 'seller') {
+      // Seller creates listing FOR buyer
+      // targetUserMobile is the buyer who can purchase this listing
+      formData.append('BuyerMobileNumber', targetUserMobile);
+      endpoint = `${base}/with-buyer-mobile-images`;
+    } else {
+      // Buyer creates order FROM seller (default behavior if role not specified)
+      // targetUserMobile is the seller to purchase from  
+      // Use the correct endpoint for buyer-initiated orders with seller mobile
+      formData.append('SellerMobileNumber', targetUserMobile);
+      endpoint = `${base}/with-seller-mobile`;
+    }
+    
+    const order = await api.post<Order>(endpoint, formData);
+    
+    // Trigger notification for order creation
+    try {
+      await notificationTrigger.onOrderCreated(order);
+      
+      // If buyer initiated, also trigger escrow funding notification
+      if (creatorRole === 'buyer') {
+        await notificationTrigger.onEscrowFunded(order);
+      }
+    } catch (error) {
+      console.warn('Failed to trigger order creation notification:', error);
+    }
+    
+    return order;
   },
 
-  // Method for when current user is seller, buyer identified by mobile
+  // Method for when current user is seller, buyer identified by mobile (no images)
   async createOrderForBuyer(
     title: string,
     description: string,
@@ -216,8 +256,19 @@ export const ordersService = {
     return api.post(`${base}/seller-request`, formData);
   },
 
+
+
   async confirmDelivery(orderId: string): Promise<Order> {
-    return api.post(`${base}/${orderId}/confirm-delivery`, {});
+    const order = await api.post<Order>(`${base}/${orderId}/confirm-delivery`, {});
+    
+    // Trigger notification for delivery confirmation
+    try {
+      await notificationTrigger.onDeliveryConfirmed(order);
+    } catch (error) {
+      console.warn('Failed to trigger delivery confirmation notification:', error);
+    }
+    
+    return order;
   },
 
   async rejectDelivery(payload: AcceptRejectPayload): Promise<Order> {
@@ -294,7 +345,16 @@ export const ordersService = {
 
   async approveOrder(orderId: string): Promise<Order> {
     try {
-      return await api.post(`${base}/${orderId}/approve`, {});
+      const order = await api.post<Order>(`${base}/${orderId}/approve`, {});
+      
+      // Trigger notification for order approval
+      try {
+        await notificationTrigger.onOrderApproved(order);
+      } catch (error) {
+        console.warn('Failed to trigger order approval notification:', error);
+      }
+      
+      return order;
     } catch (error) {
       console.warn('Failed to approve order via API, using mock:', error);
       
@@ -310,13 +370,29 @@ export const ordersService = {
         createdAt: new Date().toISOString()
       };
       
+      // Trigger notification for mock order approval
+      try {
+        await notificationTrigger.onOrderApproved(mockOrder);
+      } catch (error) {
+        console.warn('Failed to trigger mock order approval notification:', error);
+      }
+      
       return mockOrder;
     }
   },
 
   async rejectOrder(orderId: string, reason: string): Promise<Order> {
     try {
-      return await api.post(`${base}/${orderId}/reject`, { reason });
+      const order = await api.post<Order>(`${base}/${orderId}/reject`, { reason });
+      
+      // Trigger notification for order rejection
+      try {
+        await notificationTrigger.onOrderRejected(order, reason);
+      } catch (error) {
+        console.warn('Failed to trigger order rejection notification:', error);
+      }
+      
+      return order;
     } catch (error) {
       console.warn('Failed to reject order via API, using mock:', error);
       
@@ -331,6 +407,13 @@ export const ordersService = {
         status: 'rejected',
         createdAt: new Date().toISOString()
       };
+      
+      // Trigger notification for mock order rejection
+      try {
+        await notificationTrigger.onOrderRejected(mockOrder, reason);
+      } catch (error) {
+        console.warn('Failed to trigger mock order rejection notification:', error);
+      }
       
       return mockOrder;
     }
@@ -377,6 +460,80 @@ export const ordersService = {
     deliveryNotes?: string;
   }): Promise<Order> {
     return api.post(`${base}/accept-seller-request`, params);
+  },
+
+  async payForOrder(orderId: string): Promise<{
+    success: boolean;
+    message: string;
+    orderId: string;
+    frozenAmount: number;
+    currency: string;
+  }> {
+    const result = await api.post<{
+      success: boolean;
+      message: string;
+      orderId: string;
+      frozenAmount: number;
+      currency: string;
+    }>(`${base}/${orderId}/pay`);
+    
+    // If payment was successful, trigger notification
+    if (result.success) {
+      try {
+        // Get the order details to include in the notification
+        const order = await this.getById(orderId);
+        await notificationTrigger.onPaymentConfirmed(order, {
+          method: 'wallet',
+          amount: result.frozenAmount,
+          currency: result.currency
+        });
+      } catch (error) {
+        console.warn('Failed to trigger payment confirmation notification:', error);
+      }
+    }
+    
+    return result;
+  },
+
+  async markParcelBooked(orderId: string, params: {
+    courier?: string;
+    trackingNumber?: string;
+    bookingDetails?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    orderId: string;
+  }> {
+    return api.post(`${base}/${orderId}/mark-parcel-booked`, params);
+  },
+
+  async confirmShipped(orderId: string): Promise<Order> {
+    const order = await api.post<Order>(`${base}/${orderId}/confirm-shipped`, {});
+    
+    // Trigger notification for order shipped
+    try {
+      await notificationTrigger.onOrderShipped(order, {});
+    } catch (error) {
+      console.warn('Failed to trigger order shipped notification:', error);
+    }
+    
+    return order;
+  },
+
+  async markAsShipped(orderId: string, data?: { courier?: string; trackingNumber?: string; shippingProof?: string }): Promise<Order> {
+    try {
+      const payload = data ? { ...data } : {};
+      const order = await api.post<Order>(`${base}/${orderId}/ship`, payload);
+      try {
+        await notificationTrigger.onOrderShipped(order, { courier: data?.courier, trackingNumber: data?.trackingNumber });
+      } catch (err) {
+        console.warn('Failed to trigger onOrderShipped notification after markAsShipped:', err);
+      }
+      return order;
+    } catch (error) {
+      console.error('markAsShipped failed:', error);
+      throw error;
+    }
   },
 };
 

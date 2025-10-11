@@ -28,8 +28,14 @@ namespace YaqeenPay.Domain.Entities
             string? referenceType = null,
             string? externalReference = null)
         {
+            if (amount == null)
+                throw new ArgumentNullException(nameof(amount), "Amount cannot be null");
+                
             if (amount.Amount <= 0)
                 throw new ArgumentException("Transaction amount must be positive", nameof(amount));
+                
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException("Reason cannot be null or empty", nameof(reason));
 
             WalletId = walletId;
             Type = type;

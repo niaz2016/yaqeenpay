@@ -28,15 +28,24 @@ namespace YaqeenPay.Infrastructure.Services
                     var walletTopupService = scope.ServiceProvider.GetRequiredService<IWalletTopupService>();
                     
                     await walletTopupService.CleanupExpiredLocksAsync();
-                    
-                    // Run every 5 minutes
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                    // Run every 5 minutes (+ a small random jitter to avoid thundering herd if multiple instances)
+                    var delay = TimeSpan.FromMinutes(5) + TimeSpan.FromSeconds(Random.Shared.Next(0, 10));
+                    await Task.Delay(delay, stoppingToken);
+                }
+                catch (TaskCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // Expected during shutdown; log at debug to avoid noise.
+                    _logger.LogDebug("Topup lock cleanup service cancellation requested.");
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error in topup lock cleanup service");
                     // Wait 1 minute before retrying
-                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    }
+                    catch (TaskCanceledException) { /* ignore on shutdown */ }
                 }
             }
         }

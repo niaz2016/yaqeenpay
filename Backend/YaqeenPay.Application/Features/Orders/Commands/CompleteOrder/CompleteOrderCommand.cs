@@ -48,7 +48,7 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
         }
 
         // Can only complete if in confirmed state
-        if (order.Status != OrderStatus.Confirmed)
+        if (order.Status != OrderStatus.PaymentConfirmed)
         {
             return ApiResponse<bool>.FailureResponse($"Cannot complete order with status {order.Status}");
         }

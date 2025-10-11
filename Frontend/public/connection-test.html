@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend-Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .success { background-color: #e6ffe6; color: green; }
+        .error { background-color: #ffe6e6; color: red; }
+        .loading { background-color: #fff3e0; color: orange; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Frontend-Backend Connection Test</h1>
+    <p>This page tests the connection between frontend and backend to identify CategoryId issues.</p>
+
+    <div class="test-section">
+        <h3>Backend Connection Tests</h3>
+        <button onclick="testCategories()">Test Categories API</button>
+        <button onclick="testProducts()">Test Products API (No Filter)</button>
+        <button onclick="testProductsWithCategory()">Test Products API (With Category)</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        let categories = [];
+
+        async function testCategories() {
+            updateResults('Testing categories API...', 'loading');
+            
+            try {
+                const response = await fetch('http://localhost:7137/api/categories');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                categories = await response.json();
+                
+                updateResults(`
+                    <h4>✅ Categories API Success</h4>
+                    <p>Loaded ${categories.length} categories</p>
+                    <p>Sample category: ${categories[0]?.name} (ID: ${categories[0]?.id})</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(categories, null, 2)}</pre>
+                    </details>
+                `, 'success');
+                
+            } catch (error) {
+                updateResults(`
+                    <h4>❌ Categories API Failed</h4>
+                    <p>Error: ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testProducts() {
+            updateResults('Testing products API (no category filter)...', 'loading');
+            
+            try {
+                const response = await fetch('http://localhost:7137/api/products?page=1&pageSize=5');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                updateResults(`
+                    <h4>✅ Products API Success (No Filter)</h4>
+                    <p>Status: ${response.status}</p>
+                    <p>Response structure: ${typeof data}</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `, 'success');
+                
+            } catch (error) {
+                updateResults(`
+                    <h4>❌ Products API Failed (No Filter)</h4>
+                    <p>Error: ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testProductsWithCategory() {
+            if (categories.length === 0) {
+                updateResults('❌ No categories loaded. Run "Test Categories API" first.', 'error');
+                return;
+            }
+            
+            const firstCategory = categories[0];
+            updateResults(`Testing products API with category: ${firstCategory.name} (${firstCategory.id})...`, 'loading');
+            
+            try {
+                const response = await fetch(`http://localhost:7137/api/products?page=1&pageSize=5&categoryId=${firstCategory.id}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}\\n${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                updateResults(`
+                    <h4>✅ Products API Success (With Category)</h4>
+                    <p>Category: ${firstCategory.name} (${firstCategory.id})</p>
+                    <p>Status: ${response.status}</p>
+                    <details>
+                        <summary>Full Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `, 'success');
+                
+            } catch (error) {
+                updateResults(`
+                    <h4>❌ Products API Failed (With Category)</h4>
+                    <p>Category: ${firstCategory.name} (${firstCategory.id})</p>
+                    <p>Error: ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        function updateResults(content, type) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = content;
+            resultsDiv.className = `test-section ${type}`;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testResults').className = 'test-section';
+        }
+
+        // Auto-run categories test on page load
+        window.addEventListener('load', function() {
+            console.log('Connection test page loaded');
+            testCategories();
+        });
+    </script>
+</body>
+</html>

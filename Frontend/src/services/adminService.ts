@@ -1,4 +1,5 @@
 import apiService from './api';
+import notificationTrigger from './notificationTrigger';
 import type {
   AdminUser,
   UserFilter,
@@ -72,7 +73,14 @@ class AdminService {
 
   async reviewKycDocument(request: KycReviewRequest): Promise<void> {
     try {
-      await apiService.post('/admin/kyc/review', request);
+      await apiService.post('/admin/kyc/verify', request);
+      
+      // Trigger notification for KYC status change
+      await notificationTrigger.onKycStatusChanged({
+        status: request.status.toLowerCase(),
+        documentType: 'KYC Document',
+        reason: request.rejectionReason || ''
+      });
     } catch (error) {
       console.error('Error reviewing KYC document:', error);
       throw error;
@@ -224,7 +232,14 @@ class AdminService {
   // Admin approve withdrawal action
   async approveWithdrawal(withdrawalId: string): Promise<any> {
     try {
-      return await apiService.post(`/admin/withdrawals/${withdrawalId}/approve`, {});
+      const result = await apiService.post(`/admin/withdrawals/${withdrawalId}/approve`, {});
+      
+      // Trigger notification refresh event
+      window.dispatchEvent(new CustomEvent('withdrawal:statusChanged', { 
+        detail: { withdrawalId, action: 'approved' } 
+      }));
+      
+      return result;
     } catch (error) {
       console.error('Error approving withdrawal (admin):', error);
       throw error;

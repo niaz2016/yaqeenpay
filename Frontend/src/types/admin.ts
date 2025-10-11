@@ -24,19 +24,16 @@ export interface UserFilter {
 export interface KycDocument {
   id: string;
   userId: string;
+  userEmail: string;
+  userFullName?: string;
   documentType: string;
   documentNumber: string;
   documentUrl: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  submissionDate: string;
-  reviewDate?: string;
-  reviewerId?: string;
+  status: 'Pending' | 'Verified' | 'Rejected' | 'Expired';
+  createdAt: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
   rejectionReason?: string;
-  user: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
 }
 
 export interface BusinessProfile {
@@ -137,7 +134,7 @@ export interface AdminStats {
 
 export interface KycReviewRequest {
   documentId: string;
-  status: 'Approved' | 'Rejected';
+  status: 'Verified' | 'Rejected';
   rejectionReason?: string;
 }
 

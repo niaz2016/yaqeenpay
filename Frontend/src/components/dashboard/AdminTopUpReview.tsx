@@ -113,8 +113,8 @@ const AdminTopUpReview: React.FC = () => {
             <TableBody>
               {topUps.map(t => (
                 <TableRow key={t.id}>
-                  <TableCell>{t.id.slice(0, 8)}...</TableCell>
-                  <TableCell>{t.userId.slice(0, 8)}...</TableCell>
+                  <TableCell>{t.id?.slice(0, 8) || 'N/A'}...</TableCell>
+                  <TableCell>{t.userId?.slice(0, 8) || 'N/A'}...</TableCell>
                   <TableCell>{t.amount} {t.currency}</TableCell>
                   <TableCell>{t.channel}</TableCell>
                   <TableCell><Chip label={t.status} color={statusColor(t.status) as any} size="small" /></TableCell>

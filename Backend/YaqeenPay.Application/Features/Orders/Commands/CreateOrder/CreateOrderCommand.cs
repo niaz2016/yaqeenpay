@@ -14,7 +14,7 @@ public record CreateOrderCommand : IRequest<ApiResponse<Guid>>
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "PKR";
     public Guid SellerId { get; set; }
     public List<string> ImageUrls { get; set; } = new List<string>();
 }

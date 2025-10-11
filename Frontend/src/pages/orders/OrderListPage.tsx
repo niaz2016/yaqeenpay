@@ -19,10 +19,12 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { ordersService, type PagedResult } from '../../services/ordersService';
 import type { Order } from '../../types/order';
 import { useAuth } from '../../context/AuthContext';
+import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -50,6 +52,8 @@ const mapBackendStatusToFrontend = (backendStatus: string) => {
   
   return statusMap[backendStatus] || 'pending-payment';
 };
+
+// Local normalizeImageUrl removed in favor of centralized util
 
 const OrderListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -271,21 +275,38 @@ const OrderListPage: React.FC = () => {
             >
               <CardContent>
                 <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1}>
-                  <Stack>
-                    <Stack direction="row" alignItems="center" gap={1} mb={0.5}>
-                      <Typography variant="subtitle2" color="text.secondary">{order.code || order.id}</Typography>
-                      <Chip 
-                        label={getUserRole(order)} 
-                        size="small" 
-                        color={getUserRole(order) === 'buyer' ? 'primary' : 'secondary'} 
-                        variant="outlined"
-                      />
+                  <Stack direction="row" gap={2} alignItems="center">
+                    {/* Thumbnail */}
+                    <Box sx={{ width: 64, height: 64, borderRadius: 1, overflow: 'hidden', bgcolor: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {order.imageUrls && order.imageUrls.length > 0 ? (
+                        <img
+                          src={normalizeImageUrl(order.imageUrls[0])}
+                          onError={(e: any) => { e.currentTarget.src = placeholderDataUri(64); console.warn('Order thumbnail failed to load:', order.imageUrls?.[0]); }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          alt="order"
+                        />
+                      ) : (
+                        <ImageNotSupportedIcon fontSize="large" color="disabled" />
+                      )}
+                    </Box>
+
+                    <Stack>
+                      <Stack direction="row" alignItems="center" gap={1} mb={0.5}>
+                        <Typography variant="subtitle2" color="text.secondary">{order.code || order.id}</Typography>
+                        <Chip 
+                          label={getUserRole(order)} 
+                          size="small" 
+                          color={getUserRole(order) === 'buyer' ? 'primary' : 'secondary'} 
+                          variant="outlined"
+                        />
+                      </Stack>
+                      <Typography variant="h6">{order.description || 'Escrow order'}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {getUserRole(order) === 'buyer' ? `Seller: ${order.sellerName || order.sellerId}` : `Buyer: ${order.buyerId}`}
+                      </Typography>
                     </Stack>
-                    <Typography variant="h6">{order.description || 'Escrow order'}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {getUserRole(order) === 'buyer' ? `Seller: ${order.sellerName || order.sellerId}` : `Buyer: ${order.buyerId}`}
-                    </Typography>
                   </Stack>
+
                   <Stack alignItems={{ xs: 'flex-start', md: 'flex-end' }}>
                     <Chip label={order.status} color={statusColor(order.status) as any} sx={{ mb: 1 }} />
                     <Typography variant="h6">{order.amount.toFixed(2)} {order.currency}</Typography>

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YaqeenPay.API.Controllers;
 using YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal;
 using YaqeenPay.Application.Features.Withdrawals.Queries.GetWithdrawals;
 

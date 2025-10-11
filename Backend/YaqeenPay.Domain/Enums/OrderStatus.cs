@@ -3,7 +3,9 @@ namespace YaqeenPay.Domain.Enums;
 public enum OrderStatus
 {
     Created,
-    Confirmed,
+    PaymentPending,
+    PaymentConfirmed,
+    AwaitingShipment,
     Shipped,
     Delivered,
     DeliveredPendingDecision,
@@ -11,5 +13,6 @@ public enum OrderStatus
     Cancelled,
     Rejected,
     Disputed,
-    DisputeResolved
+    DisputeResolved,
+    Confirmed
 }

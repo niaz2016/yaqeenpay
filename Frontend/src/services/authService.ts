@@ -1,5 +1,6 @@
 // src/services/authService.ts
 import apiService from './api';
+import notificationTrigger from './notificationTrigger';
 import type { LoginCredentials, RegisterCredentials, TokenResponse, User, OtpVerification, PasswordReset } from '../types/auth';
 
 class AuthService {
@@ -83,18 +84,30 @@ class AuthService {
         
       localStorage.setItem('token_expiry', expiryTime.toString());
       
-      // Import token debug tools to verify token storage
-      import('../debug/tokenRefresher').then(tools => {
-        tools.processLoginResponse(responseData);
-      }).catch(error => {
-        console.error('Failed to import token debug tools:', error);
-      });
+      // Token debug tools import removed due to missing module
+      // If needed, implement token processing here or ensure the module exists.
       
       // Dispatch event to notify about token changes
       window.dispatchEvent(new CustomEvent('auth:tokens:updated'));
       
       // Fetch user profile after successful login
-      return this.getCurrentUser();
+      const user = await this.getCurrentUser();
+      
+      // Trigger login notification
+      try {
+        await notificationTrigger.onLoginSuccess({
+          location: 'Unknown location', // Could be enhanced with IP geolocation
+          device: navigator.userAgent,
+          timestamp: new Date().toISOString()
+        }, user.id);
+      } catch (error) {
+        console.warn('Failed to trigger login notification:', error);
+      }
+
+      // Notify other parts of the app about login (used by NotificationContext to auto-refresh)
+      window.dispatchEvent(new CustomEvent('auth:login'));
+      
+      return user;
     } catch (error) {
       console.error('Login error:', error);
       throw error;

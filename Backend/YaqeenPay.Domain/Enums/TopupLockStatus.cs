@@ -4,6 +4,7 @@ namespace YaqeenPay.Domain.Enums
     {
         Locked = 1,
         Completed = 2,
-        Expired = 3
+        Expired = 3,
+        AwaitingConfirmation = 4
     }
 }

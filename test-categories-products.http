@@ -1,0 +1,26 @@
+### Test Categories API
+GET https://localhost:7137/api/categories
+Accept: application/json
+
+### Test product creation with real category
+POST https://localhost:7137/api/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "categoryId": "00000000-0000-0000-0000-000000000001",
+  "name": "Test Product",
+  "description": "A test product",
+  "price": 99.99,
+  "currency": "PKR",
+  "stockQuantity": 10,
+  "sku": "TEST-001",
+  "minOrderQuantity": 1,
+  "maxOrderQuantity": 999999,
+  "weight": 0,
+  "weightUnit": "kg",
+  "allowBackorders": false,
+  "tags": [],
+  "attributes": {},
+  "images": []
+}

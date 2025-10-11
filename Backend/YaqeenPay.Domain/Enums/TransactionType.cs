@@ -7,6 +7,9 @@ namespace YaqeenPay.Domain.Enums
         TopUp,
         Refund,
         Payment,
-        Withdrawal
+        Withdrawal,
+        Freeze,
+        Unfreeze,
+        FrozenToDebit
     }
 }

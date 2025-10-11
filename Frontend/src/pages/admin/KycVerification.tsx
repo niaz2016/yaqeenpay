@@ -39,7 +39,7 @@ const KycVerification: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<KycDocument | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [reviewAction, setReviewAction] = useState<'Approved' | 'Rejected'>('Approved');
+  const [reviewAction, setReviewAction] = useState<'Verified' | 'Rejected'>('Verified');
   const [rejectionReason, setRejectionReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,7 +83,7 @@ const KycVerification: React.FC = () => {
     }
   };
 
-  const openReviewDialog = (document: KycDocument, action: 'Approved' | 'Rejected') => {
+  const openReviewDialog = (document: KycDocument, action: 'Verified' | 'Rejected') => {
     setSelectedDocument(document);
     setReviewAction(action);
     setReviewDialogOpen(true);
@@ -92,8 +92,10 @@ const KycVerification: React.FC = () => {
   const getStatusChip = (status: string) => {
     const statusMap = {
       'Pending': { color: 'warning' as const, label: 'Pending Review' },
-      'Approved': { color: 'success' as const, label: 'Approved' },
-      'Rejected': { color: 'error' as const, label: 'Rejected' }
+      'Verified': { color: 'success' as const, label: 'Verified' },
+      'Approved': { color: 'success' as const, label: 'Approved' }, // Legacy support
+      'Rejected': { color: 'error' as const, label: 'Rejected' },
+      'Expired': { color: 'error' as const, label: 'Expired' }
     };
     
     const config = statusMap[status as keyof typeof statusMap] || statusMap.Pending;
@@ -180,10 +182,10 @@ const KycVerification: React.FC = () => {
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
-                            {document.user.firstName} {document.user.lastName}
+                            {document.userFullName || 'Unknown User'}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
-                            {document.user.email}
+                            {document.userEmail || 'No email provided'}
                           </Typography>
                         </Box>
                       </Box>
@@ -195,7 +197,7 @@ const KycVerification: React.FC = () => {
                       {document.documentNumber}
                     </TableCell>
                     <TableCell>
-                      {formatDate(document.submissionDate)}
+                      {formatDate(document.createdAt)}
                     </TableCell>
                     <TableCell>
                       {getStatusChip(document.status)}
@@ -215,7 +217,7 @@ const KycVerification: React.FC = () => {
                           <IconButton
                             size="small"
                             color="success"
-                            onClick={() => openReviewDialog(document, 'Approved')}
+                            onClick={() => openReviewDialog(document, 'Verified')}
                           >
                             <CheckCircleIcon />
                           </IconButton>
@@ -247,7 +249,7 @@ const KycVerification: React.FC = () => {
         fullWidth
       >
         <DialogTitle>
-          {reviewAction === 'Approved' ? 'Approve KYC Document' : 'Reject KYC Document'}
+          {reviewAction === 'Verified' ? 'Verify KYC Document' : 'Reject KYC Document'}
         </DialogTitle>
         <DialogContent>
           {selectedDocument && (
@@ -261,10 +263,10 @@ const KycVerification: React.FC = () => {
                       </Typography>
                       <Stack spacing={1}>
                         <Typography variant="body2">
-                          <strong>Name:</strong> {selectedDocument.user.firstName} {selectedDocument.user.lastName}
+                          <strong>Name:</strong> {selectedDocument.userFullName || 'Unknown User'}
                         </Typography>
                         <Typography variant="body2">
-                          <strong>Email:</strong> {selectedDocument.user.email}
+                          <strong>Email:</strong> {selectedDocument.userEmail || 'No email provided'}
                         </Typography>
                       </Stack>
                     </CardContent>
@@ -285,7 +287,7 @@ const KycVerification: React.FC = () => {
                           <strong>Number:</strong> {selectedDocument.documentNumber}
                         </Typography>
                         <Typography variant="body2">
-                          <strong>Submitted:</strong> {formatDate(selectedDocument.submissionDate)}
+                          <strong>Submitted:</strong> {formatDate(selectedDocument.createdAt)}
                         </Typography>
                       </Stack>
                     </CardContent>
@@ -320,11 +322,11 @@ const KycVerification: React.FC = () => {
               )}
 
               <Alert 
-                severity={reviewAction === 'Approved' ? 'success' : 'warning'} 
+                severity={reviewAction === 'Verified' ? 'success' : 'warning'} 
                 sx={{ mt: 2 }}
               >
-                {reviewAction === 'Approved' 
-                  ? 'This document will be marked as approved and the user will be notified.'
+                {reviewAction === 'Verified' 
+                  ? 'This document will be marked as verified and the user will be notified.'
                   : 'This document will be rejected and the user will need to resubmit.'
                 }
               </Alert>
@@ -341,13 +343,13 @@ const KycVerification: React.FC = () => {
           <Button
             onClick={handleReviewDocument}
             variant="contained"
-            color={reviewAction === 'Approved' ? 'success' : 'error'}
+            color={reviewAction === 'Verified' ? 'success' : 'error'}
             disabled={
               submitting || 
               (reviewAction === 'Rejected' && !rejectionReason.trim())
             }
           >
-            {submitting ? 'Processing...' : `${reviewAction === 'Approved' ? 'Approve' : 'Reject'} Document`}
+            {submitting ? 'Processing...' : `${reviewAction === 'Verified' ? 'Verify' : 'Reject'} Document`}
           </Button>
         </DialogActions>
       </Dialog>

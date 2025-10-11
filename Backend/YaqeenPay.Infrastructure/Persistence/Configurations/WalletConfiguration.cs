@@ -29,6 +29,19 @@ namespace YaqeenPay.Infrastructure.Persistence.Configurations
                     .HasMaxLength(3)
                     .IsRequired();
             });
+
+            builder.OwnsOne(w => w.FrozenBalance, frozenBalance =>
+            {
+                frozenBalance.Property(m => m.Amount)
+                    .HasColumnName("FrozenBalance")
+                    .HasColumnType("decimal(18,2)")
+                    .IsRequired();
+                
+                frozenBalance.Property(m => m.Currency)
+                    .HasColumnName("FrozenBalanceCurrency")
+                    .HasMaxLength(3)
+                    .IsRequired();
+            });
             
             // Relationships
             builder.HasOne(w => w.User)

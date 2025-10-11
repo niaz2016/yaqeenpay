@@ -26,6 +26,7 @@ public class OrderDto
     public string SellerName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
 }
 
 public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, ApiResponse<OrderDto>>
@@ -43,7 +44,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, ApiRe
 
     public async Task<ApiResponse<OrderDto>> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
     {
-        if (_currentUserService.UserId == null)
+        if (_currentUserService.UserId == Guid.Empty)
         {
             throw new ForbiddenAccessException();
         }
@@ -78,6 +79,8 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, ApiRe
             SellerName = order.Seller?.UserName ?? "Unknown",
             CreatedAt = order.CreatedAt,
             CompletedAt = order.CompletedDate
+            ,
+            ImageUrls = order.ImageUrls ?? new List<string>()
         };
 
         return ApiResponse<OrderDto>.SuccessResponse(orderDto);

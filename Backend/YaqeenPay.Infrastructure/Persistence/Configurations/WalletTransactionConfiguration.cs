@@ -37,12 +37,14 @@ namespace YaqeenPay.Infrastructure.Persistence.Configurations
                 amount.Property(m => m.Amount)
                     .HasColumnName("Amount")
                     .HasColumnType("decimal(18,2)")
-                    .IsRequired();
+                    .IsRequired()
+                    .HasDefaultValue(0m); // Ensure we have a default value
                 
                 amount.Property(m => m.Currency)
                     .HasColumnName("Currency")
                     .HasMaxLength(3)
-                    .IsRequired();
+                    .IsRequired()
+                    .HasDefaultValue("PKR"); // Ensure we have a default currency
             });
             
             // Relationships

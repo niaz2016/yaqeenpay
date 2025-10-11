@@ -25,6 +25,18 @@ public interface IApplicationDbContext
 
     DbSet<Dispute> Disputes { get; }
     DbSet<YaqeenPay.Domain.Entities.AuditLog> AuditLogs { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<NotificationPreference> NotificationPreferences { get; }
+    DbSet<UserSettings> UserSettings { get; }
+    DbSet<SettingsAudit> SettingsAudits { get; }
+    
+    // Product Management
+    DbSet<Category> Categories { get; }
+    DbSet<Product> Products { get; }
+    DbSet<ProductImage> ProductImages { get; }
+    DbSet<CartItem> CartItems { get; }
+    DbSet<OrderItem> OrderItems { get; }
 
+    Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

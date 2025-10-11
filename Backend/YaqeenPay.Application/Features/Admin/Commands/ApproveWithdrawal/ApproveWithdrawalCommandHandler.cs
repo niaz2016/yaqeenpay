@@ -9,10 +9,12 @@ namespace YaqeenPay.Application.Features.Admin.Commands.ApproveWithdrawal
     public class ApproveWithdrawalCommandHandler : IRequestHandler<ApproveWithdrawalCommand, bool>
     {
         private readonly IApplicationDbContext _context;
+        private readonly YaqeenPay.Application.Common.Interfaces.IOutboxService _outboxService;
 
-        public ApproveWithdrawalCommandHandler(IApplicationDbContext context)
+        public ApproveWithdrawalCommandHandler(IApplicationDbContext context, YaqeenPay.Application.Common.Interfaces.IOutboxService outboxService)
         {
             _context = context;
+            _outboxService = outboxService;
         }
 
         public async Task<bool> Handle(ApproveWithdrawalCommand request, CancellationToken cancellationToken)
@@ -49,6 +51,30 @@ namespace YaqeenPay.Application.Features.Admin.Commands.ApproveWithdrawal
             }
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Enqueue a notification for the user about the settled withdrawal. Don't fail the operation if enqueue fails.
+            try
+            {
+                await _outboxService.EnqueueAsync(
+                    "WithdrawalSettled",
+                    new
+                    {
+                        UserId = withdrawal.SellerId,
+                        WithdrawalId = withdrawal.Id,
+                        Amount = withdrawal.Amount.Amount,
+                        Currency = withdrawal.Amount.Currency,
+                        Channel = withdrawal.Channel.ToString(),
+                        RequestedAt = withdrawal.RequestedAt,
+                        SettledAt = withdrawal.SettledAt
+                    },
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the approval flow
+                Console.WriteLine($"Warning: Failed to enqueue withdrawal settled notification: {ex.Message}");
+            }
+
             return true;
         }
     }

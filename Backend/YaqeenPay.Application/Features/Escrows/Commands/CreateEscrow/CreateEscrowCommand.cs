@@ -11,7 +11,7 @@ namespace YaqeenPay.Application.Features.Escrows.Commands.CreateEscrow;
 public record CreateEscrowCommand : IRequest<ApiResponse<Guid>>
 {
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "PKR";
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public Guid BuyerId { get; set; }

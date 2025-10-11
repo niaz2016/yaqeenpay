@@ -44,12 +44,12 @@ const UserOrdersPage: React.FC = () => {
 
   const statusTabs = [
     { label: 'All Orders', value: '' },
-    { label: 'Pending', value: 'PendingPayment' },
-    { label: 'Paid', value: 'Paid' },
+    { label: 'Awaiting Payment', value: 'PendingPayment' },
+    { label: 'Ready to Ship', value: 'Paid' },
     { label: 'Shipped', value: 'Shipped' },
     { label: 'Delivered', value: 'Delivered' },
     { label: 'Completed', value: 'Completed' },
-    { label: 'Disputed', value: 'Disputed' }
+    { label: 'Issues', value: 'Disputed' }
   ];
 
   const loadOrders = async () => {
@@ -66,8 +66,48 @@ const UserOrdersPage: React.FC = () => {
       };
 
   const response = await userService.getSellerOrders(filters as any);
-      setOrders(response.items);
-      setTotalCount(response.totalCount);
+      
+      // Debug: Log the raw response to understand data structure
+      console.log('Seller Orders Debug - Filters sent:', filters);
+      console.log('Seller Orders Debug - Raw response:', response);
+      console.log('Seller Orders Debug - Response items count:', response.items?.length || 0);
+      if (response.items && response.items.length > 0) {
+        console.log('Seller Orders Debug - First order sample:', response.items[0]);
+      } else {
+        console.log('Seller Orders Debug - No orders found in response');
+      }
+      
+      // Also try to fetch user info to debug authentication
+      try {
+        const userInfo = await fetch('/api/auth/user', { credentials: 'include' }).then(r => r.json()).catch(() => null);
+        console.log('Seller Orders Debug - Current user info:', userInfo);
+      } catch (e) {
+        console.log('Seller Orders Debug - Could not fetch user info:', e);
+      }
+      
+      // Ensure data structure integrity
+      const sanitizedOrders = (response.items || []).map((order: any) => ({
+        id: order.id || '',
+        orderNumber: order.orderNumber || '',
+        amount: Number(order.amount) || 0,
+        currency: order.currency || 'PKR',
+        description: order.description || '',
+        status: order.status || 'Unknown',
+        buyerName: order.buyerName || '',
+        buyerEmail: order.buyerEmail || '',
+        createdAt: order.createdAt || order.created || order.orderDate || order.dateCreated || new Date().toISOString(),
+        updatedAt: order.updatedAt || order.updated || order.lastModified || null,
+        shippedDate: order.shippedDate || null,
+        deliveredDate: order.deliveredDate || null,
+        trackingNumber: order.trackingNumber || null,
+        shippingAddress: order.shippingAddress || null,
+        canShip: Boolean(order.canShip),
+        canMarkDelivered: Boolean(order.canMarkDelivered),
+        canUpdateShipping: Boolean(order.canUpdateShipping),
+        canDispute: Boolean(order.canDispute)
+      }));
+      setOrders(sanitizedOrders);
+      setTotalCount(response.totalCount || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {
@@ -114,75 +154,194 @@ const UserOrdersPage: React.FC = () => {
       field: 'orderNumber',
       headerName: 'Order #',
       width: 140,
-      renderCell: (params) => (
-        <Button
-          variant="text"
-          size="small"
-          onClick={() => {
-            if (params.row.id && params.row.id !== 'undefined') {
-              navigate(`/seller/orders/${params.row.id}`);
-            }
-          }}
-          sx={{ textTransform: 'none' }}
-        >
-          {params.value}
-        </Button>
-      )
+      renderCell: (params) => {
+        if (!params || !params.row) return 'N/A';
+        return (
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => {
+              if (params.row.id && params.row.id !== 'undefined') {
+                navigate(`/seller/orders/${params.row.id}`);
+              }
+            }}
+            sx={{ textTransform: 'none' }}
+          >
+            {params.value || `Order-${params.row.id?.slice(0, 8) || 'N/A'}`}
+          </Button>
+        );
+      }
     },
     {
       field: 'buyerName',
-      headerName: 'Buyer',
-      width: 150
+      headerName: 'Customer',
+      width: 150,
+      renderCell: (params) => {
+        if (!params || !params.row) return 'Unknown Customer';
+        return (
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {params.value || 'Unknown Customer'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.buyerEmail || 'No email'}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       field: 'description',
-      headerName: 'Description',
+      headerName: 'Product/Service',
       flex: 1,
-      minWidth: 200
+      minWidth: 200,
+      renderCell: (params) => {
+        if (!params || !params.row) return 'No description';
+        return (
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {params.value || 'No description'}
+            </Typography>
+            {params.row.trackingNumber && (
+              <Typography variant="caption" color="primary.main">
+                Tracking: {params.row.trackingNumber}
+              </Typography>
+            )}
+          </Box>
+        );
+      }
     },
     {
       field: 'amount',
-      headerName: 'Amount',
+      headerName: 'Order Value',
       width: 120,
-      renderCell: (params) => (
-        <Typography variant="body2" fontWeight="medium">
-          {params.row.currency} {params.value.toFixed(2)}
-        </Typography>
-      )
+      renderCell: (params) => {
+        if (!params || !params.row) return 'PKR 0.00';
+        const amount = typeof params.value === 'number' ? params.value : 0;
+        return (
+          <Typography variant="body2" fontWeight="medium" color="success.main">
+            {params.row.currency || 'PKR'} {amount.toFixed(2)}
+          </Typography>
+        );
+      }
     },
     {
       field: 'status',
       headerName: 'Status',
       width: 120,
-      renderCell: (params) => getStatusChip(params.value)
+      renderCell: (params) => {
+        if (!params) return getStatusChip('Unknown');
+        return getStatusChip(params.value || 'Unknown');
+      }
+    },
+    {
+      field: 'shippingStatus',
+      headerName: 'Shipping',
+      width: 140,
+      renderCell: (params) => {
+        if (!params || !params.row) {
+          return <Chip label="Unknown" color="default" size="small" />;
+        }
+        
+        const row = params.row;
+        if (row.status === 'Delivered') {
+          return (
+            <Chip label="Delivered" color="success" size="small" />
+          );
+        } else if (row.status === 'Shipped' && row.trackingNumber) {
+          return (
+            <Chip label="In Transit" color="info" size="small" />
+          );
+        } else if (row.status === 'Shipped') {
+          return (
+            <Chip label="Shipped" color="primary" size="small" />
+          );
+        } else if (row.canShip) {
+          return (
+            <Chip label="Ready to Ship" color="warning" size="small" />
+          );
+        } else {
+          return (
+            <Chip label="Awaiting Payment" color="default" size="small" />
+          );
+        }
+      }
     },
     {
       field: 'createdAt',
-      headerName: 'Created',
+      headerName: 'Order Date',
       width: 140,
-      valueFormatter: (params: any) => {
-        const date = new Date(params.value);
-        return date.toLocaleDateString();
+      renderCell: (params) => {
+        if (!params || !params.row) return 'N/A';
+        
+        // Try multiple date field sources
+        const dateValue = params.value || params.row.createdAt || params.row.orderDate || params.row.created;
+        
+        if (!dateValue) return 'N/A';
+        
+        try {
+          const date = new Date(dateValue);
+          // Check if date is valid
+          if (isNaN(date.getTime())) return 'Invalid Date';
+          
+          return (
+            <Typography variant="body2">
+              {date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </Typography>
+          );
+        } catch (error) {
+          return 'Invalid Date';
+        }
       }
     },
     {
       field: 'actions',
-      headerName: 'Actions',
-      width: 100,
+      headerName: 'Quick Actions',
+      width: 180,
       sortable: false,
-      renderCell: (params) => (
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => {
-            if (params.row.id && params.row.id !== 'undefined') {
-              navigate(`/seller/orders/${params.row.id}`);
-            }
-          }}
-        >
-          View
-        </Button>
-      )
+      renderCell: (params) => {
+        if (!params || !params.row) {
+          return (
+            <Button size="small" variant="outlined" disabled>
+              N/A
+            </Button>
+          );
+        }
+        
+        return (
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => {
+                if (params.row.id && params.row.id !== 'undefined') {
+                  navigate(`/seller/orders/${params.row.id}`);
+                }
+              }}
+            >
+              View
+            </Button>
+            {params.row.canShip && (
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  if (params.row.id && params.row.id !== 'undefined') {
+                    navigate(`/seller/orders/${params.row.id}/ship`);
+                  }
+                }}
+              >
+                Ship
+              </Button>
+            )}
+          </Box>
+        );
+      }
     }
   ];
 
@@ -191,7 +350,7 @@ const UserOrdersPage: React.FC = () => {
       <Box sx={{ py: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1">
-            My Orders
+            Orders to Fulfill
           </Typography>
           
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -239,7 +398,7 @@ const UserOrdersPage: React.FC = () => {
 
           <Box sx={{ height: 600 }}>
             <DataGrid
-              rows={orders}
+              rows={orders || []}
               columns={columns}
               loading={loading}
               paginationMode="server"

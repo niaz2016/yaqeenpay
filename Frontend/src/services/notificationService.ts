@@ -1,14 +1,22 @@
 // src/services/notificationService.ts
 import apiService from './api';
+import type { 
+  NotificationListResponse, 
+  NotificationType, 
+  NotificationPreferences,
+  MarkAsReadRequest
+} from '../types/notification';
 
+// Legacy interface for backward compatibility
 export interface NotificationPayload {
   recipientId: string;
-  type: 'order_created' | 'order_approved' | 'order_rejected' | 'payment_released' | 'escrow_funded';
+  type: 'order_created' | 'order_approved' | 'order_rejected' | 'payment_released' | 'escrow_funded' | 'payment_confirmed' | 'order_shipped';
   title: string;
   message: string;
   data?: Record<string, any>;
 }
 
+// Legacy interface for backward compatibility
 export interface NotificationHistory {
   id: string;
   type: string;
@@ -20,40 +28,9 @@ export interface NotificationHistory {
 }
 
 class NotificationService {
-  private mockNotifications: NotificationHistory[] = [
-    {
-      id: '1',
-      type: 'order_created',
-      title: 'New Order Received',
-      message: 'You have received a new order worth PKR 5,000',
-      read: false,
-      createdAt: new Date().toISOString(),
-      data: { orderId: 'order-123', amount: 5000 }
-    }
-  ];
-
   async sendNotification(notification: NotificationPayload): Promise<void> {
     try {
-      // Try to send via API first
-      await apiService.post('/notifications/send', notification);
-    } catch (error) {
-      console.warn('Failed to send notification via API, using mock:', error);
-      
-      // Mock implementation for development
-      const mockNotification: NotificationHistory = {
-        id: Date.now().toString(),
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        read: false,
-        createdAt: new Date().toISOString(),
-        data: notification.data
-      };
-      
-      this.mockNotifications.unshift(mockNotification);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('mock_notifications', JSON.stringify(this.mockNotifications));
+      await apiService.post('/notifications', notification);
       
       // Show browser notification if permission granted
       if (Notification.permission === 'granted') {
@@ -62,38 +39,38 @@ class NotificationService {
           icon: '/icon.png'
         });
       }
+
+      // Dispatch a global custom event so UI layers can show a toast
+      try {
+        window.dispatchEvent(new CustomEvent('app:notification-sent', { detail: notification }));
+      } catch (evtErr) {
+        // non-fatal
+        console.debug('Notification event dispatch failed (harmless):', evtErr);
+      }
+    } catch (error) {
+      console.error('Failed to send notification via API:', error);
+      throw error;
     }
   }
 
-  async getNotifications(): Promise<NotificationHistory[]> {
+  // Legacy method for backward compatibility
+  async getNotificationsLegacy(): Promise<NotificationHistory[]> {
     try {
       const response = await apiService.get<NotificationHistory[]>('/notifications');
       return response;
     } catch (error) {
-      console.warn('Failed to fetch notifications via API, using mock:', error);
-      
-      // Load from localStorage
-      const stored = localStorage.getItem('mock_notifications');
-      if (stored) {
-        this.mockNotifications = JSON.parse(stored);
-      }
-      
-      return this.mockNotifications;
+      console.error('Failed to fetch notifications via API:', error);
+      throw error;
     }
   }
 
-  async markAsRead(notificationId: string): Promise<void> {
+  // Legacy method for backward compatibility
+  async markAsReadLegacy(notificationId: string): Promise<void> {
     try {
       await apiService.put(`/notifications/${notificationId}/read`);
     } catch (error) {
-      console.warn('Failed to mark notification as read via API, using mock:', error);
-      
-      // Update mock notification
-      const notification = this.mockNotifications.find(n => n.id === notificationId);
-      if (notification) {
-        notification.read = true;
-        localStorage.setItem('mock_notifications', JSON.stringify(this.mockNotifications));
-      }
+      console.error('Failed to mark notification as read via API:', error);
+      throw error;
     }
   }
 
@@ -144,6 +121,166 @@ class NotificationService {
       message: `${currency} ${orderAmount.toLocaleString()} has been released to your wallet. The buyer has confirmed receipt of the items.`,
       data: { orderId, amount: orderAmount, currency }
     });
+  }
+
+  async notifyPaymentConfirmed(sellerId: string, orderAmount: number, currency: string, orderId: string): Promise<void> {
+    await this.sendNotification({
+      recipientId: sellerId,
+      type: 'payment_confirmed',
+      title: 'Payment Confirmed! 💳',
+      message: `Buyer has paid ${orderAmount.toLocaleString()} wallet credits for the order. Amount is now frozen in their wallet. Please prepare and book the parcel for delivery.`,
+      data: { orderId, amount: orderAmount, currency }
+    });
+  }
+
+  async notifyOrderShipped(buyerId: string, orderId: string): Promise<void> {
+    await this.sendNotification({
+      recipientId: buyerId,
+      type: 'order_shipped',
+      title: 'Order Shipped! 📦',
+      message: `Your order has been shipped by the seller. You can track its progress and confirm delivery once received.`,
+      data: { orderId }
+    });
+  }
+
+  // Withdrawal notification methods - Updated to use proper backend API
+  async notifyWithdrawalInitiated(userId: string, amount: number, currency: string, method: string): Promise<void> {
+    try {
+      await apiService.post('/notifications/send', {
+        recipientId: userId,
+        type: 'wallet',
+        title: 'Withdrawal Request Submitted 🏦',
+        message: `Your withdrawal request of ${currency} ${amount.toLocaleString()} via ${method} has been submitted and is being processed.`,
+        priority: 'medium',
+        data: { 
+          amount, 
+          currency, 
+          method, 
+          type: 'withdrawal_initiated',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send withdrawal initiated notification:', error);
+      throw error;
+    }
+  }
+
+  async notifyWithdrawalApproved(userId: string, amount: number, currency: string, method: string): Promise<void> {
+    try {
+      await apiService.post('/notifications/send', {
+        recipientId: userId,
+        type: 'wallet',
+        title: 'Withdrawal Approved ✅',
+        message: `Your withdrawal of ${currency} ${amount.toLocaleString()} via ${method} has been approved and processed.`,
+        priority: 'high',
+        data: { 
+          amount, 
+          currency, 
+          method, 
+          type: 'withdrawal_approved',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send withdrawal approved notification:', error);
+      throw error;
+    }
+  }
+
+  async notifyWithdrawalRejected(userId: string, amount: number, currency: string, method: string, reason?: string): Promise<void> {
+    try {
+      await apiService.post('/notifications/send', {
+        recipientId: userId,
+        type: 'wallet',
+        title: 'Withdrawal Request Rejected ❌',
+        message: `Your withdrawal request of ${currency} ${amount.toLocaleString()} via ${method} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+        priority: 'high',
+        data: { 
+          amount, 
+          currency, 
+          method, 
+          reason, 
+          type: 'withdrawal_rejected',
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error('Failed to send withdrawal rejected notification:', error);
+      throw error;
+    }
+  }
+
+  // Comprehensive notification methods
+  async getNotifications(params?: { page?: number; limit?: number; type?: NotificationType }): Promise<NotificationListResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.page) queryParams.append('page', params.page.toString());
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.type) queryParams.append('type', params.type);
+
+      const response = await apiService.get<NotificationListResponse>(`/notifications?${queryParams}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch notifications via API:', error);
+      throw error;
+    }
+  }
+
+  async markAsRead(notificationIds: string[]): Promise<void> {
+    try {
+      await apiService.put('/notifications/mark-read', { notificationIds } as MarkAsReadRequest);
+    } catch (error) {
+      console.error('Failed to mark notifications as read via API:', error);
+      throw error;
+    }
+  }
+
+  async markAllAsRead(): Promise<void> {
+    try {
+      await apiService.put('/notifications/mark-all-read');
+    } catch (error) {
+      console.error('Failed to mark all notifications as read via API:', error);
+      throw error;
+    }
+  }
+
+  async deleteNotification(notificationId: string): Promise<void> {
+    try {
+      await apiService.delete(`/notifications/${notificationId}`);
+    } catch (error) {
+      console.error('Failed to delete notification via API:', error);
+      throw error;
+    }
+  }
+
+  async deleteMultiple(notificationIds: string[]): Promise<void> {
+    try {
+      await apiService.delete('/notifications/bulk', { data: { notificationIds } });
+    } catch (error) {
+      console.error('Failed to delete multiple notifications via API:', error);
+      throw error;
+    }
+  }
+
+  async getPreferences(): Promise<NotificationPreferences> {
+    try {
+      const response = await apiService.get<NotificationPreferences>('/notifications/preferences');
+      return response;
+    } catch (error) {
+      console.error('Failed to get preferences via API:', error);
+      throw error;
+    }
+  }
+
+  async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<NotificationPreferences> {
+    try {
+      const response = await apiService.put<NotificationPreferences>('/notifications/preferences', preferences);
+      return response;
+    } catch (error) {
+      console.error('Failed to update preferences via API:', error);
+      throw error;
+    }
   }
 }
 

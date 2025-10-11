@@ -125,6 +125,164 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.AdminSettingsAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'");
+
+                    b.Property<Guid>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SettingKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_AdminSettingsAudit_Category");
+
+                    b.HasIndex("ChangedAt")
+                        .HasDatabaseName("IX_AdminSettingsAudit_ChangedAt");
+
+                    b.HasIndex("ChangedByUserId")
+                        .HasDatabaseName("IX_AdminSettingsAudit_ChangedByUserId");
+
+                    b.HasIndex("SettingKey")
+                        .HasDatabaseName("IX_AdminSettingsAudit_SettingKey");
+
+                    b.HasIndex("SettingKey", "ChangedAt")
+                        .HasDatabaseName("IX_AdminSettingsAudit_SettingKey_ChangedAt");
+
+                    b.ToTable("AdminSettingsAudits");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.AdminSystemSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DataType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("string");
+
+                    b.Property<string>("DefaultValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsEncrypted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsSensitive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ModifiedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SettingKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SettingValue")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ValidationRules")
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("IX_AdminSystemSettings_Category");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_AdminSystemSettings_IsActive");
+
+                    b.HasIndex("ModifiedByUserId");
+
+                    b.HasIndex("SettingKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AdminSystemSettings_SettingKey");
+
+                    b.HasIndex("Category", "IsActive")
+                        .HasDatabaseName("IX_AdminSystemSettings_Category_IsActive");
+
+                    b.ToTable("AdminSystemSettings");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -219,6 +377,114 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("BankSmsPayments");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.CartItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AddedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AddedDate");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ParentCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("ParentCategoryId");
+
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Dispute", b =>
@@ -793,6 +1059,111 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("LedgerEntries");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Actions")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("EmailNotifications")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("PushNotifications")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("QuietHoursSettings")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("SmsNotifications")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TypePreferences")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("NotificationPreferences");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -853,12 +1224,18 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsAmountFrozen")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("Modified");
 
                     b.Property<Guid>("LastModifiedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("RejectedDate")
                         .HasColumnType("timestamp with time zone");
@@ -898,6 +1275,70 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.ToTable("Orders");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.OrderItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OrderId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductDescription")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ProductSku")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("OrderId1");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("OrderItems");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -927,6 +1368,268 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("OutboxMessages");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowBackorders")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Attributes")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("Attributes");
+
+                    b.Property<decimal>("AverageRating")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<string>("Dimensions")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("FeaturedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Material")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("MaxOrderQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MinOrderQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ReviewCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ShortDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Sku")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("Tags");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Weight")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("WeightUnit")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("IsFeatured");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("SellerId");
+
+                    b.HasIndex("Sku")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.ProductImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId", "IsPrimary");
+
+                    b.ToTable("ProductImages");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.SettingsAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SettingKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt")
+                        .HasDatabaseName("IX_SettingsAudit_ChangedAt");
+
+                    b.HasIndex("ChangedBy");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_SettingsAudit_UserId");
+
+                    b.HasIndex("UserId", "Category", "ChangedAt")
+                        .HasDatabaseName("IX_SettingsAudit_UserId_Category_ChangedAt");
+
+                    b.ToTable("SettingsAudits");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.TopUp", b =>
@@ -1021,6 +1724,51 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.HasIndex("TopUpId");
 
                     b.ToTable("TopUpProofs");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.UserSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Created");
+
+                    b.Property<Guid>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("Modified");
+
+                    b.Property<Guid>("LastModifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SettingsData")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserSettings_UserId");
+
+                    b.HasIndex("UserId", "Category")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserSettings_UserId_Category");
+
+                    b.ToTable("UserSettings");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Wallet", b =>
@@ -1273,6 +2021,83 @@ namespace YaqeenPay.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.AdminSettingsAudit", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.AdminSystemSettings", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "ModifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("ModifiedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("ModifiedByUser");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.CartItem", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Product", "Product")
+                        .WithMany("CartItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "UnitPrice", b1 =>
+                        {
+                            b1.Property<Guid>("CartItemId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("UnitPrice");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("UnitPriceCurrency");
+
+                            b1.HasKey("CartItemId");
+
+                            b1.ToTable("CartItems");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CartItemId");
+                        });
+
+                    b.Navigation("Product");
+
+                    b.Navigation("UnitPrice")
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Category", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Category", "ParentCategory")
+                        .WithMany("SubCategories")
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCategory");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Dispute", b =>
                 {
                     b.HasOne("YaqeenPay.Domain.Entities.Order", "Order")
@@ -1419,6 +2244,28 @@ namespace YaqeenPay.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.NotificationPreference", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Order", b =>
                 {
                     b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "Buyer")
@@ -1462,6 +2309,29 @@ namespace YaqeenPay.Infrastructure.Migrations
                                 .HasForeignKey("OrderId");
                         });
 
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "FrozenAmount", b1 =>
+                        {
+                            b1.Property<Guid>("OrderId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("decimal(18,2)")
+                                .HasColumnName("FrozenAmount");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("FrozenAmountCurrency");
+
+                            b1.HasKey("OrderId");
+
+                            b1.ToTable("Orders");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderId");
+                        });
+
                     b.Navigation("Amount")
                         .IsRequired();
 
@@ -1469,7 +2339,188 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                     b.Navigation("Escrow");
 
+                    b.Navigation("FrozenAmount");
+
                     b.Navigation("Seller");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.OrderItem", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YaqeenPay.Domain.Entities.Order", null)
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderId1");
+
+                    b.HasOne("YaqeenPay.Domain.Entities.Product", "Product")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "TotalPrice", b1 =>
+                        {
+                            b1.Property<Guid>("OrderItemId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("TotalPrice");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("TotalPriceCurrency");
+
+                            b1.HasKey("OrderItemId");
+
+                            b1.ToTable("OrderItems");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderItemId");
+                        });
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "UnitPrice", b1 =>
+                        {
+                            b1.Property<Guid>("OrderItemId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("UnitPrice");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("UnitPriceCurrency");
+
+                            b1.HasKey("OrderItemId");
+
+                            b1.ToTable("OrderItems");
+
+                            b1.WithOwner()
+                                .HasForeignKey("OrderItemId");
+                        });
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("TotalPrice")
+                        .IsRequired();
+
+                    b.Navigation("UnitPrice")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Product", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Category", "Category")
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "Seller")
+                        .WithMany()
+                        .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "DiscountPrice", b1 =>
+                        {
+                            b1.Property<Guid>("ProductId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("DiscountPrice");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("DiscountPriceCurrency");
+
+                            b1.HasKey("ProductId");
+
+                            b1.ToTable("Products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductId");
+                        });
+
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "Price", b1 =>
+                        {
+                            b1.Property<Guid>("ProductId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasPrecision(18, 2)
+                                .HasColumnType("numeric(18,2)")
+                                .HasColumnName("Price");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("PriceCurrency");
+
+                            b1.HasKey("ProductId");
+
+                            b1.ToTable("Products");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ProductId");
+                        });
+
+                    b.Navigation("Category");
+
+                    b.Navigation("DiscountPrice");
+
+                    b.Navigation("Price")
+                        .IsRequired();
+
+                    b.Navigation("Seller");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.ProductImage", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Product", "Product")
+                        .WithMany("ProductImages")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.SettingsAudit", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.TopUp", b =>
@@ -1535,6 +2586,17 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.Navigation("TopUp");
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.UserSettings", b =>
+                {
+                    b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Wallet", b =>
                 {
                     b.HasOne("YaqeenPay.Domain.Entities.Identity.ApplicationUser", "User")
@@ -1566,7 +2628,33 @@ namespace YaqeenPay.Infrastructure.Migrations
                                 .HasForeignKey("WalletId");
                         });
 
+                    b.OwnsOne("YaqeenPay.Domain.ValueObjects.Money", "FrozenBalance", b1 =>
+                        {
+                            b1.Property<Guid>("WalletId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("decimal(18,2)")
+                                .HasColumnName("FrozenBalance");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasMaxLength(3)
+                                .HasColumnType("character varying(3)")
+                                .HasColumnName("FrozenBalanceCurrency");
+
+                            b1.HasKey("WalletId");
+
+                            b1.ToTable("Wallets");
+
+                            b1.WithOwner()
+                                .HasForeignKey("WalletId");
+                        });
+
                     b.Navigation("Balance")
+                        .IsRequired();
+
+                    b.Navigation("FrozenBalance")
                         .IsRequired();
 
                     b.Navigation("User");
@@ -1623,13 +2711,17 @@ namespace YaqeenPay.Infrastructure.Migrations
                                 .HasColumnType("uuid");
 
                             b1.Property<decimal>("Amount")
+                                .ValueGeneratedOnAdd()
                                 .HasColumnType("decimal(18,2)")
+                                .HasDefaultValue(0m)
                                 .HasColumnName("Amount");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
+                                .ValueGeneratedOnAdd()
                                 .HasMaxLength(3)
                                 .HasColumnType("character varying(3)")
+                                .HasDefaultValue("PKR")
                                 .HasColumnName("Currency");
 
                             b1.HasKey("WalletTransactionId");
@@ -1681,6 +2773,13 @@ namespace YaqeenPay.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Category", b =>
+                {
+                    b.Navigation("Products");
+
+                    b.Navigation("SubCategories");
+                });
+
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Escrow", b =>
                 {
                     b.Navigation("Order")
@@ -1699,6 +2798,17 @@ namespace YaqeenPay.Infrastructure.Migrations
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Order", b =>
                 {
                     b.Navigation("Disputes");
+
+                    b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("YaqeenPay.Domain.Entities.Product", b =>
+                {
+                    b.Navigation("CartItems");
+
+                    b.Navigation("OrderItems");
+
+                    b.Navigation("ProductImages");
                 });
 
             modelBuilder.Entity("YaqeenPay.Domain.Entities.Wallet", b =>

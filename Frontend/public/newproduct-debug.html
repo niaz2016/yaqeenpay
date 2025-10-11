@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewProductPage Category Selection Debug</title>
+    <link href="https://cdn.jsdelivr.net/npm/@mui/material@5.14.0/index.css" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@mui/material@5.14.0/index.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .mui-section {
+            background-color: #e3f2fd;
+        }
+        .native-section {
+            background-color: #f5f5f5;
+        }
+        .original-section {
+            background-color: #fff3e0;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+        .error {
+            color: red;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>NewProductPage Category Selection Debug</h1>
+    <p>This page simulates the exact category selection components from NewProductPage to isolate the selection issue.</p>
+
+    <div id="loading" class="debug-section">
+        <h3>Loading categories from backend...</h3>
+    </div>
+
+    <div id="debugComponents" style="display: none;">
+        <!-- Native HTML Select -->
+        <div class="debug-section native-section">
+            <h3>Native HTML Select (Control)</h3>
+            <select id="nativeSelect">
+                <option value="">Select a category</option>
+            </select>
+            <div class="info" id="nativeInfo">Selected: None</div>
+        </div>
+
+        <!-- Original MUI Select (simulated) -->
+        <div class="debug-section original-section">
+            <h3>Original MUI Select (from NewProductPage)</h3>
+            <div id="originalMuiSelect"></div>
+            <div class="info" id="originalInfo">Selected: None</div>
+        </div>
+
+        <!-- Simplified MUI Select -->
+        <div class="debug-section mui-section">
+            <h3>Simplified MUI Select (Debug Version)</h3>
+            <div id="simplifiedMuiSelect"></div>
+            <div class="info" id="simplifiedInfo">Selected: None</div>
+        </div>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <script>
+        let categories = [];
+        let selectedCategoryId = '';
+
+        // Simulate the category service functions
+        const categoryService = {
+            getFlattenedCategories: (cats) => cats,
+            getCategoryName: (categoryId, cats) => {
+                const cat = cats.find(c => c.id === categoryId);
+                return cat ? cat.name : 'Unknown Category';
+            }
+        };
+
+        // Load categories from backend
+        async function loadCategories() {
+            try {
+                const response = await fetch('http://localhost:7137/api/categories');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                categories = await response.json();
+                console.log('[Debug] Fetched categories:', categories);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('debugComponents').style.display = 'block';
+                
+                populateSelects();
+                
+            } catch (error) {
+                console.error('[Debug] Error loading categories:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = `Error loading categories: ${error.message}`;
+            }
+        }
+
+        function populateSelects() {
+            // Populate native select
+            const nativeSelect = document.getElementById('nativeSelect');
+            nativeSelect.innerHTML = '<option value="">Select a category</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                nativeSelect.appendChild(option);
+            });
+
+            // Native select change handler
+            nativeSelect.addEventListener('change', function(e) {
+                const selectedId = e.target.value;
+                document.getElementById('nativeInfo').textContent = 
+                    `Selected: ${selectedId ? categoryService.getCategoryName(selectedId, categories) : 'None'}`;
+                console.log('[Native Select] Selected category:', selectedId);
+            });
+
+            // Create MUI Select components with React (if available)
+            if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+                createMuiSelects();
+            } else {
+                // Fallback to simulated MUI behavior
+                createFallbackSelects();
+            }
+        }
+
+        function createMuiSelects() {
+            const { useState } = React;
+            const { FormControl, InputLabel, Select, MenuItem, Box, Typography } = MaterialUI;
+
+            // Original MUI Select Component (simulating NewProductPage)
+            function OriginalMuiSelect() {
+                const [formData, setFormData] = useState({ categoryId: '' });
+                const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+                const handleInputChange = (field, value) => {
+                    console.log('[Original MUI Select] Category selection:', value);
+                    setFormData(prev => ({ ...prev, [field]: value }));
+                    document.getElementById('originalInfo').textContent = 
+                        `Selected: ${value ? categoryService.getCategoryName(value, categories) : 'None'}`;
+                };
+
+                return React.createElement(FormControl, { fullWidth: true, required: true },
+                    React.createElement(InputLabel, null, 'Category'),
+                    React.createElement(Select, {
+                        value: formData.categoryId,
+                        onChange: (e) => handleInputChange('categoryId', e.target.value),
+                        label: 'Category',
+                        disabled: categoriesLoading
+                    },
+                        categoriesLoading ? 
+                            React.createElement(MenuItem, { disabled: true }, 'Loading categories...') :
+                            categoryService.getFlattenedCategories(categories).map(category => 
+                                React.createElement(MenuItem, { key: category.id, value: category.id },
+                                    React.createElement(Box, null,
+                                        React.createElement(Typography, { variant: 'body2' }, category.name),
+                                        React.createElement(Typography, { variant: 'caption', color: 'textSecondary' }, category.description)
+                                    )
+                                )
+                            )
+                    )
+                );
+            }
+
+            // Simplified MUI Select Component
+            function SimplifiedMuiSelect() {
+                const [selectedValue, setSelectedValue] = useState('');
+
+                const handleChange = (e) => {
+                    const value = e.target.value;
+                    console.log('[Simplified MUI Select] Selected:', value);
+                    setSelectedValue(value);
+                    document.getElementById('simplifiedInfo').textContent = 
+                        `Selected: ${value ? categoryService.getCategoryName(value, categories) : 'None'}`;
+                };
+
+                return React.createElement(FormControl, { fullWidth: true, size: 'small' },
+                    React.createElement(Select, {
+                        value: selectedValue,
+                        onChange: handleChange,
+                        displayEmpty: true
+                    },
+                        React.createElement(MenuItem, { value: '' }, 'Select a category'),
+                        categories.map(category => 
+                            React.createElement(MenuItem, { key: category.id, value: category.id }, category.name)
+                        )
+                    )
+                );
+            }
+
+            // Render components
+            ReactDOM.render(
+                React.createElement(OriginalMuiSelect),
+                document.getElementById('originalMuiSelect')
+            );
+
+            ReactDOM.render(
+                React.createElement(SimplifiedMuiSelect),
+                document.getElementById('simplifiedMuiSelect')
+            );
+        }
+
+        function createFallbackSelects() {
+            // Create fallback HTML-based selects if React/MUI is not available
+            const originalDiv = document.getElementById('originalMuiSelect');
+            const simplifiedDiv = document.getElementById('simplifiedMuiSelect');
+
+            // Original select fallback
+            const originalSelect = document.createElement('select');
+            originalSelect.style.cssText = 'width: 100%; padding: 16px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px;';
+            originalSelect.innerHTML = '<option value="">Select a category</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = `${category.name} - ${category.description}`;
+                originalSelect.appendChild(option);
+            });
+            originalSelect.addEventListener('change', function(e) {
+                const selectedId = e.target.value;
+                document.getElementById('originalInfo').textContent = 
+                    `Selected: ${selectedId ? categoryService.getCategoryName(selectedId, categories) : 'None'}`;
+                console.log('[Original Fallback Select] Selected category:', selectedId);
+            });
+            originalDiv.appendChild(originalSelect);
+
+            // Simplified select fallback
+            const simplifiedSelect = document.createElement('select');
+            simplifiedSelect.style.cssText = 'width: 100%; padding: 12px; font-size: 14px; border: 1px solid #ddd; border-radius: 4px;';
+            simplifiedSelect.innerHTML = '<option value="">Select a category</option>';
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                simplifiedSelect.appendChild(option);
+            });
+            simplifiedSelect.addEventListener('change', function(e) {
+                const selectedId = e.target.value;
+                document.getElementById('simplifiedInfo').textContent = 
+                    `Selected: ${selectedId ? categoryService.getCategoryName(selectedId, categories) : 'None'}`;
+                console.log('[Simplified Fallback Select] Selected category:', selectedId);
+            });
+            simplifiedDiv.appendChild(simplifiedSelect);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            console.log('NewProductPage Category Debug page loaded');
+            loadCategories();
+        });
+    </script>
+</body>
+</html>

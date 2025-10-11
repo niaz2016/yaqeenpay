@@ -121,9 +121,28 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
             SellerName = order.Seller?.UserName ?? "Unknown",
             CreatedAt = order.CreatedAt,
             CompletedAt = order.CompletedDate
+            ,
+            ImageUrls = order.ImageUrls
         }).ToList();
 
         var paginatedResult = new PaginatedList<OrderDto>(orderDtos, totalCount, page, pageSize);
         return ApiResponse<PaginatedList<OrderDto>>.SuccessResponse(paginatedResult);
     }
+}
+
+public class OrderDto
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public Guid BuyerId { get; set; }
+    public string BuyerName { get; set; } = string.Empty;
+    public Guid SellerId { get; set; }
+    public string SellerName { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
 }

@@ -42,14 +42,28 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 // Idempotency: if an already processed SMS with same TransactionId appears, skip
                 // We'll populate record.TransactionId below and re-check before crediting.
 
-                // Basic parsers. Adjust regex as per real SMS formats from bank.
-                // Extract amount: e.g., "PKR 1,234.56" or "Rs. 500"
-                var amtMatch = Regex.Match(smsText, @"(?i)(PKR|Rs\.?)[\s]*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)");
+                // COMPLETELY FIXED amount parsing - much simpler and more robust pattern
+                // This will match: PKR 1150.00, PKR 1,150.50, Rs. 500, etc.
+                var amtMatch = Regex.Match(smsText, @"(?i)(PKR|Rs\.?)\s+([0-9,]+(?:\.[0-9]{1,2})?)");
                 if (amtMatch.Success)
                 {
                     var amtStr = amtMatch.Groups[2].Value.Replace(",", "");
-                    if (decimal.TryParse(amtStr, out var amt)) { record.Amount = amt; }
+                    _logger.LogInformation("Raw amount string captured: '{AmountString}'", amtMatch.Groups[2].Value);
+                    
+                    if (decimal.TryParse(amtStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var amt))
+                    {
+                        record.Amount = amt;
+                        _logger.LogInformation("Successfully parsed amount: {Amount} from string: '{AmountString}'", amt, amtMatch.Groups[2].Value);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to parse amount from string: '{AmountString}'", amtMatch.Groups[2].Value);
+                    }
                     record.Currency = "PKR";
+                }
+                else
+                {
+                    _logger.LogWarning("No amount pattern matched in SMS: {SMS}", smsText);
                 }
 
                 // Extract transaction/reference ID: e.g., "Txn ID ABC12345" or "Ref# WTU2025..."
@@ -102,6 +116,10 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 // Sender after 'received from '
                 var hblSender = Regex.Match(smsText, @"(?i)received\s+from\s+(.+?)(?:\s+A/C\b|\s+via\b|\s+on\b|,|\.|$)");
                 if (hblSender.Success) record.SenderName = hblSender.Groups[1].Value.Trim();
+
+                // Log the parsed values for debugging
+                _logger.LogInformation("SMS parsing result - Amount: {Amount}, TransactionId: {TransactionId}, Sender: {Sender}", 
+                    record.Amount, record.TransactionId, record.SenderName);
 
                 // Save raw record first
                 _db.BankSmsPayments.Add(record);
@@ -159,7 +177,7 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 if (record.Amount != topupLock.Amount.Amount)
                 {
                     record.Processed = false;
-                    record.ProcessingResult = "Amount mismatch";
+                    record.ProcessingResult = $"Amount mismatch: SMS amount {record.Amount} vs Lock amount {topupLock.Amount.Amount}";
                     await _db.SaveChangesAsync(CancellationToken.None);
                     return (false, record.ProcessingResult);
                 }
@@ -171,7 +189,7 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                     _db.Wallets.Add(wallet);
                 }
 
-                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"Wallet topup via BANK SMS - {record.TransactionId ?? topupLock.TransactionReference}");
+                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"{record.TransactionId ?? topupLock.TransactionReference}");
                 topupLock.MarkAsCompleted();
 
                 // Mark sms processed and store relations

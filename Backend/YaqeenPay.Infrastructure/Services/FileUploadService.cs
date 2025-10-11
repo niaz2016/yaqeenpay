@@ -19,7 +19,7 @@ public class FileUploadService : IFileUploadService
         _environment = environment;
         _configuration = configuration;
         _uploadsPath = Path.Combine(_environment.WebRootPath ?? _environment.ContentRootPath, "uploads");
-        _baseUrl = _configuration["BaseUrl"] ?? "https://localhost:7001";
+        _baseUrl = _configuration["BaseUrl"] ?? "https://localhost:7137";
         
         // Ensure uploads directory exists
         Directory.CreateDirectory(_uploadsPath);

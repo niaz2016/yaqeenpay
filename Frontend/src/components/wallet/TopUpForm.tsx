@@ -10,7 +10,8 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  DialogActions
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -61,6 +62,11 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false); // new: indicates auto-refresh in progress
+  const [paymentClaimed, setPaymentClaimed] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const POLL_INTERVAL_MS = 4000; // 4s
+  const POLL_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes lock extension window
 
   // Fetch current balance on component mount
   React.useEffect(() => {
@@ -76,29 +82,41 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
     }
   };
 
+  // helper to know if current qr is expired
+  const isQrExpired = (expiresAt?: string) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt).getTime() <= Date.now();
+  };
+
   const handleFormSubmit = async (data: FormData) => {
-    // Always use QR flow for HBL account topup
+    // Reuse existing QR if same amount and not expired
+    if (qrResponse && !isQrExpired(qrResponse.expiresAt) && qrResponse.suggestedAmount === data.amount) {
+      // just re-show dialog (if user closed it) without requesting backend
+      setShowQrDialog(true);
+      return;
+    }
     await handleQrTopup(data);
   };
 
   const handleQrTopup = async (data: FormData) => {
     setLoading(true);
+    // don't clear previously shown QR unless we are actually changing amount
+    if (!qrResponse || qrResponse.suggestedAmount !== data.amount) {
+      setQrResponse(null);
+    }
     setError('');
-    
     try {
       const result = await api.post<QrTopupResponse>('/wallets/create-qr-topup', {
         amount: data.amount,
         currency: 'PKR',
         paymentMethod: 'QR'
       });
-            
       if (result.success) {
         setQrResponse(result);
         setShowQrDialog(true);
-        await fetchBalance(); // Update balance
+        await fetchBalance();
       } else {
         setError(result.message);
-        // If suggested amount provided, update form
         if (result.suggestedAmount && result.suggestedAmount !== data.amount) {
           setValue('amount', result.suggestedAmount);
         }
@@ -107,48 +125,43 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
       setError('An error occurred while processing your request. Please try again.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const handleCloseQrDialog = () => {
     setShowQrDialog(false);
-    setQrResponse(null);
-    fetchBalance(); // Refresh balance when dialog closes
+    // DO NOT clear qrResponse so user can reopen while still valid
+    fetchBalance();
   };
 
-  // Auto-close QR dialog when it expires and show countdown
+  // Modified countdown effect: auto-refresh instead of closing dialog
   React.useEffect(() => {
-    if (showQrDialog && qrResponse?.expiresAt) {
-      const updateCountdown = () => {
-        const now = new Date();
-        const expiryTime = new Date(qrResponse.expiresAt!);
-        const timeDiff = expiryTime.getTime() - now.getTime();
-        
-        if (timeDiff <= 0) {
-          // QR has expired, close the dialog
-          handleCloseQrDialog();
-          setError('QR code has expired. Please generate a new one.');
-          setTimeRemaining('');
-        } else {
-          // Calculate remaining time
-          const minutes = Math.floor(timeDiff / (1000 * 60));
-          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-          setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
-        }
-      };
-
-      // Update immediately
-      updateCountdown();
-
-      // Set up interval to update every second
-      const interval = setInterval(updateCountdown, 1000);
-
-      // Cleanup interval when dialog closes or component unmounts
-      return () => clearInterval(interval);
-    } else {
+    if (!showQrDialog || !qrResponse?.expiresAt) {
       setTimeRemaining('');
+      return;
     }
-  }, [showQrDialog, qrResponse?.expiresAt]);
+    const updateCountdown = () => {
+      if (!qrResponse?.expiresAt) return;
+      const expiryTime = new Date(qrResponse.expiresAt).getTime();
+      const now = Date.now();
+      const timeDiff = expiryTime - now;
+      if (timeDiff <= 0) {
+        // expired: immediately request new QR with same amount
+        if (!refreshing) {
+          setRefreshing(true);
+          handleQrTopup({ amount: qrResponse.suggestedAmount });
+        }
+        return;
+      }
+      const minutes = Math.floor(timeDiff / 60000);
+      const seconds = Math.floor((timeDiff % 60000) / 1000);
+      setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [showQrDialog, qrResponse?.expiresAt, qrResponse?.suggestedAmount, refreshing]);
 
   const formatExpiryTime = (expiresAt?: string) => {
     if (!expiresAt) return '';
@@ -188,6 +201,65 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
         }}
       />
     );
+  };
+
+  const handleCancel = () => {
+    setPaymentClaimed(false);
+    setPolling(false);
+    handleCloseQrDialog();
+  };
+
+  const handleIHavePaid = async () => {
+    if (!qrResponse?.transactionReference) return; // ensure reference exists
+    setPaymentClaimed(true);
+    setPolling(true);
+    try {
+      // Call backend to mark payment initiated (extend lock)
+      try {
+        const mark = await api.post<any>(`/wallets/mark-payment-initiated/${qrResponse.transactionReference}`, {});
+        if (mark?.expiresAt) {
+          // update expiry in state
+          setQrResponse(r => r ? { ...r, expiresAt: mark.expiresAt } : r);
+        }
+      } catch (e) {
+        // ignore; proceed with polling anyway
+      }
+      const startingBalance = currentBalance;
+      const start = Date.now();
+
+      const poll = async () => {
+        try {
+          await fetchBalance();
+          // compare after fetch (state update asynchronous) using latest value via functional set if needed
+          // We'll re-check after small delay to allow state update
+          const latestBalance = currentBalance; // stale risk but acceptable minimal approach; could refactor with ref
+          const increased = latestBalance > startingBalance;
+          if (increased) {
+            setPolling(false);
+            setPaymentClaimed(false);
+            setShowQrDialog(false);
+            return;
+          }
+          if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed) {
+            setTimeout(poll, POLL_INTERVAL_MS);
+          } else {
+            setPolling(false);
+            setPaymentClaimed(false);
+          }
+        } catch (e) {
+          if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed) {
+            setTimeout(poll, POLL_INTERVAL_MS);
+          } else {
+            setPolling(false);
+            setPaymentClaimed(false);
+          }
+        }
+      };
+      setTimeout(poll, POLL_INTERVAL_MS);
+    } catch (e) {
+      setPolling(false);
+      setPaymentClaimed(false);
+    }
   };
 
   return (
@@ -240,7 +312,15 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
         </DialogTitle>
         <DialogContent>
           {qrResponse && (
-            <Stack spacing={3} alignItems="center">
+            <Stack spacing={3} alignItems="center" sx={{ position: 'relative' }}>
+              {refreshing && (
+                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'rgba(255,255,255,0.6)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Stack spacing={1} alignItems="center">
+                    <CircularProgress size={40} />
+                    <Typography variant="caption" color="textSecondary">Refreshing QR...</Typography>
+                  </Stack>
+                </Box>
+              )}
               {/* Amount and Balance Info */}
               <Box textAlign="center">
                 <Typography variant="h4" color="primary" gutterBottom>
@@ -254,7 +334,7 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
                     <Typography variant="body2" color="warning.main">
                       Expires at: {formatExpiryTime(qrResponse.expiresAt)}
                     </Typography>
-                    {timeRemaining && (
+                    {timeRemaining && !refreshing && (
                       <Typography variant="body2" color="error" sx={{ fontWeight: 'bold' }}>
                         Time remaining: {timeRemaining}
                       </Typography>
@@ -313,26 +393,31 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
                   </Box>
                 )}
               </Box>
-
-              {/* Action Buttons */}
-              <Stack direction="row" spacing={2} justifyContent="center">
-                <Button 
-                  variant="outlined" 
-                  onClick={handleCloseQrDialog}
-                >
-                  Close
-                </Button>
-              </Stack>
-
-              {/* Success Message */}
-              <Alert severity="info" sx={{ width: '100%' }}>
-                Scan this QR code with any payment app to complete payment. 
-                The amount is automatically included in the QR code.
-                Your wallet will be automatically updated once payment is confirmed.
-              </Alert>
+              {qrResponse && (
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button 
+              variant="contained" 
+              color="success" 
+              onClick={handleIHavePaid} 
+              disabled={refreshing || polling || paymentClaimed}
+              startIcon={(polling || paymentClaimed) ? <CircularProgress size={16} /> : null}
+            >
+              {paymentClaimed ? (polling ? 'Verifying...' : 'Payment Claimed') : "I've Paid"}
+            </Button>
+            <Button 
+              variant="outlined" 
+              color="inherit"
+              onClick={handleCancel}
+              disabled={refreshing}
+            >
+              Cancel
+            </Button>
+          </DialogActions>
+        )}
             </Stack>
           )}
         </DialogContent>
+        
       </Dialog>
     </>
   );

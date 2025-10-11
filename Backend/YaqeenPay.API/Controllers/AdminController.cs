@@ -3,10 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using YaqeenPay.Application.Features.Admin.Commands.VerifyKycDocument;
 using YaqeenPay.Application.Features.Admin.Commands.VerifySellerProfile;
+using YaqeenPay.Application.Features.Admin.Queries.GetAdminStats;
 using YaqeenPay.Application.Features.Admin.Queries.GetPendingKycDocuments;
 using YaqeenPay.Application.Features.Admin.Queries.GetPendingSellerProfiles;
-using YaqeenPay.Application.Features.Admin.Queries.GetAdminStats;
 using YaqeenPay.Application.Features.Admin.Queries.GetUsers;
+using YaqeenPay.Application.Features.AdminSettings.Commands.CreateAdminSetting;
+using YaqeenPay.Application.Features.AdminSettings.Commands.UpdateAdminSetting;
+using YaqeenPay.Application.Features.AdminSettings.Common;
+using YaqeenPay.Application.Features.AdminSettings.Queries.GetAdminSettings;
 
 namespace YaqeenPay.API.Controllers;
 

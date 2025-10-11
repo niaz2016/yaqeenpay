@@ -8,20 +8,39 @@ import ImageUpload from '../common/ImageUpload';
 interface Props {
   submitting?: boolean;
   onSubmit: (payload: CreateOrderPayload | any) => void | Promise<void>;
+  initialStep?: number;
+  initialRole?: UserRole;
+  initialItems?: OrderItem[];
+  initialAmount?: number;
+  initialCurrency?: string;
+  initialDescription?: string;
 }
 
 const steps = ['Role', 'Target User', 'Details', 'Wallet', 'Confirm'];
 
-const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
-  const [activeStep, setActiveStep] = useState(0);
+const OrderCreateStepper: React.FC<Props> = ({ 
+  submitting, 
+  onSubmit, 
+  initialStep = 0,
+  initialRole = 'buyer',
+  initialItems = [],
+  initialAmount = 0,
+  initialCurrency = 'PKR',
+  initialDescription = ''
+}) => {
+  const [activeStep, setActiveStep] = useState(initialStep);
 
   // Form state
-  const [userRole, setUserRole] = useState<UserRole>('buyer');
-  const [targetUserMobile, setTargetUserMobile] = useState<string>(''); // Mobile number of target user
-  const [amount, setAmount] = useState<number>(0);
-  const [currency, setCurrency] = useState('PKR');
-  const [description, setDescription] = useState('');
-  const [items, setItems] = useState<OrderItem[]>([]);
+  const [userRole, setUserRole] = useState<UserRole>(initialRole);
+  const [targetUserMobile, setTargetUserMobile] = useState<string>(
+    // For cart orders, buyer is creating order, so target should be themselves initially
+    // (This will be updated based on the actual flow logic)
+    initialStep > 0 ? '' : ''
+  ); // Mobile number of target user
+  const [amount, setAmount] = useState<number>(initialAmount);
+  const [currency, setCurrency] = useState(initialCurrency);
+  const [description, setDescription] = useState(initialDescription);
+  const [items, setItems] = useState<OrderItem[]>(initialItems);
   const [walletValid, setWalletValid] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // const [walletBalance, setWalletBalance] = useState(0); // Currently unused but may be needed for future features
@@ -100,14 +119,15 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
       });
       
       if (userRole === 'seller') {
+        // SELLER creates order for BUYER
+        // Seller is creating a product listing that the buyer (targetUserMobile) can purchase
+        // No immediate payment - this is just a listing
+        
         // Ensure description is not empty to satisfy backend validator
         const effectiveDescription = description.trim().length > 0
           ? description
-          : `Auto-generated listing for ${items.length > 0 ? items.map(i => i.name || 'item').join(', ') : 'unspecified product'} (created ${new Date().toLocaleDateString()})`;
-        if (description.trim().length === 0) {
-          console.warn('Seller description empty, injecting fallback description to pass validation.');
-        }
-        // Create seller request payload
+          : `Product listing for ${items.length > 0 ? items.map(i => i.name || 'item').join(', ') : 'unspecified product'} (created ${new Date().toLocaleDateString()})`;
+        
         const sellerRequestData = {
           isSellerRequest: true,
           title: (description.split('\n')[0].trim() || (items[0]?.name) || 'Product Listing'),
@@ -115,36 +135,29 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
           amount: Number(total.toFixed(2)),
           currency,
           images: allImages,
-          targetUserMobile: targetUserMobile.trim(),
+          targetUserMobile: targetUserMobile.trim(), // This is the buyer who will be able to purchase
           creatorRole: 'seller'
         };
         await onSubmit(sellerRequestData);
         return;
       }
 
-      // If we have images, use the new multipart format
-      if (allImages.length > 0) {
-        const createOrderData = {
-          title: description.split('\n')[0] || 'Product Order', // Use first line as title
+      if (userRole === 'buyer') {
+        // BUYER creates order for SELLER 
+        // Buyer wants to purchase from seller (targetUserMobile)
+        // Buyer's funds should be escrowed immediately
+        
+        const buyerOrderData = {
+          title: description.split('\n')[0] || 'Purchase Request',
           description,
           amount: Number(total.toFixed(2)),
           currency,
-          targetUserMobile: targetUserMobile.trim(),
+          targetUserMobile: targetUserMobile.trim(), // This is the seller
           images: allImages,
           creatorRole: 'buyer'
         };
-        await onSubmit(createOrderData);
-      } else {
-        // Fall back to original format for orders without images
-        const payload: CreateOrderPayload = {
-          targetUserMobile: targetUserMobile.trim(),
-          amount: Number(total.toFixed(2)),
-          currency,
-          description,
-          items: items.length ? items : undefined,
-          creatorRole: 'buyer'
-        };
-        await onSubmit(payload);
+        await onSubmit(buyerOrderData);
+        return;
       }
     } catch (e:any) {
       console.error('Order creation failed:', e);
@@ -353,7 +366,7 @@ const OrderCreateStepper: React.FC<Props> = ({ submitting, onSubmit }) => {
             onClick={handleFinish} 
             disabled={submitting || (userRole === 'buyer' && !walletValid)}
           >
-            {userRole === 'buyer' ? 'Create Order & Freeze Funds' : 'Create Order Request'}
+            {userRole === 'buyer' ? 'Create Order' : 'Create Order Request'}
           </Button>
         )}
       </Stack>

@@ -19,6 +19,7 @@ import {
 	Chip
 } from '@mui/material';
 import { CloudUpload, Delete, Description } from '@mui/icons-material';
+import notificationTrigger from '../../services/notificationTrigger';
 import type {
 	KycDocumentUpload as KycDocumentUploadType,
 	KycDocumentType
@@ -32,8 +33,13 @@ interface KycDocumentUploadProps {
 
 const documentTypes: Array<{ value: KycDocumentType; label: string; description: string }> = [
 	{
-		value: 'BusinessLicense',
-		label: 'Business License',
+		value: 'CNIC',
+		label: 'CNIC',
+		description: 'Computerized National Identity Card'
+	},
+	{
+		value: 'BusinessRegistration',
+		label: 'Business Registration',
 		description: 'Official business registration or license document'
 	},
 	{
@@ -42,19 +48,29 @@ const documentTypes: Array<{ value: KycDocumentType; label: string; description:
 		description: 'Tax registration certificate or tax ID document'
 	},
 	{
+		value: 'UtilityBill',
+		label: 'Utility Bill',
+		description: 'Recent utility bill (electricity, gas, water, etc.)'
+	},
+	{
 		value: 'BankStatement',
 		label: 'Bank Statement',
 		description: 'Recent bank statement (last 3 months)'
 	},
 	{
-		value: 'IdentityDocument',
-		label: 'Identity Document',
-		description: 'Government-issued ID (passport, driver\'s license, etc.)'
-	},
-	{
 		value: 'AddressProof',
 		label: 'Address Proof',
-		description: 'Utility bill or lease agreement'
+		description: 'Proof of address document'
+	},
+	{
+		value: 'IdentityPhoto',
+		label: 'Identity Photo',
+		description: 'Clear photo of yourself holding your ID'
+	},
+	{
+		value: 'Other',
+		label: 'Other Document',
+		description: 'Other supporting documentation'
 	}
 ];
 
@@ -64,7 +80,7 @@ const KycDocumentUpload: React.FC<KycDocumentUploadProps> = ({
 	initialDocuments = []
 }) => {
 	const [documents, setDocuments] = useState<KycDocumentUploadType[]>(initialDocuments);
-	const [selectedDocumentType, setSelectedDocumentType] = useState<KycDocumentType>('BusinessLicense');
+	const [selectedDocumentType, setSelectedDocumentType] = useState<KycDocumentType>('CNIC');
 	const [error, setError] = useState<string | null>(null);
 
 	const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,12 +118,20 @@ const KycDocumentUpload: React.FC<KycDocumentUploadProps> = ({
 
 		setDocuments(prev => [...prev, newDocument]);
 
+		// Trigger notification for document upload
+		notificationTrigger.onKycDocumentUploaded({
+			type: getDocumentTypeLabel(selectedDocumentType),
+			name: file.name,
+			size: file.size
+		});
+
 		// Reset the file input
 		event.target.value = '';
 	};
 
 	const handleRemoveDocument = (documentType: KycDocumentType) => {
 		setDocuments(documents.filter(doc => doc.documentType !== documentType));
+		// Note: Document removal is a client-side action, no notification needed
 	};
 
 	const handleContinue = () => {
@@ -256,8 +280,8 @@ const KycDocumentUpload: React.FC<KycDocumentUploadProps> = ({
 					<strong>Required Documents:</strong>
 				</Typography>
 				<ul style={{ marginTop: 8, paddingLeft: 20 }}>
-					<li>Business License (Required)</li>
-					<li>Identity Document (Required)</li>
+					<li>CNIC (Required)</li>
+					<li>Business Registration (Required)</li>
 					<li>Tax Certificate (Recommended)</li>
 					<li>Bank Statement (Recommended)</li>
 					<li>Address Proof (Recommended)</li>

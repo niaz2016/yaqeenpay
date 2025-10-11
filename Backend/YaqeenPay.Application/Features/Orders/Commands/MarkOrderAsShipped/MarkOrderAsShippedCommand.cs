@@ -25,11 +25,16 @@ public class MarkOrderAsShippedCommandHandler : IRequestHandler<MarkOrderAsShipp
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly YaqeenPay.Application.Interfaces.IOrderNotificationService _orderNotificationService;
 
-    public MarkOrderAsShippedCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
+    public MarkOrderAsShippedCommandHandler(
+        IApplicationDbContext context, 
+        ICurrentUserService currentUserService,
+        YaqeenPay.Application.Interfaces.IOrderNotificationService orderNotificationService)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _orderNotificationService = orderNotificationService;
     }
 
     public async Task<MarkOrderAsShippedResponse> Handle(MarkOrderAsShippedCommand request, CancellationToken cancellationToken)
@@ -53,6 +58,17 @@ public class MarkOrderAsShippedCommandHandler : IRequestHandler<MarkOrderAsShipp
         order.MarkAsShipped();
         
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Send notifications to both buyer and seller
+        try
+        {
+            await _orderNotificationService.NotifyShipped(order);
+        }
+        catch (Exception ex)
+        {
+            // Log notification error but don't fail the order update
+            System.Console.WriteLine($"Failed to send shipped notifications: {ex.Message}");
+        }
         
         return new MarkOrderAsShippedResponse
         {

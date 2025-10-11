@@ -23,11 +23,16 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly YaqeenPay.Application.Interfaces.IOrderNotificationService _orderNotificationService;
 
-    public CancelOrderCommandHandler(IApplicationDbContext context, ICurrentUserService currentUserService)
+    public CancelOrderCommandHandler(
+        IApplicationDbContext context, 
+        ICurrentUserService currentUserService,
+        YaqeenPay.Application.Interfaces.IOrderNotificationService orderNotificationService)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _orderNotificationService = orderNotificationService;
     }
 
     public async Task<CancelOrderResponse> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
@@ -60,6 +65,17 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, Can
         }
         
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Send cancellation notifications to both buyer and seller
+        try
+        {
+            await _orderNotificationService.NotifyCancelled(order, "Order cancelled by user");
+        }
+        catch (Exception ex)
+        {
+            // Log notification error but don't fail the cancellation
+            System.Console.WriteLine($"Failed to send cancellation notifications: {ex.Message}");
+        }
         
         return new CancelOrderResponse
         {

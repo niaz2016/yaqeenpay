@@ -2,15 +2,25 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-
-// Import debug utilities in development mode
-if (import.meta.env.MODE === 'development') {
-  import('./debug/tokenDebug');
-  import('./debug/tokenRefresher');
-}
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )
+
+// Register service worker in production builds
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((reg) => {
+        console.log('Service worker registered.', reg);
+      })
+      .catch((err) => {
+        console.warn('Service worker registration failed:', err);
+      });
+  });
+}

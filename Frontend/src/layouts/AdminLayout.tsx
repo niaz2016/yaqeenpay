@@ -27,6 +27,7 @@ import {
   Gavel as GavelIcon,
   Settings as SettingsIcon,
   Dashboard as DashboardIcon,
+  AccountBalance as WithdrawalsIcon,
   AccountCircle,
   Logout
 } from '@mui/icons-material';
@@ -47,8 +48,9 @@ const menuItems: AdminMenuItem[] = [
   { text: 'KYC Verification', icon: <VerifiedUserIcon />, path: '/admin/kyc' },
   { text: 'Seller Approval', icon: <StoreIcon />, path: '/admin/sellers' },
   { text: 'Order Monitoring', icon: <ShoppingCartIcon />, path: '/admin/orders' },
+  { text: 'Withdrawals', icon: <WithdrawalsIcon />, path: '/admin/withdrawals' },
   { text: 'Dispute Management', icon: <GavelIcon />, path: '/admin/disputes' },
-  { text: 'System Configuration', icon: <SettingsIcon />, path: '/admin/settings' },
+  { text: 'System Settings', icon: <SettingsIcon />, path: '/admin/settings' },
 ];
 
 interface AdminLayoutProps {
@@ -154,7 +156,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               </ListItemIcon>
               <ListItemText>Profile</ListItemText>
             </MenuItem>
-            <MenuItem onClick={handleProfileMenuClose}>
+            <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/settings'); }}>
               <ListItemIcon>
                 <SettingsIcon fontSize="small" />
               </ListItemIcon>

@@ -93,6 +93,16 @@ namespace YaqeenPay.API.Controllers
             }
         }
 
+        [HttpPost("mark-payment-initiated/{transactionReference}")]
+        public async Task<IActionResult> MarkPaymentInitiated(string transactionReference)
+        {
+            var userId = GetCurrentUserId();
+            var result = await _walletTopupService.MarkPaymentInitiatedAsync(userId, transactionReference);
+            if (result == null) return NotFound(new { message = "Lock not found" });
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
+
         private Guid GetCurrentUserId()
         {
             return _currentUserService.UserId;

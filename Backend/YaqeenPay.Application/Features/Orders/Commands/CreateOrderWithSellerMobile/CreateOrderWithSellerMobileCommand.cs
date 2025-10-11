@@ -14,7 +14,7 @@ public record CreateOrderWithSellerMobileCommand : IRequest<ApiResponse<Guid>>
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
-    public string Currency { get; set; } = "USD";
+    public string Currency { get; set; } = "PKR";
     public List<string> ImageUrls { get; set; } = new List<string>();
 }
 
@@ -28,7 +28,7 @@ public class CreateOrderWithSellerMobileCommandValidator : AbstractValidator<Cre
 
         RuleFor(v => v.SellerMobileNumber)
             .NotEmpty().WithMessage("Seller mobile number is required.")
-            .Matches(@"^\+?[1-9]\d{7,15}$").WithMessage("Invalid mobile number format. Must be 8-16 digits, optionally starting with +.")
+            .Matches(@"^\+?[0-9]\d{7,15}$").WithMessage("Invalid mobile number format. Must be 8-16 digits, optionally starting with +.")
             .MustAsync(SellerExistsAsync).WithMessage("No seller found with this mobile number.");
 
         RuleFor(v => v.Title)
@@ -57,15 +57,18 @@ public class CreateOrderWithSellerMobileCommandHandler : IRequestHandler<CreateO
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IUserLookupService _userLookupService;
+    private readonly YaqeenPay.Application.Interfaces.IOrderNotificationService _orderNotificationService;
 
     public CreateOrderWithSellerMobileCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUserService,
-        IUserLookupService userLookupService)
+        IUserLookupService userLookupService,
+        YaqeenPay.Application.Interfaces.IOrderNotificationService orderNotificationService)
     {
         _context = context;
         _currentUserService = currentUserService;
         _userLookupService = userLookupService;
+        _orderNotificationService = orderNotificationService;
     }
 
     public async Task<ApiResponse<Guid>> Handle(CreateOrderWithSellerMobileCommand request, CancellationToken cancellationToken)
@@ -112,11 +115,26 @@ public class CreateOrderWithSellerMobileCommandHandler : IRequestHandler<CreateO
             new Money(request.Amount, request.Currency),
             request.ImageUrls);
 
+        System.Console.WriteLine($"CreateOrderWithSellerMobile: Creating order with BuyerId: {buyerId}, SellerId: {sellerId}");
+
         _context.Orders.Add(order);
         
         // Link the order to the escrow
         escrow.SetOrderId(order.Id);
         await _context.SaveChangesAsync(cancellationToken);
+
+        System.Console.WriteLine($"CreateOrderWithSellerMobile: Order {order.Id} created successfully");
+
+        // Send notifications to both buyer and seller
+        try
+        {
+            await _orderNotificationService.NotifyOrderCreated(order);
+        }
+        catch (Exception ex)
+        {
+            // Log notification error but don't fail the order creation
+            System.Console.WriteLine($"Failed to send order creation notifications: {ex.Message}");
+        }
 
         return ApiResponse<Guid>.SuccessResponse(order.Id, "Order created successfully with seller identified by mobile number.");
     }

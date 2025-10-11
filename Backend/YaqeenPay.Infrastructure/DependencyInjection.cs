@@ -58,7 +58,9 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IDocumentStorageService, LocalDocumentStorageService>();
         services.AddScoped<RoleSeedService>();
+        services.AddScoped<CategorySeedService>();
         services.AddScoped<Application.Interfaces.IFileUploadService, FileUploadService>();
+        services.AddScoped<Application.Interfaces.IAdminConfigurationService, Services.AdminConfigurationService>();
 
         // Identity services
         services.AddIdentity<ApplicationUser, ApplicationRole>()
@@ -150,12 +152,18 @@ public static class DependencyInjection
                 using var rsaGen = RSA.Create(2048);
                 privateKeyDer = rsaGen.ExportPkcs8PrivateKey();
                 publicKeyDer = rsaGen.ExportSubjectPublicKeyInfo();
-                keyId ??= $"dev-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                keyId ??= "dev-1"; // Use consistent dev keyId instead of timestamp
             }
             else
             {
                 throw new InvalidOperationException("Missing or invalid JwtSettings:PublicKey. Provide Base64 DER (SubjectPublicKeyInfo) or set valid keys. In non-development environments, keys are required.");
             }
+        }
+
+        // Ensure we have a KeyId
+        if (string.IsNullOrEmpty(keyId))
+        {
+            keyId = string.Equals(environment, "Development", StringComparison.OrdinalIgnoreCase) ? "dev-1" : "prod-1";
         }
 
         // Build RSA key for JWT validation using RSAParameters so no disposed object is referenced later
@@ -166,7 +174,7 @@ public static class DependencyInjection
             rsaParameters = rsaForParams.ExportParameters(false);
         }
         var rsaKey = new RsaSecurityKey(rsaParameters);
-        if (!string.IsNullOrEmpty(keyId)) rsaKey.KeyId = keyId;
+        rsaKey.KeyId = keyId; // Always set the KeyId
 
         // Expose key material (generated or configured) to JwtService via DI
         var material = new JwtKeyMaterial
@@ -196,7 +204,10 @@ public static class DependencyInjection
                 ValidAudience = jwtSettings["Audience"],
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero,
-                NameClaimType = ClaimTypes.NameIdentifier
+                NameClaimType = ClaimTypes.NameIdentifier,
+                RequireSignedTokens = true, // Ensure tokens must be signed
+                // Add keys collection for proper validation
+                IssuerSigningKeys = new List<SecurityKey> { rsaKey }
             };
 
             // Diagnostic events to help trace 401 issues in development
@@ -236,6 +247,7 @@ public static class DependencyInjection
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<Application.Interfaces.IOrderNotificationService, OrderNotificationService>();
         
         // Register new wallet topup services
         services.AddScoped<YaqeenPay.Application.Features.Wallets.Services.IWalletTopupService, 
@@ -252,6 +264,8 @@ public static class DependencyInjection
         services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
         services.AddScoped<ITopUpRepository, TopUpRepository>();
+        services.AddScoped<IAdminSystemSettingsRepository, AdminSystemSettingsRepository>();
+        services.AddScoped<IAdminSettingsAuditRepository, AdminSettingsAuditRepository>();
 
         // Register OutboxService for notifications
         services.AddScoped<IOutboxService, OutboxService>();

@@ -1,0 +1,21 @@
+# Ngrok Configuration for Multiple Tunnels
+version: "2"
+authtoken: YOUR_AUTH_TOKEN_HERE
+
+tunnels:
+  frontend:
+    proto: http
+    addr: 3000
+    # Optional: Add custom subdomain (requires paid plan)
+    # subdomain: yaqeenpay-frontend
+    
+  backend-https:
+    proto: http
+    addr: https://localhost:7137
+    # Optional: Add custom subdomain (requires paid plan)  
+    # subdomain: yaqeenpay-backend
+    
+  backend-http:
+    proto: http
+    addr: 7137
+    # For HTTP backend alternative

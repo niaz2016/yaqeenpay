@@ -310,7 +310,7 @@ const OrderListPage: React.FC = () => {
                   <Stack alignItems={{ xs: 'flex-start', md: 'flex-end' }}>
                     <Chip label={order.status} color={statusColor(order.status) as any} sx={{ mb: 1 }} />
                     <Typography variant="h6">{order.amount.toFixed(2)} {order.currency}</Typography>
-                    <Typography variant="body2" color="text.secondary">Created {new Date(order.createdAt).toLocaleString()}</Typography>
+                    <Typography variant="body2" color="text.secondary">Created {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</Typography>
                   </Stack>
                 </Stack>
               </CardContent>

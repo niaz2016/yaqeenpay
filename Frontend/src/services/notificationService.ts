@@ -98,7 +98,7 @@ class NotificationService {
       recipientId: sellerId,
       type: 'order_created',
       title: 'New Order Received! 🎉',
-      message: `You have a new order worth ${currency} ${orderAmount.toLocaleString()}. Funds are now in escrow and will be released when the buyer confirms receipt.`,
+      message: `You have a new order worth ${orderAmount ? orderAmount.toLocaleString() : '0'} Wallet Credits. Credits are now held in escrow and will be released when the buyer confirms receipt.`,
       data: { orderId, amount: orderAmount, currency }
     });
   }
@@ -108,7 +108,7 @@ class NotificationService {
       recipientId: sellerId,
       type: 'escrow_funded',
       title: 'Escrow Funded ✅',
-      message: `${currency} ${orderAmount.toLocaleString()} has been frozen in escrow for order. You can now ship the items safely knowing payment is guaranteed.`,
+      message: `${orderAmount ? orderAmount.toLocaleString() : '0'} Wallet Credits have been held in escrow for this order. You can now ship the items safely knowing payment is reserved.`,
       data: { orderId, amount: orderAmount, currency }
     });
   }
@@ -118,7 +118,7 @@ class NotificationService {
       recipientId: sellerId,
       type: 'payment_released',
       title: 'Payment Released! 💰',
-      message: `${currency} ${orderAmount.toLocaleString()} has been released to your wallet. The buyer has confirmed receipt of the items.`,
+      message: `${orderAmount ? orderAmount.toLocaleString() : '0'} Wallet Credits have been released to your wallet. The buyer has confirmed receipt of the items.`,
       data: { orderId, amount: orderAmount, currency }
     });
   }
@@ -128,7 +128,7 @@ class NotificationService {
       recipientId: sellerId,
       type: 'payment_confirmed',
       title: 'Payment Confirmed! 💳',
-      message: `Buyer has paid ${orderAmount.toLocaleString()} wallet credits for the order. Amount is now frozen in their wallet. Please prepare and book the parcel for delivery.`,
+      message: `Buyer has paid ${orderAmount ? orderAmount.toLocaleString() : '0'} Wallet Credits for the order. The amount is now held in escrow. Please prepare and book the parcel for delivery.`,
       data: { orderId, amount: orderAmount, currency }
     });
   }
@@ -149,8 +149,8 @@ class NotificationService {
       await apiService.post('/notifications/send', {
         recipientId: userId,
         type: 'wallet',
-        title: 'Withdrawal Request Submitted 🏦',
-        message: `Your withdrawal request of ${currency} ${amount.toLocaleString()} via ${method} has been submitted and is being processed.`,
+        title: 'Withdrawal Request Submitted',
+        message: `Your withdrawal request of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} has been submitted and is being processed.`,
         priority: 'medium',
         data: { 
           amount, 
@@ -172,7 +172,7 @@ class NotificationService {
         recipientId: userId,
         type: 'wallet',
         title: 'Withdrawal Approved ✅',
-        message: `Your withdrawal of ${currency} ${amount.toLocaleString()} via ${method} has been approved and processed.`,
+        message: `Your withdrawal of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} has been approved and processed.`,
         priority: 'high',
         data: { 
           amount, 
@@ -194,7 +194,7 @@ class NotificationService {
         recipientId: userId,
         type: 'wallet',
         title: 'Withdrawal Request Rejected ❌',
-        message: `Your withdrawal request of ${currency} ${amount.toLocaleString()} via ${method} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+        message: `Your withdrawal request of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
         priority: 'high',
         data: { 
           amount, 

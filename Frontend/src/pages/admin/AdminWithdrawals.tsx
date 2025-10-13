@@ -215,7 +215,7 @@ const AdminWithdrawals: React.FC = () => {
                         </>
                       );
                     })()}
-                    <TableCell>{new Date(w.requestedAt).toLocaleString()}</TableCell>
+                    <TableCell>{w.requestedAt ? new Date(w.requestedAt).toLocaleString() : 'N/A'}</TableCell>
                     <TableCell>{w.status}</TableCell>
                     <TableCell>
                       {(w.status === 'Initiated' || w.status === 'PendingProvider') && (

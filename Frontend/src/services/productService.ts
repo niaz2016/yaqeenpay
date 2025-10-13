@@ -406,6 +406,61 @@ class ProductService {
       throw new Error('Failed to update product');
     }
   }
+
+  // Reduce stock quantity when payment is made
+  async reduceStock(productId: string, quantity: number): Promise<void> {
+    try {
+      console.log(`[ProductService] Reducing stock for product ${productId} by ${quantity}`);
+      
+      const response = await apiService.post<{ success: boolean; message: string; newStockQuantity: number }>(
+        `/products/${productId}/reduce-stock`, 
+        { quantity }
+      );
+      
+      console.log('[ProductService] Stock reduction response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to reduce stock');
+      }
+    } catch (error) {
+      console.error('Error reducing product stock:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to reduce product stock');
+    }
+  }
+
+  // Bulk reduce stock for multiple products (for orders with multiple items)
+  async bulkReduceStock(items: Array<{ productId: string; quantity: number }>): Promise<void> {
+    try {
+      console.log('[ProductService] Bulk reducing stock for items:', items);
+      
+      const response = await apiService.post<{ success: boolean; message: string; results: Array<{ productId: string; success: boolean; newStockQuantity?: number; error?: string }> }>(
+        '/products/bulk-reduce-stock', 
+        { items }
+      );
+      
+      console.log('[ProductService] Bulk stock reduction response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to reduce stock for some items');
+      }
+
+      // Check if any individual items failed
+      const failedItems = response.results?.filter(result => !result.success) || [];
+      if (failedItems.length > 0) {
+        const errorDetails = failedItems.map(item => `${item.productId}: ${item.error}`).join(', ');
+        throw new Error(`Stock reduction failed for: ${errorDetails}`);
+      }
+    } catch (error) {
+      console.error('Error in bulk stock reduction:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to reduce stock for multiple products');
+    }
+  }
 }
 
 const productService = new ProductService();

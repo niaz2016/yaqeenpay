@@ -16,7 +16,7 @@ class NotificationTriggerService {
           recipientId: order.sellerId,
           type: 'order_created',
           title: 'New Order Received! 🎉',
-          message: `You have received a new order worth ${order.currency} ${order.amount?.toLocaleString()} from ${order.buyerName || 'a customer'}.`,
+          message: `You have received a new order worth ${(order.amount ? order.amount.toLocaleString() : '0')} Wallet Credits from ${order.buyerName || 'a customer'}.`,
           data: { 
             orderId: order.id, 
             orderCode: order.code,
@@ -101,13 +101,13 @@ class NotificationTriggerService {
 
   async onEscrowFunded(order: any, currentUserId?: string) {
     try {
-      // Notify the seller that buyer's funds are now in escrow
+      // Notify the seller that buyer's Wallet Credits are now held in escrow
       if (order.sellerId && order.sellerId !== currentUserId) {
         await notificationService.sendNotification({
           recipientId: order.sellerId,
           type: 'escrow_funded',
           title: 'Payment Received! 💰',
-          message: `${order.currency} ${order.amount?.toLocaleString()} has been placed in escrow for order ${order.code || order.id}. Ship the items to complete the sale.`,
+          message: `${order.amount ? order.amount.toLocaleString() : '0'} Wallet Credits have been held in escrow for order ${order.code || order.id}. Ship the items to complete the sale.`,
           data: { 
             orderId: order.id, 
             orderCode: order.code,
@@ -132,8 +132,8 @@ class NotificationTriggerService {
         await notificationService.sendNotification({
           recipientId: order.sellerId,
           type: 'payment_confirmed',
-          title: 'FrozenPayment received �',
-          message: `FrozenPayment received amount ${order.currency} ${order.amount?.toLocaleString()} for order ${order.code}. Funds are now locked in escrow and will be released upon buyer delivery confirmation. Prepare the shipment.`,
+          title: 'Payment Confirmed! 💳',
+          message: `Payment of ${(order.amount ? order.amount.toLocaleString() : '0')} Wallet Credits is now held in escrow for order ${order.code}. It will be released upon buyer delivery confirmation. Please prepare the shipment.`,
           data: { 
             orderId: order.id, 
             orderCode: order.code,
@@ -153,7 +153,7 @@ class NotificationTriggerService {
           recipientId: order.buyerId,
           type: 'payment_confirmed',
           title: 'Payment Successful ✅',
-          message: `Your payment of ${order.currency} ${order.amount?.toLocaleString()} is now frozen in escrow for order ${order.code}. We'll notify you when the seller ships your order.`,
+          message: `Your payment of ${(order.amount ? order.amount.toLocaleString() : '0')} Wallet Credits is now held in escrow for order ${order.code}. We'll notify you when the seller ships your order.`,
           data: { 
             orderId: order.id, 
             orderCode: order.code,
@@ -207,7 +207,7 @@ class NotificationTriggerService {
           recipientId: order.sellerId,
           type: 'payment_released',
           title: 'Payment Released! 💰',
-          message: `Delivery confirmed! ${order.currency} ${order.amount?.toLocaleString()} has been released to your wallet for order ${order.code}.`,
+          message: `Delivery confirmed! ${(order.amount ? order.amount.toLocaleString() : '0')} Wallet Credits have been released to your wallet for order ${order.code}.`,
           data: { 
             orderId: order.id, 
             orderCode: order.code,
@@ -223,8 +223,8 @@ class NotificationTriggerService {
           await notificationService.sendNotification({
             recipientId: order.sellerId,
             type: 'payment_released', // reuse existing type until a distinct enum exists
-            title: 'Funds Now Withdrawable 🏦',
-            message: `The previously frozen amount (${order.currency} ${order.amount?.toLocaleString()}) for order ${order.code} is now in your active wallet balance. You can create a withdrawal request anytime.`,
+            title: 'Credits Now Withdrawable',
+            message: `The previously escrowed amount (${order.amount ? order.amount.toLocaleString() : '0'} Wallet Credits) for order ${order.code} is now available in your wallet balance. You can create a withdrawal request anytime.`,
             data: {
               orderId: order.id,
               orderCode: order.code,
@@ -269,7 +269,7 @@ class NotificationTriggerService {
           recipientId: currentUserId,
           type: 'payment_confirmed', // Using payment_confirmed as wallet type might not exist in legacy enum
           title: 'Wallet Top-up Successful! 💰',
-          message: `${topUpDetails.currency} ${topUpDetails.amount?.toLocaleString()} has been added to your wallet successfully.`,
+          message: `${topUpDetails.amount ? topUpDetails.amount.toLocaleString() : '0'} Wallet Credits have been added to your wallet successfully.`,
           data: { 
             amount: topUpDetails.amount,
             currency: topUpDetails.currency,
@@ -291,7 +291,7 @@ class NotificationTriggerService {
           recipientId: currentUserId,
           type: 'payment_confirmed', // Using available enum value
           title: 'Wallet Top-up Failed ❌',
-          message: `Your wallet top-up of ${topUpDetails.currency} ${topUpDetails.amount?.toLocaleString()} failed. Reason: ${reason}`,
+          message: `Your wallet top-up of ${topUpDetails.amount ? topUpDetails.amount.toLocaleString() : '0'} Wallet Credits failed. Reason: ${reason}`,
           data: { 
             amount: topUpDetails.amount,
             currency: topUpDetails.currency,

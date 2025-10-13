@@ -27,7 +27,7 @@ const BalanceCard: React.FC<Props> = ({ summary, onRefresh, refreshing = false, 
             <Typography variant="h4">
               {summary
                 ? showBalance
-                  ? `${summary.currency} ${summary.balance.toFixed(2)}`
+                  ? `${summary.balance.toFixed(2)} Wallet Credits`
                   : '••••••'
                 : '—'
               }

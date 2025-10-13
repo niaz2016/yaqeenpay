@@ -411,11 +411,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     fetchPreferences();
   }, [fetchNotifications, fetchPreferences]);
 
-  // Periodic notification refresh - More frequent for better withdrawal approval detection
+  // Periodic notification refresh - Check once every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       fetchNewNotifications({ limit: 15 });
-    }, 10000); // Check for new notifications every 10 seconds (more frequent)
+    }, 60000); // Check for new notifications every 60 seconds (1 minute)
 
     return () => clearInterval(interval);
   }, [fetchNewNotifications]);

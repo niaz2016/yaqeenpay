@@ -22,11 +22,25 @@ public class OrderDto
     public string Status { get; set; } = string.Empty;
     public Guid BuyerId { get; set; }
     public string BuyerName { get; set; } = string.Empty;
+    public string? BuyerPhone { get; set; }
     public Guid SellerId { get; set; }
     public string SellerName { get; set; } = string.Empty;
+    public string? SellerPhone { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
     public List<string> ImageUrls { get; set; } = new List<string>();
+    public ShipmentDto? Shipment { get; set; }
+}
+
+public class ShipmentDto
+{
+    public string? Courier { get; set; }
+    public string? TrackingNumber { get; set; }
+    public DateTime? ShippedDate { get; set; }
+    public DateTime? DeliveredDate { get; set; }
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryNotes { get; set; }
+    public string? ShippingProof { get; set; }
 }
 
 public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, ApiResponse<OrderDto>>
@@ -75,12 +89,23 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, ApiRe
             Status = order.Status.ToString(),
             BuyerId = order.BuyerId,
             BuyerName = order.Buyer?.UserName ?? "Unknown",
+            BuyerPhone = order.Buyer?.PhoneNumber,
             SellerId = order.SellerId,
             SellerName = order.Seller?.UserName ?? "Unknown",
+            SellerPhone = order.Seller?.PhoneNumber,
             CreatedAt = order.CreatedAt,
-            CompletedAt = order.CompletedDate
-            ,
-            ImageUrls = order.ImageUrls ?? new List<string>()
+            CompletedAt = order.CompletedDate,
+            ImageUrls = order.ImageUrls ?? new List<string>(),
+            Shipment = new ShipmentDto
+            {
+                Courier = order.Courier,
+                TrackingNumber = order.TrackingNumber,
+                ShippedDate = order.ShippedDate,
+                DeliveredDate = order.DeliveredDate,
+                DeliveryAddress = order.DeliveryAddress,
+                DeliveryNotes = order.DeliveryNotes,
+                ShippingProof = order.ShippingProof
+            }
         };
 
         return ApiResponse<OrderDto>.SuccessResponse(orderDto);

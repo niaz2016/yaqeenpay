@@ -196,7 +196,7 @@ const NewOrderPage: React.FC = () => {
         
         setSnack({ 
           open: true, 
-          message: `Purchase order created successfully! ${currency} ${amount.toLocaleString()} has been escrowed and seller ${targetUserMobile} has been notified. Redirecting to order details...`, 
+          message: `Purchase order created successfully! ${amount.toLocaleString()} Wallet Credits have been held in escrow and seller ${targetUserMobile} has been notified. Redirecting to order details...`, 
           severity: 'success' 
         });
         
@@ -268,7 +268,7 @@ const NewOrderPage: React.FC = () => {
       setSnack({ 
         open: true, 
         message: payload.creatorRole === 'buyer'
-          ? `Purchase order created successfully! ${payload.currency} ${payload.amount.toLocaleString()} has been escrowed and seller ${payload.targetUserMobile} has been notified. Redirecting to order details...`
+          ? `Purchase order created successfully! ${(payload.amount ? payload.amount.toLocaleString() : '0')} Wallet Credits have been held in escrow and seller ${payload.targetUserMobile} has been notified. Redirecting to order details...`
           : `Product listing created successfully for buyer ${payload.targetUserMobile}! Redirecting to order details...`, 
         severity: 'success' 
       });
@@ -341,6 +341,7 @@ const NewOrderPage: React.FC = () => {
                 initialStep={3} // Start at wallet step
                 initialRole="buyer"
                 initialItems={cartData.cartItems?.map(item => ({
+                  productId: item.id, // Pass the product ID from cart
                   name: item.productName,
                   quantity: item.quantity,
                   unitPrice: item.price,

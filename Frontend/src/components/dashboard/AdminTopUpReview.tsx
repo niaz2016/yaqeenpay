@@ -118,7 +118,7 @@ const AdminTopUpReview: React.FC = () => {
                   <TableCell>{t.amount} {t.currency}</TableCell>
                   <TableCell>{t.channel}</TableCell>
                   <TableCell><Chip label={t.status} color={statusColor(t.status) as any} size="small" /></TableCell>
-                  <TableCell>{new Date(t.requestedAt).toLocaleString()}</TableCell>
+                  <TableCell>{t.requestedAt ? new Date(t.requestedAt).toLocaleString() : 'N/A'}</TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Tooltip title="View proof & notes">
@@ -147,7 +147,7 @@ const AdminTopUpReview: React.FC = () => {
           {selectedTopUp ? (
             <Box sx={{ mt: 1 }}>
               <Typography variant="subtitle2" color="text.secondary">Requested At</Typography>
-              <Typography>{new Date(selectedTopUp.requestedAt).toLocaleString()}</Typography>
+              <Typography>{selectedTopUp.requestedAt ? new Date(selectedTopUp.requestedAt).toLocaleString() : 'N/A'}</Typography>
 
               <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Amount</Typography>
               <Typography>{selectedTopUp.amount} {selectedTopUp.currency}</Typography>

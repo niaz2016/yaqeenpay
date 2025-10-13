@@ -279,12 +279,8 @@ const WithdrawalsPage: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    // Display as Wallet Credits without implying fiat custody
+    return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} Wallet Credits`;
   };
 
   if (loading) {
@@ -342,12 +338,12 @@ const WithdrawalsPage: React.FC = () => {
               </IconButton>
             </Box>
             <Box>
-              <Typography variant="body2" color="text.secondary">
-                Currency
-              </Typography>
-              <Typography variant="h6">
-                {walletSummary?.currency || 'PKR'}
-              </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Denomination Reference
+                </Typography>
+                <Typography variant="h6">
+                  Wallet Credits (1 Credit = PKR 1 reference)
+                </Typography>
             </Box>
           </Stack>
         </CardContent>
@@ -525,7 +521,7 @@ const WithdrawalsPage: React.FC = () => {
               <Typography>{selectedWithdrawal.reference || selectedWithdrawal.id}</Typography>
 
               <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Requested</Typography>
-              <Typography>{new Date(selectedWithdrawal.requestedAt).toLocaleString()}</Typography>
+              <Typography>{selectedWithdrawal.requestedAt ? new Date(selectedWithdrawal.requestedAt).toLocaleString() : 'N/A'}</Typography>
 
               <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Amount</Typography>
               <Typography>{formatCurrency(selectedWithdrawal.amount)}</Typography>
@@ -564,7 +560,7 @@ const WithdrawalsPage: React.FC = () => {
           {selectedTransaction ? (
             <Box sx={{ mt: 1 }}>
               <Typography variant="subtitle2" color="text.secondary">Date</Typography>
-              <Typography>{new Date(selectedTransaction.createdAt).toLocaleString()}</Typography>
+              <Typography>{selectedTransaction.createdAt ? new Date(selectedTransaction.createdAt).toLocaleString() : 'N/A'}</Typography>
 
               <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>Amount</Typography>
               <Typography>{formatCurrency(selectedTransaction.amount)}</Typography>
@@ -607,7 +603,7 @@ const WithdrawalsPage: React.FC = () => {
             
             <TextField
               fullWidth
-              label="Withdrawal Amount"
+              label="Withdrawal Amount (Wallet Credits)"
               type="number"
               value={withdrawalAmount}
               onChange={(e) => setWithdrawalAmount(e.target.value)}

@@ -121,12 +121,12 @@ const WalletPage: React.FC = () => {
     <Container maxWidth="lg" sx={{ px: { xs: 1.5, sm: 2 } }}>
       <Box sx={{ mb: 2, position: 'relative', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
         <Typography variant="h4">My Wallet</Typography>
-        <Typography variant="body2" color="text.secondary">Manage your balance, view transactions, and top up.</Typography>
+        <Typography variant="body2" color="text.secondary">Manage your Wallet Credits, view transactions, and top up.</Typography>
         <Fade in={!!withdrawableBadge} unmountOnExit>
           <Chip
             color="success"
             variant="filled"
-            label={`New withdrawable funds${withdrawableBadge?.amount ? ': ' + (withdrawableBadge.currency || 'PKR') + ' ' + withdrawableBadge.amount.toLocaleString() : ''}${withdrawableBadge?.orderCode ? ' (Order ' + withdrawableBadge.orderCode + ')' : ''}`}
+            label={`New withdrawable Wallet Credits${withdrawableBadge?.amount ? ': ' + withdrawableBadge.amount.toLocaleString() : ''}${withdrawableBadge?.orderCode ? ' (Order ' + withdrawableBadge.orderCode + ')' : ''}`}
             onDelete={() => setWithdrawableBadge(null)}
             sx={{ alignSelf: 'flex-start', mt: 0.5, fontWeight: 600 }}
           />

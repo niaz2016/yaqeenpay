@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Container,
@@ -30,11 +30,108 @@ import { useNavigate } from 'react-router-dom';
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
 
+  // Basic SEO: title, description, keywords, canonical, JSON-LD
+  useEffect(() => {
+    const title = 'YaqeenPay — Secure Escrow in Pakistan for Buyers & Sellers';
+    const description = 'YaqeenPay is a secure escrow platform in Pakistan that protects buyers and sellers. Pay with Wallet Credits, hold credits in escrow, release on delivery. 0% top-up, 0% purchase/sale, 1% withdrawal.';
+    const keywords = [
+      'escrow Pakistan',
+      'online escrow service',
+      'buyer protection Pakistan',
+      'seller protection Pakistan',
+      'secure marketplace',
+      'marketplace escrow',
+      'Wallet Credits',
+      'secure payments Pakistan',
+      'COD alternative Pakistan',
+      'escrow payments',
+      'peer-to-peer escrow',
+      'safe online transactions',
+      'fraud prevention Pakistan',
+      'protected online purchase',
+      'YaqeenPay',
+    ].join(', ');
+
+    document.title = title;
+
+    const ensureMeta = (name: string, content: string, attr: 'name' | 'property' = 'name') => {
+      let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', content);
+      return el;
+    };
+
+    ensureMeta('description', description);
+    ensureMeta('keywords', keywords);
+    ensureMeta('og:title', title, 'property');
+    ensureMeta('og:description', description, 'property');
+    ensureMeta('og:type', 'website', 'property');
+    ensureMeta('twitter:card', 'summary');
+    ensureMeta('twitter:title', title);
+    ensureMeta('twitter:description', description);
+
+    // Canonical URL
+    const href = window.location.origin + '/';
+    let linkEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!linkEl) {
+      linkEl = document.createElement('link');
+      linkEl.setAttribute('rel', 'canonical');
+      document.head.appendChild(linkEl);
+    }
+    linkEl.setAttribute('href', href);
+
+    // JSON-LD structured data (Organization + WebSite)
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'YaqeenPay',
+      url: href,
+      description,
+      sameAs: [],
+      brand: {
+        '@type': 'Brand',
+        name: 'YaqeenPay'
+      }
+    };
+    const jsonLdWebsite = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'YaqeenPay',
+      url: href,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: href + '?q={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    };
+
+    const addJsonLd = (data: any) => {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(data);
+      document.head.appendChild(script);
+      return script;
+    };
+
+    const s1 = addJsonLd(jsonLd);
+    const s2 = addJsonLd(jsonLdWebsite);
+
+    return () => {
+      // optional cleanup
+      s1.remove();
+      s2.remove();
+    };
+  }, []);
+
   const features = [
     {
       icon: <Security />,
       title: 'Secure Escrow',
-      description: 'Your funds are safely held until both parties fulfill their obligations',
+      description: 'Wallet Credits are securely held in escrow until both parties fulfill their obligations',
     },
     {
       icon: <Verified />,
@@ -75,18 +172,17 @@ const LandingPage: React.FC = () => {
     {
       step: '4',
       title: 'Confirm & Release',
-      description: 'Buyer confirms delivery, funds released to seller',
+      description: 'Buyer confirms delivery, Wallet Credits released to seller',
       icon: <CheckCircle />,
     },
   ];
 
   const benefits = [
-    'Protection against fraud and scams',
-    'Dispute resolution service',
-    'Secure wallet system',
-    'Real-time transaction tracking',
-    'Mobile-friendly interface',
-    'Multiple payment methods',
+    'Buyer & Seller Protection via Escrow',
+    'Transparent Fees: 0% top-up, 0% purchase/sale',
+    'Secure Wallet Credits (held in escrow until delivery)',
+    'Real-time notifications and status tracking',
+    'Multiple ways to load Wallet Credits',
   ];
 
   const testimonials = [
@@ -94,7 +190,7 @@ const LandingPage: React.FC = () => {
       name: 'Ahmed Khan',
       role: 'Electronics Seller',
       rating: 5,
-      comment: 'YaqeenPay has transformed my online business. Buyers trust me more knowing their money is protected.',
+      comment: 'YaqeenPay has transformed my online business. Buyers trust me more knowing their payments are protected with escrow.',
       avatar: 'AK',
     },
     {
@@ -166,8 +262,8 @@ const LandingPage: React.FC = () => {
                   lineHeight: 1.6,
                 }}
               >
-                Pakistan's trusted escrow service protecting buyers and sellers in every transaction. 
-                Buy and sell with confidence knowing your money is secure.
+                Pakistan’s trusted escrow platform for safe peer‑to‑peer and marketplace transactions. 
+                Pay with Wallet Credits, hold credits in escrow until delivery, and release with confidence.
               </Typography>
               
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
@@ -252,10 +348,10 @@ const LandingPage: React.FC = () => {
                   <Stack alignItems="center" spacing={2}>
                     <Shield sx={{ fontSize: 60, color: '#4caf50' }} />
                     <Typography variant="h6" color="primary" textAlign="center">
-                      Your Money Protected
+                      Wallet Credits Protected
                     </Typography>
                     <Typography variant="body2" color="text.secondary" textAlign="center">
-                      Funds held securely until delivery is confirmed by both parties
+                      Wallet Credits held securely until delivery is confirmed by both parties
                     </Typography>
                     <Chip
                       label="100% Secure"
@@ -290,11 +386,11 @@ const LandingPage: React.FC = () => {
               color="text.secondary"
               sx={{
                 textAlign: 'center',
-                maxWidth: 600,
-                fontSize: { xs: '1rem', md: '1.25rem' },
+                maxWidth: 720,
+                fontSize: { xs: '1rem', md: '1.15rem' },
               }}
             >
-              We provide the most secure and reliable escrow service in Pakistan
+              A professional escrow service built for Pakistan — reduce fraud, protect both parties, and close deals with confidence.
             </Typography>
           </Stack>
 
@@ -424,6 +520,142 @@ const LandingPage: React.FC = () => {
         </Container>
       </Box>
 
+      {/* Educational: What is Escrow? */}
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 10 } }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 6 }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2 }}>
+              What is Escrow?
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.8 }}>
+              Escrow is a trusted middle step between a buyer and a seller. The buyer pays into escrow first. Those Wallet Credits are securely held — not paid to the seller yet — while the seller ships the item or completes the service. When the buyer confirms delivery or the acceptance period passes without dispute, the escrowed Wallet Credits are released to the seller.
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.8 }}>
+              This flow reduces fraud and protects both sides: the buyer doesn’t lose money to non‑delivery, and the seller knows payment is reserved before shipping. With YaqeenPay, your balance is represented as Wallet Credits which are held and released through the escrow process.
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Card sx={{ p: { xs: 2, md: 3 } }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Why it works
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  • Payment certainty for sellers — credits are reserved upfront<br/>
+                  • Delivery assurance for buyers — credits only release on confirmation<br/>
+                  • Clear rules for release, refunds, and disputes
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Note: YaqeenPay is a technology platform and not a bank or EMI. Balances are shown as Wallet Credits. See Terms for details.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+      </Container>
+
+      {/* Use Cases */}
+      <Box sx={{ bgcolor: '#f8f9fa', py: { xs: 8, md: 10 } }}>
+        <Container maxWidth="lg">
+          <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 6 }}>
+            Popular Use Cases
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+            {[ 
+              { title: 'Marketplace Deals', text: 'Buy and sell electronics, fashion, or collectibles with escrow protection.' },
+              { title: 'Services & Freelancing', text: 'Pay for services with confidence; release credits after acceptance.' },
+              { title: 'High‑Value Items', text: 'Use escrow for vehicles, machinery, or bulk orders to reduce risk.' },
+              { title: 'Social/Community Sales', text: 'Close deals found via Facebook groups or classifieds safely.' },
+            ].map((c, idx) => (
+              <Card key={idx} sx={{ width: 280 }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>{c.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{c.text}</Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        </Container>
+      </Box>
+
+      {/* Trust & Security */}
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 10 } }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 6 }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Security & Trust
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.8 }}>
+              We use modern security practices, role‑based access, and audit logs to protect your account and transaction history. Transactional notifications keep you informed at every step. Wallet Credits held in escrow are governed by clear platform rules for release, refund, and dispute resolution.
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.8 }}>
+              Fees are simple and transparent: 0% on top‑ups, 0% for purchases/sales, and 1% on withdrawals. Your balances are shown as Wallet Credits (1 Credit = PKR 1 reference). We are not a bank/EMI and do not accept deposits.
+            </Typography>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Card sx={{ p: { xs: 2, md: 3 } }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Quick Facts
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  • Escrow ledger keeps credits earmarked per order<br/>
+                  • Release on buyer confirmation or timeout rules<br/>
+                  • Dispute flow for non‑delivery or damaged goods
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+      </Container>
+
+      {/* FAQs */}
+      <Box sx={{ bgcolor: '#f8f9fa', py: { xs: 8, md: 10 } }}>
+        <Container maxWidth="lg">
+          <Typography variant="h3" sx={{ fontWeight: 'bold', textAlign: 'center', mb: 4 }}>
+            Frequently Asked Questions
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4 }}>
+            <Card sx={{ flex: 1 }}>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>How do Wallet Credits work?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Load Wallet Credits, use them to pay into escrow for an order, and the seller receives the credits when you confirm delivery.
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Are you a bank?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No. YaqeenPay is a technology platform. Balances are represented as Wallet Credits. See our Terms for details.
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>What are the fees?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  0% on top‑ups, 0% for purchases/sales, and 1% on withdrawals.
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>How are disputes handled?</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  If there’s an issue (non‑delivery, wrong/damaged item), raise a dispute during the acceptance window. We review evidence and act per policy.
+                </Typography>
+              </CardContent>
+            </Card>
+            <Card sx={{ flex: 1 }}>
+              <CardContent>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Is there a time limit to confirm?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Yes. If you don’t act within the defined window, escrowed credits may be released automatically under the rules.
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Can sellers withdraw credits?</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Yes. After release, sellers can request withdrawals to approved destinations. A 1% fee applies.
+                </Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Do you support KYC?</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Yes. We verify users to improve platform safety and prevent abuse.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Container>
+      </Box>
+
       {/* Benefits Section */}
       <Container maxWidth="lg" sx={{ py: { xs: 8, md: 10 } }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 6 }}>
@@ -481,7 +713,7 @@ const LandingPage: React.FC = () => {
                     ✅ YaqeenPay Escrow
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Money held safely → Item delivered → Funds released → 100% Protected
+                    Credits held safely → Item delivered → Credits released → 100% Protected
                   </Typography>
                 </Box>
               </Stack>

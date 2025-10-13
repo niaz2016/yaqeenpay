@@ -21,6 +21,7 @@ public class BuyerOrderDto
     public decimal Amount { get; set; }
     public string Currency { get; set; } = string.Empty;
     public string SellerName { get; set; } = string.Empty;
+    public string? SellerPhone { get; set; }
     public OrderStatus Status { get; set; }
     public string? Courier { get; set; }
     public string? TrackingNumber { get; set; }
@@ -32,6 +33,9 @@ public class BuyerOrderDto
     public bool CanDispute { get; set; }
     public DateTime Created { get; set; }
     public List<string> ImageUrls { get; set; } = new List<string>();
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryNotes { get; set; }
+    public string? ShippingProof { get; set; }
 }
 
 public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, PaginatedList<BuyerOrderDto>>
@@ -74,6 +78,7 @@ public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, P
                 Amount = o.Amount.Amount,
                 Currency = o.Amount.Currency,
                 SellerName = o.Seller.UserName ?? string.Empty,
+                SellerPhone = o.Seller.PhoneNumber,
                 Status = o.Status,
                 Courier = o.Courier,
                 TrackingNumber = o.TrackingNumber,
@@ -83,9 +88,11 @@ public class GetBuyerOrdersQueryHandler : IRequestHandler<GetBuyerOrdersQuery, P
                 CanReject = o.Status == OrderStatus.DeliveredPendingDecision,
                 CanComplete = o.Status == OrderStatus.DeliveredPendingDecision,
                 CanDispute = o.Status == OrderStatus.DeliveredPendingDecision || o.Status == OrderStatus.Rejected,
-                Created = o.CreatedAt
-                ,
-                ImageUrls = o.ImageUrls
+                Created = o.CreatedAt,
+                ImageUrls = o.ImageUrls,
+                DeliveryAddress = o.DeliveryAddress,
+                DeliveryNotes = o.DeliveryNotes,
+                ShippingProof = o.ShippingProof
             });
 
         var totalCount = await queryable.CountAsync(cancellationToken);

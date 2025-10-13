@@ -74,7 +74,7 @@ const IncomingOrdersPage: React.FC = () => {
           recipientId: order.buyerId,
           type: 'order_approved',
           title: 'Order Approved! ✅',
-          message: `Your order for ${order.currency} ${order.amount.toLocaleString()} has been approved by the seller.`,
+          message: `Your order for ${order.currency} ${order.amount ? order.amount.toLocaleString() : '0'} has been approved by the seller.`,
           data: { orderId: order.id, amount: order.amount, currency: order.currency }
         });
       }
@@ -107,7 +107,7 @@ const IncomingOrdersPage: React.FC = () => {
           recipientId: order.buyerId,
           type: 'order_rejected',
           title: 'Order Rejected ❌',
-          message: `Your order for ${order.currency} ${order.amount.toLocaleString()} has been rejected. Reason: ${reason}`,
+          message: `Your order for ${order.currency} ${order.amount ? order.amount.toLocaleString() : '0'} has been rejected. Reason: ${reason}`,
           data: { orderId: order.id, amount: order.amount, currency: order.currency, reason }
         });
       }

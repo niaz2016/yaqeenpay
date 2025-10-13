@@ -39,7 +39,7 @@ const IncomingOrderCard: React.FC<Props> = ({ order, onApprove, onReject, disabl
   const [processing, setProcessing] = useState(false);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return dateString ? new Date(dateString).toLocaleString() : 'N/A';
   };
 
   const getStatusColor = (status: string) => {
@@ -118,7 +118,7 @@ const IncomingOrderCard: React.FC<Props> = ({ order, onApprove, onReject, disabl
               </Typography>
               <Stack direction="row" spacing={2} flexWrap="wrap">
                 <Typography variant="body1">
-                  <strong>Amount:</strong> {order.currency} {order.amount.toLocaleString()}
+                  <strong>Amount:</strong> {order.currency} {order.amount ? order.amount.toLocaleString() : '0'}
                 </Typography>
                 <Typography variant="body1">
                   <strong>Currency:</strong> {order.currency}
@@ -162,7 +162,7 @@ const IncomingOrderCard: React.FC<Props> = ({ order, onApprove, onReject, disabl
             {order.status === 'payment-confirmed' && (
               <Alert severity="success" icon={<AccountBalanceWallet />}>
                 <Typography variant="body2">
-                  <strong>Escrow Funded!</strong> {order.currency} {order.amount.toLocaleString()} has been frozen and will be released to your wallet once the buyer confirms receipt.
+                  <strong>Escrow Funded!</strong> {order.amount ? order.amount.toLocaleString() : '0'} Wallet Credits are now held in escrow and will be released to your wallet once the buyer confirms receipt.
                 </Typography>
               </Alert>
             )}

@@ -2,7 +2,6 @@ using FluentValidation;
 using MediatR;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
-using YaqeenPay.Domain.Entities.Identity;
 
 namespace YaqeenPay.Application.Features.Authentication.Commands.Register;
 
@@ -65,7 +64,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, ApiRespon
 
         if (!result.Result.Succeeded)
         {
-            return ApiResponse<Guid>.FailureResponse("Failed to create user", result.Result.Errors.ToList());
+            return ApiResponse<Guid>.FailureResponse("Failed to create user", [.. result.Result.Errors]);
         }
 
         // Assign role to user (capitalize first letter to match enum)

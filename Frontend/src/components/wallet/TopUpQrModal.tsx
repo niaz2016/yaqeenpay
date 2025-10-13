@@ -298,12 +298,12 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
           <Stack spacing={2} sx={{ mt: 1 }}>
             <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0' }}>
               <Typography variant="body2" color="textSecondary">
-                Current Wallet Balance: <strong>PKR {currentBalance.toFixed(2)}</strong>
+                Current Wallet Credits: <strong>{currentBalance.toFixed(2)}</strong>
               </Typography>
             </Box>
 
             <TextField
-              label="Amount (PKR)"
+              label="Amount (Wallet Credits)"
               type="number"
               value={amount || ''}
               onChange={(e) => setAmount(Number(e.target.value))}
@@ -326,10 +326,10 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
               )}
               <Box textAlign="center">
                 <Typography variant="h4" color="primary" gutterBottom>
-                  PKR {qrResponse.suggestedAmount.toFixed(2)}
+                  {qrResponse.suggestedAmount.toFixed(2)} Wallet Credits
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Current Balance: PKR {qrResponse.currentBalance.toFixed(2)}
+                  Current Wallet Credits: {qrResponse.currentBalance.toFixed(2)}
                 </Typography>
               </Box>
 
@@ -365,7 +365,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
 
               <Alert severity="info" sx={{ width: '100%' }}>
                 <Typography variant="body2">
-                  <strong>Amount: PKR {qrResponse.suggestedAmount.toFixed(2)}</strong> (embedded in QR code)<br/>
+                  <strong>Amount: {qrResponse.suggestedAmount.toFixed(2)} Wallet Credits</strong> (embedded in QR code)<br/>
                   Simply scan this QR code with your banking app to complete payment.<br/>
                   Once payment is completed, your wallet will be automatically updated.
                 </Typography>

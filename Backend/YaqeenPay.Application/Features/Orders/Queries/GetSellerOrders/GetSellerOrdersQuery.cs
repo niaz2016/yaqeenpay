@@ -21,6 +21,7 @@ public class SellerOrderDto
     public decimal Amount { get; set; }
     public string Currency { get; set; } = string.Empty;
     public string BuyerName { get; set; } = string.Empty;
+    public string? BuyerPhone { get; set; }
     public OrderStatus Status { get; set; }
     public string? Courier { get; set; }
     public string? TrackingNumber { get; set; }
@@ -32,6 +33,9 @@ public class SellerOrderDto
     public bool CanDispute { get; set; }
     public DateTime Created { get; set; }
     public List<string> ImageUrls { get; set; } = new List<string>();
+    public string? DeliveryAddress { get; set; }
+    public string? DeliveryNotes { get; set; }
+    public string? ShippingProof { get; set; }
 }
 
 public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery, PaginatedList<SellerOrderDto>>
@@ -81,6 +85,7 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
                 Amount = o.Amount.Amount,
                 Currency = o.Amount.Currency,
                 BuyerName = o.Buyer.UserName ?? string.Empty,
+                BuyerPhone = o.Buyer.PhoneNumber,
                 Status = o.Status,
                 Courier = o.Courier,
                 TrackingNumber = o.TrackingNumber,
@@ -90,9 +95,11 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
                 CanMarkDelivered = o.Status == OrderStatus.Shipped,
                 CanUpdateShipping = o.Status == OrderStatus.AwaitingShipment || o.Status == OrderStatus.Shipped,
                 CanDispute = o.Status == OrderStatus.DeliveredPendingDecision || o.Status == OrderStatus.Rejected,
-                Created = o.CreatedAt
-                ,
-                ImageUrls = o.ImageUrls
+                Created = o.CreatedAt,
+                ImageUrls = o.ImageUrls,
+                DeliveryAddress = o.DeliveryAddress,
+                DeliveryNotes = o.DeliveryNotes,
+                ShippingProof = o.ShippingProof
             });
 
         return await Task.FromResult(PaginatedList<SellerOrderDto>.Create(orders, request.PageNumber, request.PageSize));

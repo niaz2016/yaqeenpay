@@ -257,7 +257,7 @@ const UserOrderDetailsPage: React.FC = () => {
                   Created
                 </Typography>
                 <Typography variant="body1">
-                  {new Date(order.createdAt).toLocaleString()}
+                  {order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}
                 </Typography>
               </Box>
               
@@ -267,7 +267,7 @@ const UserOrderDetailsPage: React.FC = () => {
                     Shipped
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(order.shippedDate).toLocaleString()}
+                    {order.shippedDate ? new Date(order.shippedDate).toLocaleString() : 'N/A'}
                   </Typography>
                 </Box>
               )}
@@ -304,7 +304,7 @@ const UserOrderDetailsPage: React.FC = () => {
                 Current Status: {getStatusChip(order.status)}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Last updated: {new Date(order.updatedAt).toLocaleString()}
+                Last updated: {order.updatedAt ? new Date(order.updatedAt).toLocaleString() : 'N/A'}
               </Typography>
             </Box>
           </Paper>

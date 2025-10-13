@@ -133,7 +133,7 @@ const OrderDetailsPage: React.FC = () => {
       } else if (action === 'confirmDelivery') {
         updated = await ordersService.confirmDelivery(targetOrder.id!);
         if (mountedRef.current && updated) setOrder(updated);
-        if (mountedRef.current) setSnack({ open: true, message: 'Delivery confirmed. Funds will be released to the seller.', severity: 'success' });
+  if (mountedRef.current) setSnack({ open: true, message: 'Delivery confirmed. Escrowed Wallet Credits will be released to the seller.', severity: 'success' });
       }
     } catch (e) {
       console.error('[OrderDetails] executeConfirmedAction error', e);
@@ -182,7 +182,7 @@ const OrderDetailsPage: React.FC = () => {
             sx={{ mb: 1 }}
           />
           <Typography variant="h5" fontWeight="bold" color="primary.main">
-            {order.currency} {order.amount.toLocaleString()}
+            {order.currency} {order.amount ? order.amount.toLocaleString() : '0'}
           </Typography>
         </Stack>
       </Stack>
@@ -199,7 +199,7 @@ const OrderDetailsPage: React.FC = () => {
               </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary">Amount</Typography>
-                <Typography variant="body1" fontWeight="medium">{order.currency} {order.amount.toLocaleString()}</Typography>
+                <Typography variant="body1" fontWeight="medium">{order.currency} {order.amount ? order.amount.toLocaleString() : '0'}</Typography>
               </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary">Status</Typography>
@@ -207,12 +207,12 @@ const OrderDetailsPage: React.FC = () => {
               </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary">Created</Typography>
-                <Typography variant="body1">{new Date(order.createdAt).toLocaleString()}</Typography>
+                <Typography variant="body1">{order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A'}</Typography>
               </Box>
               {order.updatedAt && order.updatedAt !== order.createdAt && (
                 <Box>
                   <Typography variant="body2" color="text.secondary">Last Updated</Typography>
-                  <Typography variant="body1">{new Date(order.updatedAt).toLocaleString()}</Typography>
+                  <Typography variant="body1">{order.updatedAt ? new Date(order.updatedAt).toLocaleString() : 'N/A'}</Typography>
                 </Box>
               )}
             </Stack>
@@ -231,13 +231,13 @@ const OrderDetailsPage: React.FC = () => {
                 <Typography variant="body2" color="text.secondary">Escrow Status</Typography>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip 
-                    label={order.isAmountFrozen ? "Funds Frozen in Escrow" : "No Escrow"} 
+                    label={order.isAmountFrozen ? "Wallet Credits Held in Escrow" : "No Escrow"} 
                     color={order.isAmountFrozen ? "success" : "default"}
                     size="small"
                   />
                   {order.frozenAmount && (
                     <Typography variant="body2">
-                      ({order.currency} {order.frozenAmount.toLocaleString()} frozen)
+                      ({order.frozenAmount ? order.frozenAmount.toLocaleString() : '0'} Wallet Credits held)
                     </Typography>
                   )}
                 </Stack>
@@ -247,7 +247,7 @@ const OrderDetailsPage: React.FC = () => {
             {order.paymentDate && (
               <Box>
                 <Typography variant="body2" color="text.secondary">Payment Date</Typography>
-                <Typography variant="body1">{new Date(order.paymentDate).toLocaleString()}</Typography>
+                <Typography variant="body1">{order.paymentDate ? new Date(order.paymentDate).toLocaleString() : 'N/A'}</Typography>
               </Box>
             )}
           </Stack>
@@ -323,10 +323,29 @@ const OrderDetailsPage: React.FC = () => {
                   </Typography>
                 </Box>
 
-                {order.buyerPhone && getUserRole() === 'seller' && (
+                {/* Buyer Phone Number */}
+                {(order.buyerPhone || order.targetUserMobile) && (
                   <Box>
                     <Typography variant="body2" color="text.secondary">Phone Number</Typography>
-                    <Typography variant="body1">{order.buyerPhone}</Typography>
+                    <Typography variant="body1">
+                      {order.buyerPhone || order.targetUserMobile}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Buyer Delivery Address */}
+                {order.shipment && (order.shipment.addressLine1 || order.shipment.city) && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">Delivery Address</Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                      {[
+                        order.shipment.addressLine1,
+                        order.shipment.addressLine2,
+                        [order.shipment.city, order.shipment.state].filter(Boolean).join(', '),
+                        order.shipment.postalCode,
+                        order.shipment.country
+                      ].filter(Boolean).join('\n')}
+                    </Typography>
                   </Box>
                 )}
 
@@ -401,7 +420,7 @@ const OrderDetailsPage: React.FC = () => {
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6" fontWeight="bold">Total Amount</Typography>
                 <Typography variant="h6" fontWeight="bold" color="primary.main">
-                  {order.currency} {order.amount.toLocaleString()}
+                  {order.currency} {order.amount ? order.amount.toLocaleString() : '0'}
                 </Typography>
               </Stack>
             </Stack>
@@ -546,7 +565,7 @@ const OrderDetailsPage: React.FC = () => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={() => setConfirmState({ open: true, action: 'pay', title: 'Confirm Payment', message: 'Are you sure you want to pay for this order? The amount will be frozen in escrow.' })}
+                onClick={() => setConfirmState({ open: true, action: 'pay', title: 'Confirm Payment', message: 'Are you sure you want to pay for this order? The amount will be held in escrow as Wallet Credits.' })}
               >
                 Pay Now
               </Button>
@@ -556,7 +575,7 @@ const OrderDetailsPage: React.FC = () => {
               <Button
                 variant="contained"
                 color="success"
-                onClick={() => setConfirmState({ open: true, action: 'confirmDelivery', title: 'Confirm Delivery', message: 'Confirm you have received the order in good condition. This will release funds to the seller.' })}
+                onClick={() => setConfirmState({ open: true, action: 'confirmDelivery', title: 'Confirm Delivery', message: 'Confirm you have received the order in good condition. This will release escrowed Wallet Credits to the seller.' })}
                 disabled={order.status !== 'Shipped' && order.status !== 'Delivered' && order.status !== 'DeliveredPendingDecision'}
               >
                 Confirm Delivery

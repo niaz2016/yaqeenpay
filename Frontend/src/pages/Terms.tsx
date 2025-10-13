@@ -23,40 +23,52 @@ type Section = { id: string; title: string; content: string };
 
 const defaultSections: Section[] = [
   {
-    id: 'nature',
-    title: '1. Nature of Wallet Credits',
+    id: 'intro',
+    title: '1. Introduction & Definitions',
     content:
-      'Wallet Credits are a prepaid, rechargeable account balance maintained on the platform for the exclusive purpose of facilitating transactions and services offered through Yaqeen Pay. When a user loads Wallet Credits by making a payment to the platform’s designated merchant accounts (for example via Easypaisa, JazzCash or bank transfer), such funds are recorded as a credit balance on the platform. Wallet Credits do not constitute a bank account, deposit, electronic money issued by an EMI, or any other regulated deposit-taking instrument unless otherwise specified by applicable law. They represent the user’s right to instruct the platform to apply the credited funds within the ecosystem—such as paying for goods and services, funding Escrow, or settling marketplace fees—subject to the platform’s terms and applicable law.'
+      'These Terms and Conditions (Terms) govern your access to and use of Yaqeen Pay\'s technology platform, marketplace and related services. In these Terms: "Yaqeen Pay", "we", "us", or "our" refers to the Yaqeen Pay platform operator and its affiliates; "you" or "user" refers to any person who visits, registers for, or uses the platform; "Platform" means the website, apps, APIs and services we provide; "Wallet" means your account on the Platform where your balance is represented as Wallet Credits; "Wallet Credits" means the unit recorded in your Wallet used to transact within the Platform; "Escrow" means the transaction-hold service through which Wallet Credits are reserved until release conditions are met.\n\nYaqeen Pay is a technology provider and marketplace facilitator. We are not a bank, financial institution, or electronic money issuer, and we do not accept deposits or provide banking services. By using the Platform, you agree to these Terms and any policies referenced here.'
+  },
+  {
+    id: 'nature',
+    title: '2. Nature of Wallet Credits',
+    content:
+      'Wallet Credits are a prepaid, rechargeable balance maintained on the Platform solely to facilitate transactions and services offered through Yaqeen Pay. When you load Wallet Credits by paying into the Platform\'s designated collection channels (e.g., Easypaisa, JazzCash, or bank transfer), the amount received is recorded as Wallet Credits in your Wallet.\n\nImportant: Wallet Credits do not constitute a bank account, deposit, or electronic money issued by an EMI. They evidence your contractual right to instruct the Platform to apply the credited balance within the ecosystem—such as paying for goods and services, funding Escrow, or settling fees—subject to these Terms and applicable law. For reference and pricing consistency only, each Wallet Credit is denominated on a 1:1 basis with Pakistani Rupees (PKR). Your balance is maintained and displayed exclusively as Wallet Credits (not as PKR or any other currency).'
   },
   {
     id: 'escrow',
-    title: '2. Escrow Service',
+  title: '3. Escrow Service',
     content:
-      'The platform provides an Escrow service intended to enhance transactional trust between Buyers and Sellers. When an order is placed and the Buyer elects to fund the order using Wallet Credits, the relevant amount is moved into a designated Escrow ledger entry pending fulfilment. Escrow funds are retained and accounted for separately in the platform ledger to reflect that they are earmarked for a specific transaction. During the Escrow period, Yaqeen Pay acts as a neutral intermediary: it holds the funds, facilitates dispute handling according to published rules, and releases or refunds the amount in accordance with the outcome of the transaction lifecycle.'
+  'The Platform provides an Escrow service to enhance transactional trust between Buyers and Sellers. When an order is placed and the Buyer uses Wallet Credits, the relevant amount is moved into a designated Escrow ledger entry pending fulfilment. Escrowed amounts are earmarked for a specific transaction and accounted for separately in the Platform ledger. During the Escrow period, Yaqeen Pay acts as a neutral intermediary: we retain the amount, facilitate disputes according to published rules, and release or refund in line with transaction outcomes.'
   },
   {
     id: 'release',
-    title: '3. Release of Escrow Funds',
+  title: '4. Release of Escrowed Credits',
     content:
-      'Escrowed funds will be released to the Seller upon confirmation of buyer acceptance, verified delivery evidence, or the expiration of any agreed acceptance window in the absence of a timely dispute. If a Buyer raises a timely and substantiated dispute in accordance with the platform’s dispute process, the platform will investigate and determine whether a refund to the Buyer or release to the Seller is appropriate under the rules. Platform fees, service charges or any agreed deductions will generally be applied at the point of release in accordance with the applicable fee schedule. Users should consult the platform’s published dispute resolution procedures to understand the evidentiary standards, timelines and possible outcomes.'
+  'Escrowed amounts are released to the Seller upon: (a) buyer acceptance/confirmation, (b) verified delivery evidence, or (c) expiration of the acceptance window without a timely dispute. If a Buyer raises a timely and substantiated dispute, the Platform will investigate and determine whether a refund to the Buyer or a release to the Seller is appropriate under the rules. Any applicable charges or deductions are applied in accordance with the Schedule of Charges.'
   },
   {
     id: 'withdrawal',
-    title: '4. Withdrawal by Sellers',
+    title: '5. Withdrawal by Sellers',
     content:
-      'Once Escrow funds are released to a Seller’s Wallet Credits, the Seller may request withdrawal to approved external payout destinations such as Easypaisa, JazzCash or a nominated bank account, subject to identity verification and anti-fraud checks. Withdrawal requests are processed as settlement transactions by the platform and may be subject to minimum thresholds, fees and processing timelines imposed by the platform or the payout partner. The timing of settlement to the Seller’s external account is dependent upon the payout channel and may vary accordingly. The platform reserves the right to delay or withhold settlement where there are reasonable grounds to suspect fraud, money laundering, or other unlawful activity, or where required by law.'
+      'Once Escrow amounts are released to a Seller\'s Wallet Credits, the Seller may request withdrawal to approved payout destinations (e.g., Easypaisa, JazzCash, or a nominated bank account), subject to identity verification and anti-fraud checks. Withdrawal requests are processed as settlement transactions and may be subject to minimum thresholds and processing timelines. As set out in the Schedule of Charges, a platform fee of 1% applies to withdrawals and is typically deducted from the withdrawal amount at the time of processing. We may delay or withhold settlement if we have reasonable grounds to suspect fraud, money laundering, or other unlawful activity, or where required by law.'
   },
   {
     id: 'legal',
-    title: '5. Legal Position of Wallet Credits',
+    title: '6. Legal Position of Wallet Credits',
     content:
-      'Wallet Credits represent a contractual obligation of the platform to provide services in return for the credited amount. Unless explicitly stated otherwise, Wallet Credits are not legal tender and are not regulated as bank deposits or electronic money issued by an EMI. The legal characterization of Wallet Credits may be subject to local law and regulation; users and businesses should consult legal counsel if they require clarification for regulatory or accounting purposes. By loading Wallet Credits, users acknowledge and agree that the nature and treatment of these balances are governed by the platform’s terms and applicable law.'
+      'Wallet Credits represent a contractual obligation of the Platform to provide services in return for the credited balance. Unless explicitly stated otherwise, Wallet Credits are not legal tender and are not regulated as bank deposits or electronic money issued by an EMI. The characterization of Wallet Credits may be subject to local law and regulation; users and businesses should consult their advisers for regulatory or accounting treatment. By loading Wallet Credits, you acknowledge and agree to their nature and treatment under these Terms and applicable law.'
   },
   {
     id: 'liability',
-    title: '6. Liability & Disputes',
+    title: '7. Liability & Disputes',
     content:
-      'To the fullest extent permitted by applicable law, the platform limits its liability in relation to transactions conducted on the marketplace. The platform is a facilitator of the Escrow service and does not warrant the quality, legality, or suitability of goods or services sold by Sellers. Except as required by law or where expressly provided in these terms, the platform disclaims liability for indirect, incidental, special or consequential damages, and limits remedies to the value of the Escrowed funds at issue. Disputes between Buyers and Sellers will be handled in accordance with the platform’s dispute resolution procedures; where appropriate, the platform may take corrective actions, including reversing settlements, issuing refunds, or suspending accounts pending investigation. Users should review the dispute policy for details on how claims are assessed and resolved.'
+      'To the fullest extent permitted by law, the Platform limits its liability in relation to marketplace transactions. We facilitate Escrow but do not warrant the quality, legality, or suitability of goods or services sold by Sellers. Except as required by law or expressly provided in these Terms, the Platform disclaims liability for indirect, incidental, special, or consequential damages and limits remedies to the value of the Escrowed amount at issue. Disputes between Buyers and Sellers are handled under our dispute resolution procedures; we may take corrective actions, including reversing settlements, issuing refunds, or suspending accounts pending investigation.'
+  },
+  {
+    id: 'fees',
+    title: '8. Schedule of Charges',
+    content:
+      'Unless expressly stated otherwise, the following platform charges apply:\n\n- Top-up (adding Wallet Credits): 0% (no platform charges)\n- Purchases and sales within the marketplace: 0% (no platform charges)\n- Withdrawal from Wallet Credits to an external account: 1% of the withdrawn amount (deducted at the time of processing)\n- Denomination reference: 1 Wallet Credit = PKR 1 (for reference only; balances are maintained as Wallet Credits, not as PKR)\n\nFees may be updated from time to time with notice on the Platform. Any taxes required by law will be applied in addition to the charges above, where applicable.'
   },
 ];
 

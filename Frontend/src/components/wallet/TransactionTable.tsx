@@ -169,7 +169,7 @@ const columns: GridColDef[] = [
             return {
               color: '#2e7d32',
               icon: '✅',
-              label: 'Funds Released'
+              label: 'Escrow Released'
             };
           }
           return {
@@ -195,7 +195,7 @@ const columns: GridColDef[] = [
           return {
             color: '#2e7d32',
             icon: '💰',
-            label: 'Funds Added'
+            label: 'Credits Added'
           };
         }
         
@@ -370,10 +370,10 @@ const columns: GridColDef[] = [
             minWidth: '100px'
           }}
         >
-          {style.sign}PKR {Math.abs(amount).toLocaleString('en-US', {
+          {style.sign}{Math.abs(amount).toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-          })}
+          })} Wallet Credits
         </Box>
       );
     },
@@ -500,7 +500,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
               border: '1px solid rgba(46, 125, 50, 0.2)' 
             }}>
               <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 600 }}>
-                💰 Credits: PKR {stats.totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                💰 Credits: {stats.totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
               </Typography>
             </Box>
             
@@ -510,7 +510,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
               border: '1px solid rgba(237, 108, 2, 0.2)' 
             }}>
               <Typography variant="caption" sx={{ color: '#ed6c02', fontWeight: 600 }}>
-                🔒 Frozen: PKR {currentFrozenDisplay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                🔒 Frozen: {currentFrozenDisplay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
               </Typography>
             </Box>
             
@@ -520,7 +520,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
               border: '1px solid rgba(211, 47, 47, 0.2)' 
             }}>
               <Typography variant="caption" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                💸 Processed: PKR {stats.processedPayments.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                💸 Processed: {stats.processedPayments.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
               </Typography>
             </Box>
             
@@ -531,7 +531,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
                 border: '1px solid rgba(117, 117, 117, 0.2)' 
               }}>
                 <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600 }}>
-                  💳 Debits: PKR {stats.totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  💳 Debits: {stats.totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
                 </Typography>
               </Box>
             )}

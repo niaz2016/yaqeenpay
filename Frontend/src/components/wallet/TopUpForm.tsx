@@ -11,11 +11,13 @@ import {
   Box,
   Alert,
   CircularProgress,
-  DialogActions
+  DialogActions,
+  Snackbar
 } from '@mui/material';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useNotifications } from '../../context/NotificationContext';
 // @ts-ignore
 import QRCode from 'qrcode';
 
@@ -55,6 +57,8 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
     resolver: zodResolver(schema),
     defaultValues: { amount: 100 },
   });
+  
+  const { addNotification } = useNotifications();
 
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [qrResponse, setQrResponse] = useState<QrTopupResponse | null>(null);
@@ -64,13 +68,22 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [refreshing, setRefreshing] = useState(false); // new: indicates auto-refresh in progress
   const [paymentClaimed, setPaymentClaimed] = useState(false);
-  const [polling, setPolling] = useState(false);
+  const [backgroundVerifying, setBackgroundVerifying] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const POLL_INTERVAL_MS = 4000; // 4s
   const POLL_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes lock extension window
 
   // Fetch current balance on component mount
   React.useEffect(() => {
     fetchBalance();
+  }, []);
+
+  // Cleanup background verification on unmount
+  React.useEffect(() => {
+    return () => {
+      setBackgroundVerifying(false);
+      setPaymentClaimed(false);
+    };
   }, []);
 
   const fetchBalance = async () => {
@@ -205,14 +218,28 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
 
   const handleCancel = () => {
     setPaymentClaimed(false);
-    setPolling(false);
+    setBackgroundVerifying(false);
     handleCloseQrDialog();
   };
 
   const handleIHavePaid = async () => {
     if (!qrResponse?.transactionReference) return; // ensure reference exists
+    
+    // Immediately close the popup
+    setShowQrDialog(false);
     setPaymentClaimed(true);
-    setPolling(true);
+    setBackgroundVerifying(true);
+    
+    // Show immediate feedback to user
+    addNotification({
+      type: 'wallet',
+      priority: 'medium',
+      title: 'Payment Verification Started',
+  message: `We're verifying your payment of ${qrResponse.suggestedAmount.toFixed(2)} Wallet Credits. You'll be notified once confirmed.`,
+      status: 'unread',
+      userId: 'current-user' // This should be replaced with actual user ID
+    });
+    
     try {
       // Call backend to mark payment initiated (extend lock)
       try {
@@ -222,43 +249,92 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
           setQrResponse(r => r ? { ...r, expiresAt: mark.expiresAt } : r);
         }
       } catch (e) {
+        console.warn('Failed to mark payment initiated:', e);
         // ignore; proceed with polling anyway
       }
+      
       const startingBalance = currentBalance;
       const start = Date.now();
+      const amountPaid = qrResponse.suggestedAmount;
 
       const poll = async () => {
         try {
           await fetchBalance();
-          // compare after fetch (state update asynchronous) using latest value via functional set if needed
-          // We'll re-check after small delay to allow state update
-          const latestBalance = currentBalance; // stale risk but acceptable minimal approach; could refactor with ref
-          const increased = latestBalance > startingBalance;
-          if (increased) {
-            setPolling(false);
-            setPaymentClaimed(false);
-            setShowQrDialog(false);
-            return;
-          }
-          if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed) {
-            setTimeout(poll, POLL_INTERVAL_MS);
-          } else {
-            setPolling(false);
-            setPaymentClaimed(false);
-          }
+          
+          // Use a small delay to ensure balance state is updated
+          setTimeout(async () => {
+            const latestBalance = currentBalance;
+            const balanceIncreased = latestBalance > startingBalance;
+            
+            if (balanceIncreased) {
+              // Payment confirmed!
+              setPaymentClaimed(false);
+              setBackgroundVerifying(false);
+              setShowSuccessMessage(true);
+              
+              // Show success notification
+              addNotification({
+                type: 'wallet',
+                priority: 'high',
+                title: 'Payment Confirmed!',
+                message: `Your wallet has been credited with ${amountPaid.toFixed(2)} Wallet Credits. New balance: ${latestBalance.toFixed(2)} Wallet Credits`,
+                status: 'unread',
+                userId: 'current-user'
+              });
+              
+              // Auto-hide success message after 5 seconds
+              setTimeout(() => setShowSuccessMessage(false), 5000);
+              
+              return;
+            }
+            
+            // Continue polling if timeout not reached
+            if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed && backgroundVerifying) {
+              setTimeout(poll, POLL_INTERVAL_MS);
+            } else {
+              // Timeout reached
+              setPaymentClaimed(false);
+              setBackgroundVerifying(false);
+              
+              // Show timeout notification
+              addNotification({
+                type: 'wallet',
+                priority: 'medium',
+                title: 'Payment Verification Timeout',
+                message: `We couldn't automatically verify your payment. Please contact support if you've made the payment.`,
+                status: 'unread',
+                userId: 'current-user'
+              });
+            }
+          }, 500); // Small delay for state update
+          
         } catch (e) {
-          if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed) {
+          console.error('Error during payment polling:', e);
+          if (Date.now() - start < POLL_TIMEOUT_MS && paymentClaimed && backgroundVerifying) {
             setTimeout(poll, POLL_INTERVAL_MS);
           } else {
-            setPolling(false);
             setPaymentClaimed(false);
+            setBackgroundVerifying(false);
           }
         }
       };
+      
+      // Start polling after initial delay
       setTimeout(poll, POLL_INTERVAL_MS);
+      
     } catch (e) {
-      setPolling(false);
+      console.error('Error in handleIHavePaid:', e);
       setPaymentClaimed(false);
+      setBackgroundVerifying(false);
+      
+      addNotification({
+        type: 'wallet',
+        priority: 'high',
+        title: 'Verification Error',
+        message: 'Failed to start payment verification. Please try again or contact support.',
+        status: 'unread',
+        userId: 'current-user'
+      });
     }
   };
 
@@ -267,7 +343,7 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label="Amount (PKR)"
+            label="Amount (Wallet Credits)"
             type="number"
             inputProps={{ step: '0.01', min: '0.01' }}
             error={!!errors.amount}
@@ -289,7 +365,7 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
       {/* Current Balance Display */}
       <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid #e0e0e0' }}>
         <Typography variant="body2" color="textSecondary">
-          Current Wallet Balance: <strong>PKR {currentBalance.toFixed(2)}</strong>
+          Current Wallet Credits: <strong>{currentBalance.toFixed(2)}</strong>
         </Typography>
       </Box>
 
@@ -297,6 +373,30 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
       {error && (
         <Alert severity="error" sx={{ mt: 2 }}>
           {error}
+        </Alert>
+      )}
+
+      {/* Success Message */}
+      <Snackbar
+        open={showSuccessMessage}
+        autoHideDuration={5000}
+        onClose={() => setShowSuccessMessage(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setShowSuccessMessage(false)}>
+          Payment confirmed! Your wallet has been updated.
+        </Alert>
+      </Snackbar>
+
+      {/* Background Verification Status */}
+      {backgroundVerifying && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={16} />
+            <Typography variant="body2">
+              Verifying your payment in the background...
+            </Typography>
+          </Box>
         </Alert>
       )}
 
@@ -324,10 +424,10 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
               {/* Amount and Balance Info */}
               <Box textAlign="center">
                 <Typography variant="h4" color="primary" gutterBottom>
-                  PKR {qrResponse.suggestedAmount.toFixed(2)}
+                  {qrResponse.suggestedAmount.toFixed(2)} Wallet Credits
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Current Balance: PKR {qrResponse.currentBalance.toFixed(2)}
+                  Current Wallet Credits {qrResponse.currentBalance.toFixed(2)}
                 </Typography>
                 {qrResponse.expiresAt && (
                   <Box>
@@ -359,14 +459,14 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
                   Scan this QR code with any payment app to complete the payment
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  <strong>Amount: PKR {qrResponse.suggestedAmount.toFixed(2)}</strong> (embedded in QR code)
+                  <strong>Amount: {qrResponse.suggestedAmount.toFixed(2)} Wallet Credits</strong> (embedded in QR code)
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
                   Transaction Reference: {qrResponse.transactionReference}
                 </Typography>
                 {typeof qrResponse.effectiveAmount === 'number' && (
                   <Typography variant="body2" color="textSecondary">
-                    Amount: PKR {(qrResponse.effectiveAmount ?? qrResponse.suggestedAmount).toFixed(2)}
+                    Amount: {(qrResponse.effectiveAmount ?? qrResponse.suggestedAmount).toFixed(2)} Wallet Credits
                   </Typography>
                 )}
 
@@ -399,10 +499,9 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
               variant="contained" 
               color="success" 
               onClick={handleIHavePaid} 
-              disabled={refreshing || polling || paymentClaimed}
-              startIcon={(polling || paymentClaimed) ? <CircularProgress size={16} /> : null}
+              disabled={refreshing || backgroundVerifying}
             >
-              {paymentClaimed ? (polling ? 'Verifying...' : 'Payment Claimed') : "I've Paid"}
+              I've Paid
             </Button>
             <Button 
               variant="outlined" 

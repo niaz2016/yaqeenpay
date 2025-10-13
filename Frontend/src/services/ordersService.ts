@@ -1,6 +1,7 @@
 // src/services/ordersService.ts
 import api from './api';
 import notificationTrigger from './notificationTrigger';
+import productService from './productService';
 import type { Order, CreateOrderPayload, AcceptRejectPayload } from '../types/order';
 
 const base = '/orders';
@@ -477,18 +478,42 @@ export const ordersService = {
       currency: string;
     }>(`${base}/${orderId}/pay`);
     
-    // If payment was successful, trigger notification
+    // If payment was successful, trigger notification and reduce stock
     if (result.success) {
       try {
         // Get the order details to include in the notification
         const order = await this.getById(orderId);
+        
+        // Trigger payment confirmation notification
         await notificationTrigger.onPaymentConfirmed(order, {
           method: 'wallet',
           amount: result.frozenAmount,
           currency: result.currency
         });
+
+        // Reduce stock for products in the order (if any)
+        if (order.items && order.items.length > 0) {
+          const productsToReduce = order.items
+            .filter(item => item.productId) // Only items with product IDs
+            .map(item => ({
+              productId: item.productId!,
+              quantity: item.quantity
+            }));
+
+          if (productsToReduce.length > 0) {
+            console.log('[OrdersService] Reducing stock for products after payment:', productsToReduce);
+            await productService.bulkReduceStock(productsToReduce);
+            console.log('[OrdersService] Successfully reduced stock for all products');
+          } else {
+            console.log('[OrdersService] No products with IDs found in order items, skipping stock reduction');
+          }
+        } else {
+          console.log('[OrdersService] No items found in order, skipping stock reduction');
+        }
       } catch (error) {
-        console.warn('Failed to trigger payment confirmation notification:', error);
+        console.warn('Failed to trigger payment confirmation notification or reduce stock:', error);
+        // Note: We don't throw here because payment was successful, 
+        // we just log the error for notification/stock reduction failures
       }
     }
     

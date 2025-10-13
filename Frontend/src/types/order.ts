@@ -27,6 +27,7 @@ export type OrderStatus =
 
 export interface OrderItem {
   id?: string;
+  productId?: string; // Reference to the product in marketplace
   name: string;
   description?: string;
   quantity: number;

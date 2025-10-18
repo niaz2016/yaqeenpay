@@ -1,6 +1,0 @@
-### Test wallet transactions endpoint
-GET http://localhost:7137/api/wallet/transactions?page=1&pageSize=10
-Accept: application/json
-
-### Test with different user (need authentication)
-### This will help us see what data structure is being returned

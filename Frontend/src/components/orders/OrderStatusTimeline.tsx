@@ -300,31 +300,33 @@ const OrderStatusTimeline: React.FC<Props> = ({ order }) => {
     <Box>
       {loading && <LinearProgress sx={{ mb: 2 }} />}
       
-      <Stepper orientation="vertical" activeStep={timeline.findIndex(step => !step.completed)}>
+      <Stepper orientation="vertical" activeStep={-1}>
         {timeline.map((step) => (
-          <Step key={step.status} completed={step.completed}>
+          <Step key={step.status} completed={step.completed} expanded={true}>
             <StepLabel 
               icon={step.icon}
-              optional={step.note && (
-                <Chip label={step.note} size="small" color="primary" variant="outlined" />
-              )}
+              optional={
+                <>
+                  {step.note && (
+                    <Chip label={step.note} size="small" color="primary" variant="outlined" sx={{ mt: 0.5 }} />
+                  )}
+                </>
+              }
             >
-              <Typography variant="subtitle2">{step.label}</Typography>
-            </StepLabel>
-            <StepContent>
-              <Stack gap={0.5}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              <Box>
+                <Typography variant="subtitle2">{step.label}</Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
                   {step.timestamp
-                    ? `📅 ${new Date(step.timestamp).toLocaleDateString()} ${new Date(step.timestamp).toLocaleTimeString()}`
+                    ? `📅 ${new Date(step.timestamp).toLocaleDateString()} ⏰ ${new Date(step.timestamp).toLocaleTimeString()}`
                     : (step.completed 
                         ? '📅 Time information unavailable'
                         : '⏳ Pending...')}
                 </Typography>
-                {step.note && step.note !== 'Current status' && (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                    {step.note}
-                  </Typography>
-                )}
+              </Box>
+            </StepLabel>
+            <StepContent>
+              <Stack gap={0.5}>
+                {step.note && step.note !== 'Current status'}
               </Stack>
             </StepContent>
           </Step>

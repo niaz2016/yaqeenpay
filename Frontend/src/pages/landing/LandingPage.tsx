@@ -286,7 +286,7 @@ const LandingPage: React.FC = () => {
                 <Button
                   variant="outlined"
                   size="large"
-                  onClick={() => window.open('https://www.youtube.com/watch?v=fZlHcazNMrc&t=42s', '_blank', 'noopener,noreferrer')}
+                  onClick={() => window.open('https://www.youtube.com/watch?v=fZlHcazNMrc', '_blank', 'noopener,noreferrer')}
                   sx={{
                   color: 'white',
                   borderColor: 'rgba(255,255,255,0.7)',

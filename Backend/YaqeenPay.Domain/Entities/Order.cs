@@ -150,7 +150,8 @@ namespace YaqeenPay.Domain.Entities
             
             Status = OrderStatus.Completed;
             CompletedDate = DateTime.UtcNow;
-            IsAmountFrozen = false; // Unfreeze amount as order is completed
+            // Mark as unfrozen - actual wallet transfer happens in ConfirmDeliveryCommand
+            IsAmountFrozen = false;
         }
         
         public void Complete()

@@ -29,6 +29,7 @@ public interface IApplicationDbContext
     DbSet<NotificationPreference> NotificationPreferences { get; }
     DbSet<UserSettings> UserSettings { get; }
     DbSet<SettingsAudit> SettingsAudits { get; }
+    DbSet<UserDevice> UserDevices { get; }
     
     // Product Management
     DbSet<Category> Categories { get; }

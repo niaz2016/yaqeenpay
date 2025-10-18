@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rating API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #f44336;
+            background: #ffebee;
+            padding: 10px;
+            border-left: 4px solid #f44336;
+        }
+        .success {
+            color: #4CAF50;
+            background: #e8f5e9;
+            padding: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        label {
+            font-weight: bold;
+            display: inline-block;
+            width: 120px;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-online {
+            background: #4CAF50;
+            color: white;
+        }
+        .status-offline {
+            background: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌟 Rating System API Tester</h1>
+        <p>Test the backend rating endpoints to ensure everything is working correctly.</p>
+        
+        <div class="test-section">
+            <h3>Backend Status <span id="status-badge" class="status-badge status-offline">Checking...</span></h3>
+            <button onclick="checkBackendStatus()">Check Backend Connection</button>
+            <div id="status-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>1. Get User Rating Stats</h3>
+            <p>Test getting rating statistics for a user (public endpoint, no auth required)</p>
+            <div class="input-group">
+                <label>User ID:</label>
+                <input type="text" id="stats-user-id" placeholder="Enter user GUID" value="">
+            </div>
+            <button onclick="getUserStats()">Get Stats</button>
+            <div id="stats-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Get User Ratings</h3>
+            <p>Test getting ratings list for a user (public endpoint, no auth required)</p>
+            <div class="input-group">
+                <label>User ID:</label>
+                <input type="text" id="ratings-user-id" placeholder="Enter user GUID" value="">
+            </div>
+            <div class="input-group">
+                <label>Page:</label>
+                <input type="number" id="ratings-page" value="1" min="1" style="width: 80px;">
+                <label>Page Size:</label>
+                <input type="number" id="ratings-pagesize" value="10" min="1" max="50" style="width: 80px;">
+            </div>
+            <button onclick="getUserRatings()">Get Ratings</button>
+            <div id="ratings-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Submit Rating (Auth Required)</h3>
+            <p>Test submitting a new rating. Requires authentication token.</p>
+            <div class="input-group">
+                <label>Auth Token:</label>
+                <input type="text" id="auth-token" placeholder="Bearer token from localStorage" style="width: 400px;">
+                <button onclick="loadTokenFromStorage()">Load from Storage</button>
+            </div>
+            <div class="input-group">
+                <label>Order ID:</label>
+                <input type="text" id="submit-order-id" placeholder="Order GUID">
+            </div>
+            <div class="input-group">
+                <label>Reviewee ID:</label>
+                <input type="text" id="submit-reviewee-id" placeholder="User GUID to rate">
+            </div>
+            <div class="input-group">
+                <label>Score:</label>
+                <select id="submit-score">
+                    <option value="5">5 Stars ⭐⭐⭐⭐⭐</option>
+                    <option value="4">4 Stars ⭐⭐⭐⭐</option>
+                    <option value="3">3 Stars ⭐⭐⭐</option>
+                    <option value="2">2 Stars ⭐⭐</option>
+                    <option value="1">1 Star ⭐</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Category:</label>
+                <select id="submit-category">
+                    <option value="overall">Overall Experience</option>
+                    <option value="communication">Communication</option>
+                    <option value="reliability">Reliability</option>
+                    <option value="quality">Quality</option>
+                    <option value="speed">Speed/Efficiency</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Comment:</label>
+                <input type="text" id="submit-comment" placeholder="Optional comment" style="width: 400px;">
+            </div>
+            <button onclick="submitRating()">Submit Rating</button>
+            <div id="submit-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Check Rating Permission</h3>
+            <p>Check if a user can rate another user for an order (requires auth)</p>
+            <div class="input-group">
+                <label>Order ID:</label>
+                <input type="text" id="permission-order-id" placeholder="Order GUID">
+            </div>
+            <div class="input-group">
+                <label>Reviewee ID:</label>
+                <input type="text" id="permission-reviewee-id" placeholder="User GUID">
+            </div>
+            <button onclick="checkPermission()">Check Permission</button>
+            <div id="permission-result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api'; // Uses Vite proxy
+
+        // Load token from localStorage
+        function loadTokenFromStorage() {
+            const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+            if (token) {
+                document.getElementById('auth-token').value = token;
+                showResult('submit-result', 'Token loaded from localStorage', 'success');
+            } else {
+                showResult('submit-result', 'No token found in localStorage. Please login first.', 'error');
+            }
+        }
+
+        // Check backend status
+        async function checkBackendStatus() {
+            const statusBadge = document.getElementById('status-badge');
+            const resultDiv = document.getElementById('status-result');
+            
+            statusBadge.textContent = 'Checking...';
+            statusBadge.className = 'status-badge status-offline';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p>Testing connection to backend...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    statusBadge.textContent = 'Online';
+                    statusBadge.className = 'status-badge status-online';
+                    showResult('status-result', `Backend is online!\n${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                statusBadge.textContent = 'Offline';
+                statusBadge.className = 'status-badge status-offline';
+                showResult('status-result', `Backend connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Get user rating stats
+        async function getUserStats() {
+            const userId = document.getElementById('stats-user-id').value.trim();
+            if (!userId) {
+                showResult('stats-result', 'Please enter a User ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/ratings/stats/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Handle ApiResponse wrapper
+                    const stats = data.success ? data.data : data;
+                    showResult('stats-result', formatStats(stats), 'success');
+                } else {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('stats-result', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Get user ratings
+        async function getUserRatings() {
+            const userId = document.getElementById('ratings-user-id').value.trim();
+            const page = document.getElementById('ratings-page').value;
+            const pageSize = document.getElementById('ratings-pagesize').value;
+
+            if (!userId) {
+                showResult('ratings-result', 'Please enter a User ID', 'error');
+                return;
+            }
+
+            try {
+                const url = `${API_BASE_URL}/ratings?userId=${userId}&page=${page}&pageSize=${pageSize}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Handle ApiResponse wrapper
+                    const ratings = data.success ? data.data : data;
+                    showResult('ratings-result', formatRatings(ratings), 'success');
+                } else {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('ratings-result', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Submit rating
+        async function submitRating() {
+            const token = document.getElementById('auth-token').value.trim();
+            const orderId = document.getElementById('submit-order-id').value.trim();
+            const revieweeId = document.getElementById('submit-reviewee-id').value.trim();
+            const score = parseInt(document.getElementById('submit-score').value);
+            const category = document.getElementById('submit-category').value;
+            const comment = document.getElementById('submit-comment').value.trim();
+
+            if (!token) {
+                showResult('submit-result', 'Please provide an auth token', 'error');
+                return;
+            }
+            if (!orderId || !revieweeId) {
+                showResult('submit-result', 'Please provide Order ID and Reviewee ID', 'error');
+                return;
+            }
+
+            try {
+                const payload = {
+                    orderId,
+                    revieweeId,
+                    score,
+                    category,
+                    comment: comment || undefined
+                };
+
+                const response = await fetch(`${API_BASE_URL}/ratings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const result = data.success ? data.data : data;
+                    showResult('submit-result', `✅ Rating submitted successfully!\n\n${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('submit-result', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check rating permission
+        async function checkPermission() {
+            const token = document.getElementById('auth-token').value.trim();
+            const orderId = document.getElementById('permission-order-id').value.trim();
+            const revieweeId = document.getElementById('permission-reviewee-id').value.trim();
+
+            if (!token) {
+                showResult('permission-result', 'Please provide an auth token', 'error');
+                return;
+            }
+            if (!orderId || !revieweeId) {
+                showResult('permission-result', 'Please provide Order ID and Reviewee ID', 'error');
+                return;
+            }
+
+            try {
+                const url = `${API_BASE_URL}/ratings/permission?orderId=${orderId}&revieweeId=${revieweeId}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const permission = data.success ? data.data : data;
+                    showResult('permission-result', formatPermission(permission), 'success');
+                } else {
+                    throw new Error(data.message || `HTTP ${response.status}`);
+                }
+            } catch (error) {
+                showResult('permission-result', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Helper functions
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.innerHTML = `<pre>${message}</pre>`;
+        }
+
+        function formatStats(stats) {
+            return `User Rating Statistics:
+━━━━━━━━━━━━━━━━━━━━━━━
+⭐ Average Rating: ${stats.averageRating || 0} / 5
+📊 Total Ratings: ${stats.totalRatings || 0}
+✅ Positive Rate: ${stats.positivePercentage || 0}%
+
+Distribution:
+${formatDistribution(stats.ratingDistribution)}
+
+Category Averages:
+${formatCategories(stats.categoryAverages)}
+
+As Buyer: ${stats.asBuyer?.averageRating || 0} ⭐ (${stats.asBuyer?.totalRatings || 0} ratings)
+As Seller: ${stats.asSeller?.averageRating || 0} ⭐ (${stats.asSeller?.totalRatings || 0} ratings)
+
+Recent Ratings: ${stats.recentRatings?.length || 0} shown
+
+Full Response:
+${JSON.stringify(stats, null, 2)}`;
+        }
+
+        function formatDistribution(dist) {
+            if (!dist) return 'No data';
+            return Object.entries(dist)
+                .sort((a, b) => b[0] - a[0])
+                .map(([stars, count]) => `  ${'⭐'.repeat(parseInt(stars))}: ${count}`)
+                .join('\n');
+        }
+
+        function formatCategories(cats) {
+            if (!cats) return 'No data';
+            return Object.entries(cats)
+                .map(([cat, avg]) => `  ${cat}: ${avg}/5`)
+                .join('\n');
+        }
+
+        function formatRatings(ratings) {
+            if (!Array.isArray(ratings) || ratings.length === 0) {
+                return 'No ratings found';
+            }
+
+            let result = `Found ${ratings.length} rating(s):\n\n`;
+            ratings.forEach((rating, index) => {
+                result += `${index + 1}. ${'⭐'.repeat(rating.score)} (${rating.score}/5)
+   From: ${rating.reviewerName} (${rating.reviewerRole})
+   Category: ${rating.category}
+   Comment: ${rating.comment || 'No comment'}
+   Date: ${new Date(rating.createdAt).toLocaleString()}
+   
+`;
+            });
+
+            result += `\nFull Response:\n${JSON.stringify(ratings, null, 2)}`;
+            return result;
+        }
+
+        function formatPermission(permission) {
+            const canRate = permission.canRate ? '✅ Yes' : '❌ No';
+            let result = `Can Rate: ${canRate}\n`;
+            
+            if (permission.reason) {
+                result += `Reason: ${permission.reason}\n`;
+            }
+            
+            if (permission.existingRating) {
+                result += `\nExisting Rating Found:\n`;
+                result += `  Score: ${'⭐'.repeat(permission.existingRating.score)}\n`;
+                result += `  Comment: ${permission.existingRating.comment || 'None'}\n`;
+            }
+            
+            if (permission.deadline) {
+                result += `\nDeadline: ${new Date(permission.deadline).toLocaleString()}\n`;
+            }
+            
+            result += `\nFull Response:\n${JSON.stringify(permission, null, 2)}`;
+            return result;
+        }
+
+        // Auto-check backend status on load
+        window.addEventListener('load', () => {
+            checkBackendStatus();
+        });
+    </script>
+</body>
+</html>

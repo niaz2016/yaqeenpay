@@ -107,7 +107,6 @@ const AdminWithdrawals: React.FC = () => {
             withdrawal.currency || 'PKR',
             withdrawal.channel || withdrawal.paymentMethod || 'Bank Transfer'
           );
-          console.log('Withdrawal approval notification sent to user:', withdrawal.sellerId);
         } catch (notifError) {
           console.error('Failed to send withdrawal approval notification:', notifError);
           // Don't fail the whole approval process if notification fails

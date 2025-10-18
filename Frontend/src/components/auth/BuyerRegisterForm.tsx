@@ -21,6 +21,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { registerSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import type { z } from 'zod';
+import profileService from '../../services/profileService';
 
 type BuyerRegisterFormData = z.infer<typeof registerSchema>;
 
@@ -65,18 +66,33 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
         role: 'buyer', // Explicitly set role as buyer
         userName: data.userName || data.email,
       });
-      
-      setSuccess('Registration successful! Please check your email for verification.');
-      
-      // Redirect to verification page after short delay
+      // Request OTP to phone via profile verification endpoint
+      try {
+        await profileService.requestPhoneVerification(data.phoneNumber);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (/too many attempts/i.test(msg)) {
+          sessionStorage.setItem('otp_rate_limited', '1');
+        }
+        console.warn('Failed to request SMS OTP', e);
+      }
+
+      // Save pending login details for auto-login
+      sessionStorage.setItem('pending_login_email', data.email);
+      // Password not stored for security reasons
+      sessionStorage.setItem('pending_login_channel', 'phone');
+      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
+
+  setSuccess('Registration successful! An OTP has been sent to your mobile number.');
+
       setTimeout(() => {
-        navigate('/auth/verify-email', { 
+        navigate('/auth/verify-phone', { 
           state: { 
-            email: data.email,
-            channel: 'email',
+            phoneNumber: data.phoneNumber,
+            channel: 'phone',
           } 
         });
-      }, 1500);
+      }, 1200);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -178,8 +194,9 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
             render={({ field }) => (
               <TextField
                 {...field}
-                label="Phone Number"
+                label="Mobile Number"
                 fullWidth
+                required
                 error={!!errors.phoneNumber}
                 helperText={errors.phoneNumber?.message}
               />

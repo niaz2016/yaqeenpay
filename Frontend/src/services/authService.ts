@@ -4,6 +4,89 @@ import notificationTrigger from './notificationTrigger';
 import type { LoginCredentials, RegisterCredentials, TokenResponse, User, OtpVerification, PasswordReset } from '../types/auth';
 
 class AuthService {
+  private extractAuthPayload(responseData: any): { authData: any; message?: string } {
+    if (!responseData) {
+      throw new Error('Invalid response from server');
+    }
+
+    if (responseData.success === false) {
+      const errors = Array.isArray(responseData.errors) ? responseData.errors.filter(Boolean) : [];
+      const segments = [responseData.message, ...errors];
+      const message = segments.filter(Boolean).join(': ') || 'Authentication failed';
+      throw new Error(message);
+    }
+
+    if (responseData.success && responseData.data) {
+      return { authData: responseData.data, message: responseData.message }; 
+    }
+
+    if (responseData.token || responseData.Token) {
+      return { authData: responseData, message: responseData.message };
+    }
+
+    console.error('No authentication data found in response:', responseData);
+    throw new Error('Invalid response: No authentication token received');
+  }
+
+  private async finalizeLogin(authData: any): Promise<User> {
+    const token = authData.token || authData.Token;
+    const refreshToken = authData.refreshToken || authData.RefreshToken;
+    const tokenExpires = authData.tokenExpires || authData.TokenExpires;
+    const userId = authData.userId || authData.UserId;
+    const email = authData.email || authData.Email;
+    const userName = authData.userName || authData.UserName;
+
+    if (!token) {
+      console.error('No token found in auth data:', authData);
+      throw new Error('Invalid response: No authentication token received');
+    }
+
+    const tokenResponse: TokenResponse = {
+      accessToken: token,
+      refreshToken: refreshToken || '',
+      expiresIn: tokenExpires
+        ? Math.floor((new Date(tokenExpires).getTime() - Date.now()) / 1000)
+        : 3600,
+      token,
+      tokenExpires,
+      userId,
+      email,
+      userName
+    };
+
+    localStorage.setItem('access_token', token);
+
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    } else {
+      console.warn('No refresh token available to store');
+    }
+
+    const expiryTime = tokenExpires
+      ? new Date(tokenExpires).getTime()
+      : (Date.now() + (tokenResponse.expiresIn || 3600) * 1000);
+
+    localStorage.setItem('token_expiry', expiryTime.toString());
+
+    window.dispatchEvent(new CustomEvent('auth:tokens:updated'));
+
+    const user = await this.getCurrentUser();
+
+    try {
+      await notificationTrigger.onLoginSuccess({
+        location: 'Unknown location',
+        device: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      }, user.id);
+    } catch (error) {
+      console.warn('Failed to trigger login notification:', error);
+    }
+
+    window.dispatchEvent(new CustomEvent('auth:login'));
+
+    return user;
+  }
+
   async login(credentials: LoginCredentials): Promise<User> {
     try {
       
@@ -24,90 +107,21 @@ class AuthService {
       }
       
       const responseData = await response.json();
-      
-      // Extract data from ApiResponse wrapper
-      let authData;
-      if (responseData.success && responseData.data) {
-        // Backend returns ApiResponse<AuthenticationResponse>
-        authData = responseData.data;
-      } else if (responseData.token || responseData.Token) {
-        // Direct response format
-        authData = responseData;
-      } else {
-        console.error('No authentication data found in response:', responseData);
-        throw new Error('Invalid response: No authentication token received');
-      }
-      
-      
-      // Handle both camelCase and PascalCase property names from backend
-      const token = authData.token || authData.Token;
-      const refreshToken = authData.refreshToken || authData.RefreshToken;
-      const tokenExpires = authData.tokenExpires || authData.TokenExpires;
-      const userId = authData.userId || authData.UserId;
-      const email = authData.email || authData.Email;
-      const userName = authData.userName || authData.UserName;
-      
-      if (!token) {
-        console.error('No token found in auth data:', authData);
-        throw new Error('Invalid response: No authentication token received');
-      }
-      
-      // Map to expected token format
-      const tokenResponse: TokenResponse = {
-        accessToken: token,
-        refreshToken: refreshToken || '',
-        expiresIn: tokenExpires 
-          ? Math.floor((new Date(tokenExpires).getTime() - Date.now()) / 1000)
-          : 3600,
-        // Include original fields for backward compatibility
-        token: token,
-        tokenExpires: tokenExpires,
-        userId: userId,
-        email: email,
-        userName: userName
-      };
+      const { authData, message } = this.extractAuthPayload(responseData);
 
-      
-      // Explicitly set tokens in localStorage
-      localStorage.setItem('access_token', token);
-      
-      if (refreshToken) {
-        localStorage.setItem('refresh_token', refreshToken);
-      } else {
-        console.warn('No refresh token available to store');
-      }
-      
-      // Set expiry
-      const expiryTime = tokenExpires 
-        ? new Date(tokenExpires).getTime()
-        : (Date.now() + (tokenResponse.expiresIn || 3600) * 1000);
-        
-      localStorage.setItem('token_expiry', expiryTime.toString());
-      
-      // Token debug tools import removed due to missing module
-      // If needed, implement token processing here or ensure the module exists.
-      
-      // Dispatch event to notify about token changes
-      window.dispatchEvent(new CustomEvent('auth:tokens:updated'));
-      
-      // Fetch user profile after successful login
-      const user = await this.getCurrentUser();
-      
-      // Trigger login notification
-      try {
-        await notificationTrigger.onLoginSuccess({
-          location: 'Unknown location', // Could be enhanced with IP geolocation
-          device: navigator.userAgent,
-          timestamp: new Date().toISOString()
-        }, user.id);
-      } catch (error) {
-        console.warn('Failed to trigger login notification:', error);
+      const requiresDeviceVerification = authData.requiresDeviceVerification || authData.RequiresDeviceVerification;
+      const pendingDeviceId = authData.pendingDeviceId || authData.PendingDeviceId;
+
+      if (requiresDeviceVerification) {
+        const error = new Error('Device verification required') as any;
+        error.requiresDeviceVerification = true;
+        error.userId = authData.userId || authData.UserId;
+        error.deviceId = pendingDeviceId;
+        error.message = message || 'New device detected. Please verify with OTP.';
+        throw error;
       }
 
-      // Notify other parts of the app about login (used by NotificationContext to auto-refresh)
-      window.dispatchEvent(new CustomEvent('auth:login'));
-      
-      return user;
+      return await this.finalizeLogin(authData);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -133,6 +147,141 @@ class AuthService {
 
   async verifyOtp(verification: OtpVerification): Promise<{ success: boolean }> {
     return apiService.post<{ success: boolean }>('/auth/verify-otp', verification);
+  }
+
+  async verifyDevice(userId: string, deviceId: string, otp: string): Promise<User> {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7137/api'}/auth/verify-device`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, deviceId, otp }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Device verification failed');
+      }
+
+      const responseData = await response.json();
+      const { authData } = this.extractAuthPayload(responseData);
+
+      return await this.finalizeLogin(authData);
+    } catch (error) {
+      console.error('Device verification error:', error);
+      throw error;
+    }
+  }
+
+  async loginWithGoogle(idToken: string): Promise<User> {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7137/api'}/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('Google login failed:', errorData);
+        throw new Error(errorData?.message || 'Google sign-in failed');
+      }
+
+      const responseData = await response.json();
+      const { authData } = this.extractAuthPayload(responseData);
+
+      // Google login should never require device verification, but guard anyway.
+      const requiresDeviceVerification = authData.requiresDeviceVerification || authData.RequiresDeviceVerification;
+      if (requiresDeviceVerification) {
+        console.warn('Unexpected device verification requirement during Google login', authData);
+      }
+
+      return await this.finalizeLogin(authData);
+    } catch (error) {
+      console.error('Google login error:', error);
+      throw error;
+    }
+  }
+
+  async resendDeviceOtp(userId: string, deviceId: string): Promise<{
+    success: boolean;
+    message: string;
+    remainingAttempts: number;
+    nextAllowedAt: string;
+  }> {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7137/api'}/auth/resend-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, deviceId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to resend OTP');
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        return responseData.data;
+      } else {
+        throw new Error(responseData.message || 'Failed to resend OTP');
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      throw error;
+    }
+  }
+
+  // Request an OTP to be sent over the specified channel (phone or email)
+  async requestOtp(channel: 'email' | 'phone', target: string): Promise<{ success: boolean; expiresInSeconds?: number }>{
+    return apiService.post<{ success: boolean; expiresInSeconds?: number }>(
+      '/auth/request-otp',
+      { channel, target }
+    );
+  }
+
+  // Optional: resend OTP convenience wrapper with graceful fallback
+  // Tries /auth/resend-otp; if not implemented (404), falls back to /auth/request-otp
+  async resendOtp(channel: 'email' | 'phone', target: string): Promise<{ success: boolean }>{
+    const baseUrl = (import.meta.env.VITE_API_URL as string) || '/api';
+    try {
+      const response = await fetch(`${baseUrl}/api/profile/verify-phone/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, target })
+      });
+
+      if (response.status === 404) {
+        // Backend does not support a separate resend endpoint; issue a fresh OTP
+        const fallback = await this.requestOtp(channel, target);
+        return { success: !!fallback?.success };
+      }
+
+      if (!response.ok) {
+        // If other error, attempt a final fallback to request-otp
+        try {
+          const fallback = await this.requestOtp(channel, target);
+          return { success: !!fallback?.success };
+        } catch (fallbackErr) {
+          const errText = await response.text().catch(() => '');
+          throw new Error(errText || 'Failed to resend OTP');
+        }
+      }
+
+      const data = await response.json().catch(() => ({}));
+      return { success: !!(data?.success ?? true) };
+    } catch (error) {
+      // Network or other error: try request-otp as a last resort
+      const fallback = await this.requestOtp(channel, target);
+      return { success: !!fallback?.success };
+    }
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -167,8 +316,9 @@ class AuthService {
         state: userData.state,
         country: userData.country,
         postalCode: userData.postalCode,
-        isEmailVerified: userData.isEmailVerified,
-        isPhoneVerified: userData.isPhoneVerified,
+        isEmailVerified: userData.isEmailVerified ?? userData.emailConfirmed ?? false,
+        // Be tolerant to different backend property names
+        isPhoneVerified: (userData.isPhoneVerified ?? userData.phoneNumberConfirmed ?? userData.phoneConfirmed) ?? false,
         kycStatus: userData.kycStatus,
         profileCompleteness: userData.profileCompleteness,
         roles: userData.roles,

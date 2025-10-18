@@ -106,45 +106,25 @@ const SellerProductsPage: React.FC = () => {
         ...(selectedStatus && { status: selectedStatus })
       });
 
-      console.log('[SellerProductsPage] Fetching products with URL:', `/api/products/seller?${queryParams}`);
-      
       // Check both possible token keys
       const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-      console.log('[SellerProductsPage] Token exists:', !!token);
-      console.log('[SellerProductsPage] Token key used:', localStorage.getItem('access_token') ? 'access_token' : 'token');
-      console.log('[SellerProductsPage] Token value (first 20 chars):', token?.substring(0, 20));
-
       const response = await fetch(`/api/products/seller?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      console.log('[SellerProductsPage] Response status:', response.status);
-      console.log('[SellerProductsPage] Response ok:', response.ok);
-
       if (response.ok) {
-        const data = await response.json();
-        console.log('[SellerProductsPage] API Response:', data);
-        console.log('[SellerProductsPage] Response structure keys:', data ? Object.keys(data) : 'null');
-        console.log('[SellerProductsPage] data.data exists:', !!data.data);
-        console.log('[SellerProductsPage] data.data structure:', data.data ? Object.keys(data.data) : 'null');
-        
+        const data = await response.json();        
         // Check both possible data structures
         let productsArray = [];
         if (data.data?.products) {
           productsArray = data.data.products;
-          console.log('[SellerProductsPage] Using data.data.products:', productsArray.length);
         } else if (data.data?.items) {
           productsArray = data.data.items;
-          console.log('[SellerProductsPage] Using data.data.items:', productsArray.length);
-        } else {
-          console.log('[SellerProductsPage] No products or items found in response');
-        }
-        
+        } 
         setProducts(productsArray);
         setTotalPages(Math.ceil((data.data?.totalCount || 0) / 12));
-        console.log('[SellerProductsPage] Set products array length:', productsArray.length);
       } else {
         const errorText = await response.text();
         console.error('[SellerProductsPage] Failed response:', response.status, errorText);

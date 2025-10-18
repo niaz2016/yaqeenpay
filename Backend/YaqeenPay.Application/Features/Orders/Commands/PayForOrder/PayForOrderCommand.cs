@@ -104,16 +104,23 @@ public class PayForOrderCommandHandler : IRequestHandler<PayForOrderCommand, Pay
 
         try
         {
+            // PAYMENT FLOW - Step 1: Freeze funds in escrow
+            // This is the ONLY place where funds are frozen for the order
+            // On delivery confirmation, these frozen funds will be transferred to seller
+            
             // Mark payment pending if not already
             if (order.Status == Domain.Enums.OrderStatus.Created)
             {
                 order.MarkPaymentPending();
             }
 
-            // Freeze the amount in buyer's wallet
-            wallet.FreezeAmount(order.Amount, $"Payment for order {order.Id}");
+            // Step 1: Freeze the amount in buyer's wallet (moves from available to frozen balance)
+            // This does NOT deduct from total balance yet - just locks it
+            // Pass order reference so freeze transaction can be traced back to the order
+            wallet.FreezeAmount(order.Amount, $"Payment for order {order.Id}", order.Id, "Order");
 
-            // Confirm payment on the order
+            // Step 2: Mark payment as confirmed on the order
+            // This sets order.IsAmountFrozen = true and order.FrozenAmount = amount
             order.ConfirmPayment(order.Amount);
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -121,7 +128,7 @@ public class PayForOrderCommandHandler : IRequestHandler<PayForOrderCommand, Pay
             return new PayForOrderResponse
             {
                 Success = true,
-                Message = "Payment successful. Amount frozen in your wallet.",
+                Message = "Payment successful. Amount frozen in escrow pending delivery confirmation.",
                 OrderId = order.Id,
                 FrozenAmount = order.FrozenAmount!.Amount,
                 Currency = order.FrozenAmount!.Currency

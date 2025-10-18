@@ -20,13 +20,11 @@ ENV NUGET_PACKAGES=/root/.nuget/packages \
 	DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 
 # Restore dependencies using our custom NuGet.Config
-RUN dotnet restore --configfile NuGet.Config
+# Explicitly clear RestoreFallbackFolders to avoid Windows-specific DevExpress offline paths during container builds
+RUN dotnet restore --configfile NuGet.Config -p:RestoreFallbackFolders=
 
 # Copy source code
 COPY . .
-
-# Ensure no pre-existing obj/bin (in case .dockerignore missed anything)
-RUN find . -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} + || true
 
 # Build the application
 RUN dotnet build -c Release --no-restore

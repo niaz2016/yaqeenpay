@@ -1,5 +1,0 @@
-### Test Categories API
-GET http://localhost:7137/api/categories
-Accept: application/json
-
-###

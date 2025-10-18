@@ -1,5 +1,5 @@
 // src/components/auth/LoginForm.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -11,22 +11,54 @@ import {
   Link, 
   InputAdornment, 
   IconButton,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { loginSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
+import authService from '../../services/authService';
 import type { z } from 'zod';
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
-  const { login, error } = useAuth();
+  const { login, loginWithGoogle, error } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [otpError, setOtpError] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [remainingAttempts, setRemainingAttempts] = useState(3);
+  const [deviceVerificationData, setDeviceVerificationData] = useState<{
+    userId: string;
+    deviceId: string;
+    message: string;
+  } | null>(null);
+  const [googleError, setGoogleError] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const isChrome = useMemo(() => {
+    const ua = navigator.userAgent.toLowerCase();
+    const isChromium = ua.includes('chrome') || ua.includes('crios') || ua.includes('chromium');
+    const isEdge = ua.includes('edg/');
+    const isOpera = ua.includes('opr/') || ua.includes('opera');
+    return isChromium && !isEdge && !isOpera;
+  }, []);
+  const showGoogleSignIn = Boolean(clientId) && isChrome;
 
+  // Get pre-filled email and message from navigation state (post-OTP verification)
+  const locationState = location.state as { email?: string; message?: string } | undefined;
+  const prefilledEmail = locationState?.email || '';
+  const successMessage = locationState?.message || '';
 
   const { 
     control, 
@@ -35,7 +67,7 @@ const LoginForm: React.FC = () => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      email: prefilledEmail,
       password: '',
     },
   });
@@ -43,14 +75,202 @@ const LoginForm: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
-      await login(data.email, data.password);
+      const user = await login(data.email, data.password);
       
-      // Always redirect to dashboard after login
-      navigate('/dashboard', { replace: true });
+      // Redirect based on user role
+      // Buyers go to marketplace, sellers/admins go to dashboard
+      const userRoles = user?.roles || [];
+      const isBuyer = !userRoles.some((role: string) => 
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
       
-    } catch (err) {
+      if (isBuyer) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+      
+    } catch (err: any) {
+      // Check if device verification is required
+      if (err?.requiresDeviceVerification) {
+        setDeviceVerificationData({
+          userId: err.userId,
+          deviceId: err.deviceId,
+          message: err.message || 'New device detected. Please verify with OTP.'
+        });
+        setShowOtpDialog(true);
+        setCountdown(60); // Start 60 second countdown
+        setRemainingAttempts(3); // Reset attempts
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Error handling is managed by the auth context
       console.error('Login failed:', err);
+    } finally {
+      if (!showOtpDialog) {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  useEffect(() => {
+    if (!showGoogleSignIn || !clientId) {
+      return;
+    }
+
+  const resolvedClientId = clientId;
+  let cancelled = false;
+
+    const initializeGoogle = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const googleAccounts = window.google?.accounts?.id;
+      if (!googleAccounts) {
+        console.error('Google Identity Services SDK not available on window');
+        return;
+      }
+
+      googleAccounts.initialize({
+        client_id: resolvedClientId,
+        callback: async (credentialResponse: GoogleCredentialResponse) => {
+          if (!credentialResponse?.credential) {
+            setGoogleError('Google sign-in did not return a credential.');
+            return;
+          }
+
+          try {
+            setGoogleError('');
+            setGoogleLoading(true);
+            const user = await loginWithGoogle(credentialResponse.credential);
+
+            const userRoles = user?.roles || [];
+            const isBuyerRole = !userRoles.some((role: string) =>
+              role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+            );
+
+            if (isBuyerRole) {
+              navigate('/marketplace', { replace: true });
+            } else {
+              navigate('/dashboard', { replace: true });
+            }
+          } catch (err: any) {
+            console.error('Google sign-in failed:', err);
+            setGoogleError(err?.message || 'Google sign-in failed. Please try again.');
+          } finally {
+            setGoogleLoading(false);
+          }
+        },
+        cancel_on_tap_outside: true
+      });
+
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = '';
+        googleAccounts.renderButton(googleButtonRef.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          width: 280
+        });
+      }
+    };
+
+    if (window.google && window.google.accounts?.id) {
+      initializeGoogle();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    let script = document.getElementById('google-identity-service') as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'google-identity-service';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+
+    script.addEventListener('load', initializeGoogle);
+
+    return () => {
+      cancelled = true;
+      script?.removeEventListener('load', initializeGoogle);
+    };
+  }, [clientId, showGoogleSignIn, loginWithGoogle, navigate]);
+
+  useEffect(() => {
+    if (!showGoogleSignIn) {
+      setGoogleError('');
+      setGoogleLoading(false);
+    }
+  }, [showGoogleSignIn]);
+
+  const handleResendOtp = async () => {
+    if (!deviceVerificationData || countdown > 0) return;
+    
+    try {
+      setOtpError('');
+      const result = await authService.resendDeviceOtp(
+        deviceVerificationData.userId,
+        deviceVerificationData.deviceId
+      );
+      
+      setRemainingAttempts(result.remainingAttempts);
+      setCountdown(60); // Reset countdown
+      setOtpError(''); // Clear any previous errors
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to resend OTP');
+    }
+  };
+
+  const handleOtpSubmit = async () => {
+    if (!deviceVerificationData) return;
+    
+    if (otpValue.length !== 6) {
+      setOtpError('OTP must be 6 digits');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setOtpError('');
+      
+      const user = await authService.verifyDevice(
+        deviceVerificationData.userId,
+        deviceVerificationData.deviceId,
+        otpValue
+      );
+
+      setShowOtpDialog(false);
+      
+      // Redirect based on user role
+      const userRoles = user?.roles || [];
+      const isBuyer = !userRoles.some((role: string) => 
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
+      
+      if (isBuyer) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+      
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to verify OTP');
     } finally {
       setIsSubmitting(false);
     }
@@ -61,10 +281,17 @@ const LoginForm: React.FC = () => {
   };
 
   return (
+    <>
     <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%', mx: 'auto' }}>
       <Typography variant="h5" component="h1" gutterBottom align="center">
         Login to YaqeenPay
       </Typography>
+      
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {successMessage}
+        </Alert>
+      )}
       
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -133,6 +360,30 @@ const LoginForm: React.FC = () => {
         >
           {isSubmitting ? 'Logging in...' : 'Login'}
         </Button>
+
+        {showGoogleSignIn && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
+              Or continue with
+            </Typography>
+            {googleError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {googleError}
+              </Alert>
+            )}
+            <Box ref={googleButtonRef} sx={{ display: 'flex', justifyContent: 'center' }} />
+            {googleLoading && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                align="center"
+                sx={{ mt: 1, display: 'block' }}
+              >
+                Connecting to Google...
+              </Typography>
+            )}
+          </Box>
+        )}
         
         <Box sx={{ mt: 2, textAlign: 'center' }}>
           <Link component={RouterLink} to="/auth/forgot-password" variant="body2">
@@ -150,6 +401,72 @@ const LoginForm: React.FC = () => {
         </Box>
       </Box>
     </Paper>
+
+    {/* OTP Verification Dialog */}
+    <Dialog open={showOtpDialog} onClose={() => !isSubmitting && setShowOtpDialog(false)} maxWidth="sm" fullWidth>
+      <DialogTitle>Verify New Device</DialogTitle>
+      <DialogContent>
+        {deviceVerificationData && (
+          <>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {deviceVerificationData.message}
+            </Alert>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Please enter the 6-digit verification code sent to your registered phone number.
+            </Typography>
+            {otpError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {otpError}
+              </Alert>
+            )}
+            <TextField
+              label="Enter OTP"
+              value={otpValue}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setOtpValue(value);
+                setOtpError('');
+              }}
+              fullWidth
+              autoFocus
+              inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+              helperText="6-digit code"
+            />
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="caption" color="text.secondary">
+                Remaining attempts: {remainingAttempts}
+              </Typography>
+              {countdown > 0 ? (
+                <Typography variant="caption" color="text.secondary">
+                  Resend OTP in {countdown}s
+                </Typography>
+              ) : (
+                <Button
+                  size="small"
+                  onClick={handleResendOtp}
+                  disabled={isSubmitting || remainingAttempts <= 0}
+                >
+                  Resend OTP
+                </Button>
+              )}
+            </Box>
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => {
+          setShowOtpDialog(false);
+          setOtpValue('');
+          setOtpError('');
+        }} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button onClick={handleOtpSubmit} disabled={isSubmitting || otpValue.length !== 6} variant="contained">
+          {isSubmitting ? 'Verifying...' : 'Verify'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 };
 

@@ -58,19 +58,14 @@ class ProductService {
     try {
       // Use the existing profile upload endpoint for now
       // TODO: Create a dedicated product image upload endpoint
-      console.log('[ProductService] Uploading image file:', file.name, 'Size:', file.size);
       const response = await apiService.post<{ url: string }>('/profile/upload-image', formData);
-      console.log('[ProductService] Image upload response:', response);
-      console.log('[ProductService] Extracted URL:', response.url);
       
       if (!response.url || response.url.trim() === '') {
-        console.error('[ProductService] WARNING: Upload returned empty or invalid URL!', response);
         throw new Error('Upload endpoint returned empty URL');
       }
       
       return response.url;
     } catch (error) {
-      console.error('Error uploading image:', error);
       throw new Error('Failed to upload image');
     }
   }
@@ -132,11 +127,6 @@ class ProductService {
             return acc;
           }, {} as Record<string, string>) : {},
         images: imageUrls.map((img, index) => {
-          console.log(`[ProductService] Processing image ${index + 1}:`, {
-            originalImageUrl: img.imageUrl,
-            isPrimary: img.isPrimary,
-            sortOrder: index
-          });
           return {
             ImageUrl: img.imageUrl,
             AltText: `${productData.name} image ${index + 1}`,
@@ -145,10 +135,6 @@ class ProductService {
           };
         })
       };
-
-      console.log('[ProductService] Final createProductCommand:', JSON.stringify(createProductCommand, null, 2));
-      console.log('[ProductService] Images in command:', createProductCommand.images);
-
       const response = await apiService.post<{ id: string }>('/products', createProductCommand);
       
       return {
@@ -193,51 +179,12 @@ class ProductService {
       if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
 
       const url = `/products${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      console.log('[ProductService] Fetching products from:', url);
-      console.log('[ProductService] Parameters:', params);
-      
       const response = await apiService.get(url);
-      console.log('[ProductService] Products API response:', response);
-      console.log('[ProductService] Response type:', typeof response);
-      console.log('[ProductService] Response keys:', response ? Object.keys(response) : 'null');
       
       // Handle both PascalCase (C#) and camelCase (JavaScript) property names  
       const responseData = response as any;
       const items = responseData.items || responseData.Items || [];
       const totalCount = responseData.totalCount || responseData.TotalCount || 0;
-      
-      // Log detailed product information, especially images
-      if (items && Array.isArray(items) && items.length > 0) {
-        console.log('[ProductService] First product full details:', JSON.stringify(items[0], null, 2));
-        items.forEach((product: any, index: number) => {
-          console.log(`[ProductService] Product ${index + 1} images:`, product.images);
-          if (product.images && Array.isArray(product.images)) {
-            product.images.forEach((img: any, imgIndex: number) => {
-              console.log(`[ProductService] Product ${index + 1} Image ${imgIndex + 1} - ALL PROPERTIES:`, img);
-              console.log(`[ProductService] Product ${index + 1} Image ${imgIndex + 1} - STRUCTURED:`, {
-                id: img.id,
-                imageUrl: img.imageUrl,
-                ImageUrl: img.ImageUrl,
-                isPrimary: img.isPrimary,
-                IsPrimary: img.IsPrimary,
-                altText: img.altText,
-                AltText: img.AltText,
-                sortOrder: img.sortOrder,
-                SortOrder: img.SortOrder
-              });
-            });
-          }
-        });
-      }
-      
-      console.log('[ProductService] Response structure check:', {
-        hasSuccess: response && typeof response === 'object' && 'success' in response,
-        hasData: response && typeof response === 'object' && 'data' in response,
-        hasItems: responseData.items || responseData.Items,
-        hasItemsUppercase: !!responseData.Items,
-        hasItemsLowercase: !!responseData.items,
-        hasTotalCount: responseData.totalCount || responseData.TotalCount
-      });
       
       // Return normalized structure with lowercase property names for frontend consistency
       const normalizedResponse = {
@@ -247,18 +194,8 @@ class ProductService {
         pageSize: responseData.pageSize || responseData.PageSize || items.length,
         totalPages: responseData.totalPages || responseData.TotalPages || Math.ceil(totalCount / (responseData.pageSize || responseData.PageSize || 12))
       };
-      
-      console.log('[ProductService] Returning normalized response:', normalizedResponse);
-      
       return normalizedResponse;
     } catch (error: any) {
-      console.error('[ProductService] Error fetching products:', error);
-      console.error('[ProductService] Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      });
       throw error;
     }
   }
@@ -287,9 +224,7 @@ class ProductService {
   // Get product by ID
   async getProductById(productId: string): Promise<ProductResponse> {
     try {
-      console.log('[ProductService] Fetching product by ID:', productId);
       const response = await apiService.get(`/products/${productId}`);
-      console.log('[ProductService] Product details response:', response);
       
       // Handle both PascalCase (C#) and camelCase (JavaScript) property names
       const data = response as any;
@@ -338,86 +273,57 @@ class ProductService {
     newImages?: Array<{ file: File; isPrimary: boolean }>;
   }): Promise<ProductResponse> {
     try {
-      console.log('[ProductService] Updating product:', productId, updateData);
-      
-      // Upload new images first if any
-      let newImageUrls: Array<{ imageUrl: string; isPrimary: boolean }> = [];
+      // Upload any new images first
+      let uploadedImages: Array<{ imageUrl: string; isPrimary: boolean }> = [];
       if (updateData.newImages && updateData.newImages.length > 0) {
-        console.log('[ProductService] Uploading new images...');
-        newImageUrls = await Promise.all(
-          updateData.newImages.map(async (imageData) => {
-            const imageUrl = await this.uploadImage(imageData.file);
-            return {
-              imageUrl,
-              isPrimary: imageData.isPrimary
-            };
-          })
-        );
-        console.log('[ProductService] New images uploaded:', newImageUrls);
+        uploadedImages = await this.uploadImages(updateData.newImages);
       }
 
-      // Prepare the update payload
-      const payload = {
-        id: productId,
-        categoryId: updateData.categoryId,
+      // Prepare update payload expected by backend
+      const updateCommand: any = {
         name: updateData.name,
         description: updateData.description,
-        shortDescription: '', // Add default short description
         price: updateData.price,
         currency: updateData.currency,
         discountPrice: updateData.discountPrice,
         stockQuantity: updateData.stockQuantity,
-        minOrderQuantity: 1, // Add default min order quantity
-        maxOrderQuantity: 999999, // Add default max order quantity
-        weight: 0, // Add default weight
-        weightUnit: 'kg', // Add default weight unit
-        dimensions: null, // Add default dimensions
-        brand: null, // Add default brand
-        model: null, // Add default model
-        color: null, // Add default color
-        size: null, // Add default size
-        material: null, // Add default material
-        allowBackorders: false, // Add default allow backorders
-        status: updateData.status === 'Active' ? 'Active' : updateData.status === 'Inactive' ? 'Inactive' : 'Draft',
-        tags: [], // Add default tags
-        attributes: {}, // Add default attributes
-        // Include image operations
-        imagesToDelete: updateData.imagesToDelete || [],
-        newImages: newImageUrls.map(img => ({
-          imageUrl: img.imageUrl,
-          isPrimary: img.isPrimary,
-          altText: '', // Could be enhanced to accept alt text
-          sortOrder: 0 // Could be enhanced to accept sort order
-        }))
+        categoryId: updateData.categoryId,
+        status: updateData.status,
       };
 
-      console.log('[ProductService] Update payload:', payload);
-      const response = await apiService.put(`/products/${productId}`, payload);
-      console.log('[ProductService] Product updated successfully:', response);
-      
-      // Fetch and return the updated product
+      // Include images to delete if provided
+      if (updateData.imagesToDelete && updateData.imagesToDelete.length > 0) {
+        updateCommand.imagesToDelete = updateData.imagesToDelete;
+      }
+
+      // Include newly uploaded images in backend format if any
+      if (uploadedImages.length > 0) {
+        updateCommand.newImages = uploadedImages.map((img, index) => ({
+          ImageUrl: img.imageUrl,
+          AltText: `${updateData.name} image ${index + 1}`,
+          SortOrder: index,
+          IsPrimary: img.isPrimary
+        }));
+      }
+
+      // Send update request to API
+      await apiService.put(`/products/${productId}`, updateCommand);
+
+      // Return the freshly fetched product
       return await this.getProductById(productId);
-      
     } catch (error) {
       console.error('Error updating product:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to update product');
+      throw error;
     }
   }
 
   // Reduce stock quantity when payment is made
   async reduceStock(productId: string, quantity: number): Promise<void> {
     try {
-      console.log(`[ProductService] Reducing stock for product ${productId} by ${quantity}`);
-      
       const response = await apiService.post<{ success: boolean; message: string; newStockQuantity: number }>(
         `/products/${productId}/reduce-stock`, 
         { quantity }
       );
-      
-      console.log('[ProductService] Stock reduction response:', response);
       
       if (!response.success) {
         throw new Error(response.message || 'Failed to reduce stock');
@@ -434,14 +340,10 @@ class ProductService {
   // Bulk reduce stock for multiple products (for orders with multiple items)
   async bulkReduceStock(items: Array<{ productId: string; quantity: number }>): Promise<void> {
     try {
-      console.log('[ProductService] Bulk reducing stock for items:', items);
-      
       const response = await apiService.post<{ success: boolean; message: string; results: Array<{ productId: string; success: boolean; newStockQuantity?: number; error?: string }> }>(
         '/products/bulk-reduce-stock', 
         { items }
       );
-      
-      console.log('[ProductService] Bulk stock reduction response:', response);
       
       if (!response.success) {
         throw new Error(response.message || 'Failed to reduce stock for some items');

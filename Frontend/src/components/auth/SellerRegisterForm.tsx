@@ -23,6 +23,7 @@ import { Visibility, VisibilityOff, ArrowBack, Store } from '@mui/icons-material
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '../../context/AuthContext';
+import profileService from '../../services/profileService';
 
 // Extended schema for seller registration
 const sellerRegisterSchema = z.object({
@@ -139,7 +140,25 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
       };
 
       await register(registrationData);
-      navigate('/seller/register'); // Redirect to seller registration completion
+
+      // Request SMS OTP to phone via profile verification endpoint
+      try {
+        await profileService.requestPhoneVerification(data.phoneNumber);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (/too many attempts/i.test(msg)) {
+          sessionStorage.setItem('otp_rate_limited', '1');
+        }
+        console.warn('Failed to request SMS OTP', e);
+      }
+
+      // Save pending login creds to auto-login after OTP
+      sessionStorage.setItem('pending_login_email', data.email);
+      // Password not stored for security reasons
+      sessionStorage.setItem('pending_login_channel', 'phone');
+      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
+
+      navigate('/auth/verify-phone', { state: { phoneNumber: data.phoneNumber, channel: 'phone' } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -213,7 +232,7 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
         render={({ field }) => (
           <TextField
             {...field}
-            label="Phone Number"
+            label="Mobile Number"
             fullWidth
             error={!!errors.phoneNumber}
             helperText={errors.phoneNumber?.message}

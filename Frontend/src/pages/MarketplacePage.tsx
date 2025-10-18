@@ -17,7 +17,8 @@ import {
     Alert,
     Pagination,
     Fab,
-    Badge
+    Badge,
+    Stack
 } from '@mui/material';
 import {
     Search as SearchIcon,
@@ -30,6 +31,10 @@ import { useAuth } from '../context/AuthContext';
 import productService from '../services/productService';
 import categoryService, { type Category } from '../services/categoryService';
 import cartService from '../services/cartService';
+import ratingService from '../services/ratingService';
+import RatingStars from '../components/rating/RatingStars';
+import RatingBadge from '../components/rating/RatingBadge';
+import type { RatingStats } from '../types/rating';
 
 interface Product {
     id: string;
@@ -65,6 +70,11 @@ interface Product {
     effectivePrice: number;
 }
 
+// Marketplace Configuration
+const PRODUCTS_PER_PAGE = 12; // Number of products to load per page
+const SEARCH_MIN_CHARS = 3;   // Minimum characters required for search
+const SEARCH_DEBOUNCE_MS = 500; // Debounce delay in milliseconds
+
 const MarketplacePage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -72,10 +82,10 @@ const MarketplacePage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
-
-    console.log('MarketplacePage rendered, selectedCategory:', selectedCategory);
+    const [sellerRatings, setSellerRatings] = useState<Record<string, RatingStats>>({});
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [cartCount, setCartCount] = useState(0);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -84,18 +94,43 @@ const MarketplacePage: React.FC = () => {
     // Check if user is a seller
     const isSeller = user?.roles?.some((role: string) => role.toLowerCase() === 'seller');
 
+    // Load seller ratings when products change
+    useEffect(() => {
+        const loadSellerRatings = async () => {
+            const sellerIds = [...new Set(products.map(p => p.seller?.id).filter(Boolean))];
+            const ratingsMap: Record<string, RatingStats> = {};
+            
+            await Promise.all(
+                sellerIds.map(async (sellerId) => {
+                    if (sellerId) {
+                        try {
+                            const stats = await ratingService.getRatingStats(sellerId);
+                            ratingsMap[sellerId] = stats;
+                        } catch (error) {
+                            console.error(`Failed to load ratings for seller ${sellerId}:`, error);
+                        }
+                    }
+                })
+            );
+            
+            setSellerRatings(ratingsMap);
+        };
+
+        if (products.length > 0) {
+            loadSellerRatings();
+        }
+    }, [products]);
+
     // Load categories on mount
     useEffect(() => {
         const loadCategories = async () => {
             try {
-                console.log('Loading categories from backend...');
                 setCategoriesLoading(true);
 
                 // Clear cache to ensure fresh data
                 categoryService.clearCache();
 
                 const fetchedCategories = await categoryService.getCategories();
-                console.log('Fetched categories:', fetchedCategories);
                 setCategories(fetchedCategories);
             } catch (error) {
                 console.error('Failed to load categories:', error);
@@ -110,10 +145,24 @@ const MarketplacePage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        fetchProducts();
-        if (!isSeller) {
-            fetchCartCount();
+        // Debounce search: only search after user stops typing for 500ms
+        // and only if search term is empty or at least 3 characters
+        const shouldSearch = search === '' || search.length >= SEARCH_MIN_CHARS;
+        
+        if (!shouldSearch) {
+            // Don't search if less than 3 characters (but not empty)
+            // Don't update loading state to prevent unnecessary re-renders
+            return;
         }
+
+        const timeoutId = setTimeout(() => {
+            fetchProducts();
+            if (!isSeller) {
+                fetchCartCount();
+            }
+        }, SEARCH_DEBOUNCE_MS); // Configurable debounce delay
+
+        return () => clearTimeout(timeoutId);
     }, [page, search, selectedCategory, isSeller]);
 
     // Listen for cart updates from other components
@@ -137,84 +186,52 @@ const MarketplacePage: React.FC = () => {
 
             const params = {
                 page: page,
-                pageSize: 12,
+                pageSize: PRODUCTS_PER_PAGE,
                 ...(search && { search }),
                 ...(selectedCategory && selectedCategory !== '' && { categoryId: selectedCategory })
             };
-
-            console.log('[MarketplacePage] Fetching products with params:', params);
-            console.log('[MarketplacePage] User is seller:', isSeller);
-            console.log('[MarketplacePage] Using endpoint:', isSeller ? '/products/seller' : '/products');
 
             // Use different service method based on user role
             const data = isSeller
                 ? await productService.getSellerProducts(params)
                 : await productService.getProducts(params);
 
-            console.log('[MarketplacePage] API Response:', data);
-            console.log('[MarketplacePage] API Response Type:', typeof data);
-            console.log('[MarketplacePage] API Response Keys:', data ? Object.keys(data) : 'null');
-
             // Handle different response structures
             let productsArray = [];
             let totalCount = 0;
 
-            console.log('[MarketplacePage] Processing response data...');
-            console.log('[MarketplacePage] data.success:', data?.success);
-            console.log('[MarketplacePage] data.data exists:', !!data?.data);
-            console.log('[MarketplacePage] data.data structure:', data?.data ? Object.keys(data.data) : 'N/A');
-
             if (data && typeof data === 'object' && 'items' in data) {
                 // ApiService has already unwrapped the response, data is the inner data object
-                console.log('[MarketplacePage] Direct data object with items');
-                console.log('[MarketplacePage] data.items exists:', !!data.items);
-                console.log('[MarketplacePage] data.items is array:', Array.isArray(data.items));
-                console.log('[MarketplacePage] data.items length:', data.items?.length);
-
                 productsArray = Array.isArray(data.items) ? data.items : [];
                 totalCount = data.totalCount || data.total || productsArray.length;
 
-                console.log('[MarketplacePage] Extracted productsArray:', productsArray);
-                console.log('[MarketplacePage] Extracted totalCount:', totalCount);
             } else if (data.success && data.data) {
                 // API response wrapper format (if not unwrapped)
-                console.log('[MarketplacePage] Wrapped response format');
-                console.log('[MarketplacePage] data.data.items exists:', !!data.data.items);
-                console.log('[MarketplacePage] data.data.items is array:', Array.isArray(data.data.items));
-                console.log('[MarketplacePage] data.data.items length:', data.data.items?.length);
 
                 productsArray = Array.isArray(data.data.products) ? data.data.products :
                     Array.isArray(data.data.items) ? data.data.items :
                         Array.isArray(data.data) ? data.data : [];
                 totalCount = data.data.totalCount || data.data.total || productsArray.length;
 
-                console.log('[MarketplacePage] Extracted productsArray:', productsArray);
-                console.log('[MarketplacePage] Extracted totalCount:', totalCount);
             } else if (Array.isArray(data)) {
                 // Direct array response
                 productsArray = data;
                 totalCount = data.length;
-                console.log('[MarketplacePage] Direct array response:', productsArray.length);
             } else if (data.products && Array.isArray(data.products)) {
                 // Products property
                 productsArray = data.products;
                 totalCount = data.totalCount || data.total || productsArray.length;
-                console.log('[MarketplacePage] Products property response:', productsArray.length);
             } else {
                 // Fallback to empty array
                 productsArray = [];
                 totalCount = 0;
-                console.log('[MarketplacePage] Fallback to empty array');
             }
 
-            console.log('[MarketplacePage] Final productsArray before setProducts:', productsArray);
-            console.log('[MarketplacePage] Final productsArray length:', productsArray.length);
-
             setProducts(productsArray);
-            setTotalPages(Math.ceil(totalCount / 12));
+            setTotalCount(totalCount);
+            setTotalPages(Math.ceil(totalCount / PRODUCTS_PER_PAGE));
             setError(null);
         } catch (error: any) {
-            console.error('[MarketplacePage] Error fetching products:', error);
 
             // Check for CategoryId validation error
             if (error?.response?.data?.errors?.CategoryId) {
@@ -238,7 +255,6 @@ const MarketplacePage: React.FC = () => {
             // Use local cart service instead of API
             const totalItems = cartService.getTotalItems();
             setCartCount(totalItems);
-            console.log('[MarketplacePage] Cart count updated:', totalItems);
         } catch (error) {
             console.error('Error fetching cart count:', error);
         }
@@ -246,7 +262,6 @@ const MarketplacePage: React.FC = () => {
 
     const handleAddToCart = async (product: Product) => {
         try {
-            console.log('[MarketplacePage] Adding to cart:', product.name);
 
             const success = cartService.addToCart(
                 {
@@ -266,13 +281,11 @@ const MarketplacePage: React.FC = () => {
                 // Update cart count
                 const newCartCount = cartService.getTotalItems();
                 setCartCount(newCartCount);
-                console.log('Product added to cart successfully from marketplace');
                 // Could add a success notification here
             } else {
                 setError('Failed to add item to cart');
             }
         } catch (error) {
-            console.error('Error adding item to cart:', error);
             setError('Error adding item to cart');
         }
     };
@@ -285,63 +298,19 @@ const MarketplacePage: React.FC = () => {
     };
 
     const getPrimaryImage = (images: Array<{ imageUrl?: string; ImageUrl?: string; isPrimary?: boolean; IsPrimary?: boolean }>) => {
-        console.log('🖼️ [getPrimaryImage] === IMAGE DEBUG START ===');
-        console.log('🖼️ [getPrimaryImage] Images array:', images);
-        console.log('🖼️ [getPrimaryImage] Images array length:', images?.length);
-        console.log('🖼️ [getPrimaryImage] Images array type:', typeof images, Array.isArray(images));
-
-        if (images && images.length > 0) {
-            images.forEach((img, index) => {
-                console.log(`🖼️ [getPrimaryImage] Image ${index}:`, {
-                    imageUrl: img.imageUrl,
-                    ImageUrl: img.ImageUrl,
-                    isPrimary: img.isPrimary,
-                    IsPrimary: img.IsPrimary,
-                    fullObject: img
-                });
-            });
-        }
-
         // Handle both C# (IsPrimary) and JavaScript (isPrimary) naming conventions
         const primary = images?.find(img => img.isPrimary || img.IsPrimary);
         // Handle both possible property names for imageUrl
         const primaryUrl = primary?.imageUrl || primary?.ImageUrl;
         const fallbackUrl = images?.[0]?.imageUrl || images?.[0]?.ImageUrl;
 
-        console.log('🖼️ [getPrimaryImage] Primary image object:', primary);
-        console.log('🖼️ [getPrimaryImage] Primary image URL:', primaryUrl);
-        console.log('🖼️ [getPrimaryImage] Fallback image URL:', fallbackUrl);
-
         // Check for valid URLs (not empty strings)
         const validPrimaryUrl = primaryUrl && primaryUrl.trim() !== '' ? primaryUrl : null;
         const validFallbackUrl = fallbackUrl && fallbackUrl.trim() !== '' ? fallbackUrl : null;
 
-        console.log('🖼️ [getPrimaryImage] Valid primary URL:', validPrimaryUrl);
-        console.log('🖼️ [getPrimaryImage] Valid fallback URL:', validFallbackUrl);
-
         // Use data URL for local placeholder to avoid external requests
         const localPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5QUk9EVUNUIElNQUdFPC90eXBlPgo8L3N2Zz4=';
-        const finalUrl = validPrimaryUrl || validFallbackUrl || localPlaceholder;
-        console.log('🖼️ [getPrimaryImage] Final selected URL:', finalUrl);
-
-        // Test if the URL is actually reachable (only for real URLs, not placeholders)
-        if (finalUrl && !finalUrl.startsWith('data:')) {
-            console.log('🌐 [getPrimaryImage] Testing URL accessibility:', finalUrl);
-            fetch(finalUrl, { method: 'HEAD' })
-                .then(response => {
-                    console.log(`🌐 [getPrimaryImage] URL ${finalUrl} status:`, response.status, response.statusText);
-                    if (!response.ok) {
-                        console.error(`🌐 [getPrimaryImage] URL ${finalUrl} is not accessible!`);
-                    }
-                })
-                .catch(error => {
-                    console.error(`🌐 [getPrimaryImage] Failed to reach URL ${finalUrl}:`, error);
-                });
-        }
-
-        console.log('🖼️ [getPrimaryImage] === IMAGE DEBUG END ===');
-
-        return finalUrl;
+        return validPrimaryUrl || validFallbackUrl || localPlaceholder;
     };
 
     const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
@@ -371,15 +340,6 @@ const MarketplacePage: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     {isSeller && (
                         <>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<AddIcon />}
-                                onClick={() => navigate('/seller/products/new')}
-                                sx={{ mr: 1 }}
-                            >
-                                Add New Product
-                            </Button>
                             <Button
                                 variant="outlined"
                                 onClick={() => navigate('/seller/marketplace')}
@@ -421,6 +381,11 @@ const MarketplacePage: React.FC = () => {
                                     </InputAdornment>
                                 ),
                             }}
+                            helperText={
+                                search.length > 0 && search.length < SEARCH_MIN_CHARS
+                                    ? `Enter at least ${SEARCH_MIN_CHARS} characters to search`
+                                    : ''
+                            }
                             sx={{ flex: 1 }}
                         />
                         {/* Temporary: Add both native and MUI selects for testing */}
@@ -433,7 +398,6 @@ const MarketplacePage: React.FC = () => {
                                     labelId="marketplace-category-label"
                                     value={selectedCategory}
                                     onChange={(e) => {
-                                        console.log('MUI Category selected:', e.target.value);
                                         setSelectedCategory(e.target.value);
                                     }}
                                     label="Category"
@@ -493,10 +457,6 @@ const MarketplacePage: React.FC = () => {
 
             {/* Products Grid */}
             {(() => {
-                console.log('[MarketplacePage] RENDER - products:', products);
-                console.log('[MarketplacePage] RENDER - products.length:', products.length);
-                console.log('[MarketplacePage] RENDER - loading:', loading);
-                console.log('[MarketplacePage] RENDER - error:', error);
                 return null;
             })()}
             {products.length === 0 ? (
@@ -515,6 +475,17 @@ const MarketplacePage: React.FC = () => {
                 </Card>
             ) : (
                 <>
+                    {/* Product Count Display */}
+                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Showing {((page - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(page * PRODUCTS_PER_PAGE, totalCount)} of {totalCount} products
+                            {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                            {PRODUCTS_PER_PAGE} per page
+                        </Typography>
+                    </Box>
+
                     <Box sx={{
                         display: 'grid',
                         gridTemplateColumns: {
@@ -532,6 +503,7 @@ const MarketplacePage: React.FC = () => {
                                     height="200"
                                     image={getPrimaryImage(product.images)}
                                     alt={product.name}
+                                    loading="lazy"
                                     sx={{
                                         objectFit: 'cover',
                                         cursor: 'pointer',
@@ -539,7 +511,6 @@ const MarketplacePage: React.FC = () => {
                                     }}
                                     onClick={() => navigate(`/products/${product.id}`)}
                                     onError={(e) => {
-                                        console.log('[CardMedia] Image load error for product:', product.name);
                                         const target = e.target as HTMLImageElement;
                                         // Use same local placeholder as getPrimaryImage function
                                         target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
@@ -556,9 +527,25 @@ const MarketplacePage: React.FC = () => {
                                     </Typography>
 
                                     {product.seller && (
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            By: {product.seller.businessName}
-                                        </Typography>
+                                        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                By: {product.seller.businessName}
+                                            </Typography>
+                                            {sellerRatings[product.seller.id] && sellerRatings[product.seller.id].totalRatings > 0 && (
+                                                <>
+                                                    <RatingBadge stats={sellerRatings[product.seller.id]} size="small" />
+                                                    <RatingStars 
+                                                        value={sellerRatings[product.seller.id].averageRating} 
+                                                        readonly 
+                                                        size="small"
+                                                        showValue
+                                                    />
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        ({sellerRatings[product.seller.id].totalRatings})
+                                                    </Typography>
+                                                </>
+                                            )}
+                                        </Stack>
                                     )}
 
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

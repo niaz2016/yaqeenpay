@@ -1,9 +1,0 @@
-### Test Products API with Seller Information
-GET http://localhost:5000/api/products
-Content-Type: application/json
-
-###
-
-# Test with specific parameters
-GET http://localhost:5000/api/products?page=1&pageSize=5
-Content-Type: application/json

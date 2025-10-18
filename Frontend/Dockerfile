@@ -7,18 +7,15 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install all dependencies (need devDependencies for TypeScript build)
-# Using 'npm install' instead of 'npm ci' because package-lock.json not yet updated with new dependency.
-# After committing an updated lock file you can revert to faster, reproducible 'npm ci'.
-RUN npm install
+# Using 'npm install --legacy-peer-deps' to tolerate older packages that have not yet declared React 19 support.
+# After aligning peer dependency ranges you can revert to 'npm ci' for reproducible installs.
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
 # Build the application
 RUN npm run build
-
-# (Optional) Reduce node_modules to production only for any subsequent usage in this stage
-RUN npm prune --production
 
 # Production stage
 FROM nginx:alpine AS production

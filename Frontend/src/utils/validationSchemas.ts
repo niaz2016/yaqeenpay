@@ -12,7 +12,13 @@ export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   // userName is optional in the form; we'll default to email when sending
   userName: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  // Phone is required to enable SMS OTP verification on signup
+  phoneNumber: z
+    .string()
+    .min(10, 'Phone number is required')
+    .regex(/^[+]?\d[\d\s()-]{8,}$/,
+      'Enter a valid phone number (e.g., +92 300 1234567 or 0300-1234567)'
+    ),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

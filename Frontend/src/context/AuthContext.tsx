@@ -5,7 +5,8 @@ import authService from '../services/authService';
 
 // Define context types
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (idToken: string) => Promise<User>;
   register: (formData: any) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -158,13 +159,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login function
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const user = await authService.login({ email, password });
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+      return user;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string): Promise<User> => {
+    dispatch({ type: 'LOGIN_START' });
+    try {
+      const user = await authService.loginWithGoogle(idToken);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+      return user;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Google sign-in failed';
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw error;
     }
@@ -216,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const contextValue: AuthContextType = {
     ...state,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUser,

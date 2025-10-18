@@ -127,8 +127,6 @@ const ProductDetailPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      console.log('[ProductDetailPage] Fetching product:', id);
-      
       // Since the backend doesn't have a GET /products/{id} endpoint,
       // we'll fetch all products and filter by ID
       const response = await fetch('/api/products?pageSize=1000', {
@@ -137,12 +135,8 @@ const ProductDetailPage: React.FC = () => {
         }
       });
 
-      console.log('[ProductDetailPage] Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('[ProductDetailPage] Products API response:', data);
-        
         // Handle ApiResponse wrapper - the response should have success and data fields
         let productsList = [];
         if (data.success && data.data && data.data.items) {
@@ -157,16 +151,11 @@ const ProductDetailPage: React.FC = () => {
           return;
         }
         
-        console.log('[ProductDetailPage] Products list:', productsList);
-        console.log('[ProductDetailPage] Looking for product ID:', id);
         
         // Find the specific product by ID
         const foundProduct = productsList.find((product: any) => product.id === id);
         
-        console.log('[ProductDetailPage] Found product:', foundProduct);
-        
         if (foundProduct) {
-          console.log('[ProductDetailPage] Found product images:', foundProduct.images);
           foundProduct.images.forEach((img: any, index: number) => {
             console.log(`[ProductDetailPage] Image ${index + 1}:`, {
               id: img.id,
@@ -202,12 +191,9 @@ const ProductDetailPage: React.FC = () => {
       setAddingToCart(true);
       setError(null);
       
-      console.log('[ProductDetailPage] Adding to cart:', { productId: product.id, quantity });
-      
       const success = cartService.addToCart(product, quantity);
       
       if (success) {
-        console.log('Product added to cart successfully');
         setAddedToCart(true);
         setQuantity(1);
         
@@ -301,16 +287,13 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const getImageUrl = (imageUrl: string) => {
-    console.log('[ProductDetailPage] getImageUrl called with:', imageUrl);
     
     if (imageUrl && imageUrl.trim() !== '') {
-      console.log('[ProductDetailPage] Using original image URL:', imageUrl);
       return imageUrl;
     }
     
     // Use local SVG placeholder to avoid external random images
     const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNDAgMTYwQzI0MCAyMDkuMDE5IDI1OS45ODEgMjI0IDMwMCAyMjRDMzQwLjAxOSAyMjQgMzYwIDIwOS4wMTkgMzYwIDE2MEMzNjAgMTEwLjk4MSAzNDAuMDE5IDk2IDMwMCA5NkMyNTkuOTgxIDk2IDI0MCAxMTAuOTgxIDI0MCAxNjBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yMDAgMjgwTDQwMCAyODBMMzYwIDIzMkwzMDAgMjYwTDI0MCAyMzJMMjAwIDI4MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMwMCIgeT0iMzQwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
-    console.log('[ProductDetailPage] Using local placeholder');
     return placeholderUrl;
   };
 
@@ -401,7 +384,6 @@ const ProductDetailPage: React.FC = () => {
                 }}
                 onClick={handleImageClick}
                 onError={(e) => {
-                  console.log('[ProductDetailPage] Main image load error, using fallback');
                   const target = e.target as HTMLImageElement;
                   // Use same local placeholder as getImageUrl function
                   target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNDAgMTYwQzI0MCAyMDkuMDE5IDI1OS45ODEgMjI0IDMwMCAyMjRDMzQwLjAxOSAyMjQgMzYwIDIwOS4wMTkgMzYwIDE2MEMzNjAgMTEwLjk4MSAzNDAuMDE5IDk2IDMwMCA5NkMyNTkuOTgxIDk2IDI0MCAxMTAuOTgxIDI0MCAxNjBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yMDAgMjgwTDQwMCAyODBMMzYwIDIzMkwzMDAgMjYwTDI0MCAyMzJMMjAwIDI4MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMwMCIgeT0iMzQwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
@@ -444,7 +426,6 @@ const ProductDetailPage: React.FC = () => {
                     alt={image.altText}
                     sx={{ objectFit: 'cover', backgroundColor: '#f5f5f5' }}
                     onError={(e) => {
-                      console.log('[ProductDetailPage] Thumbnail image load error, using fallback');
                       const target = e.target as HTMLImageElement;
                       // Use local thumbnail placeholder
                       target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA4MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0zMiAyNEMzMiAyNy4zMTM3IDM0LjY4NjMgMzAgMzggMzBDNDEuMzEzNyAzMCA0NCAyNy4zMTM3IDQ0IDI0QzQ0IDIwLjY4NjMgNDEuMzEzNyAxOCAzOCAxOEMzNC42ODYzIDE4IDMyIDIwLjY4NjMgMzIgMjRaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yOCA0Mkw0OCA0Mkw0NCAzNkwzOCAzOUwzMiAzNkwyOCA0MloiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjQwIiB5PSI1MCI+Tm8gSW1hZ2U8L3R5cGU+Cjwvc3ZnPg==';
@@ -663,8 +644,8 @@ const ProductDetailPage: React.FC = () => {
         <Box
           sx={{
             position: 'relative',
-            maxWidth: '95vw',
-            maxHeight: '95vh',
+            width: '100vw',
+            height: '100vh',
             outline: 'none'
           }}
         >
@@ -717,9 +698,8 @@ const ProductDetailPage: React.FC = () => {
           <Box
             sx={{
               overflow: 'hidden',
-              borderRadius: 2,
-              maxWidth: '95vw',
-              maxHeight: '95vh',
+              width: '100vw',
+              height: '100vh',
               cursor: modalImageZoom > 1 ? 'grab' : 'default'
             }}
             onMouseMove={handleMouseMove}
@@ -735,9 +715,7 @@ const ProductDetailPage: React.FC = () => {
               alt={product?.images[selectedImageIndex]?.altText || product?.name || 'Product image'}
               style={{
                 width: '100%',
-                height: 'auto',
-                maxWidth: '95vw',
-                maxHeight: '95vh',
+                height: '100%',
                 objectFit: 'contain',
                 transform: `scale(${modalImageZoom}) translate(${-modalImagePosition.x}px, ${-modalImagePosition.y}px)`,
                 transition: modalImageZoom === 1 ? 'transform 0.3s ease' : 'none',
@@ -746,7 +724,6 @@ const ProductDetailPage: React.FC = () => {
               }}
               onClick={handleModalImageClick}
               onError={(e) => {
-                console.log('[ProductDetailPage] Modal image load error, using fallback');
                 const target = e.target as HTMLImageElement;
                 target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNDAgMTYwQzI0MCAyMDkuMDE5IDI1OS45ODEgMjI0IDMwMCAyMjRDMzQwLjAxOSAyMjQgMzYwIDIwOS4wMTkgMzYwIDE2MEMzNjAgMTEwLjk4MSAzNDAuMDE5IDk2IDMwMCA5NkMyNTkuOTgxIDk2IDI0MCAxMTAuOTgxIDI0MCAxNjBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yMDAgMjgwTDQwMCAyODBMMzYwIDIzMkwzMDAgMjYwTDI0MCAyMzJMMjAwIDI4MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMwMCIgeT0iMzQwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
               }}

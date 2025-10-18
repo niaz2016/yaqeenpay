@@ -10,6 +10,7 @@ import type {
   NotificationListResponse 
 } from '../types/notification';
 import notificationService from '../services/notificationService';
+import { useAuth } from './AuthContext';
 
 // Initial state
 const initialNotifications: Notification[] = [];
@@ -231,6 +232,7 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(notificationReducer, initialState);
+  const { isAuthenticated } = useAuth();
 
   // Actions
   const fetchNotifications = useCallback(async (params?: { page?: number; limit?: number; type?: NotificationType }) => {
@@ -383,12 +385,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const subscribeToUpdates = useCallback(() => {
     // Implement WebSocket or Server-Sent Events connection here
-    console.log('Subscribing to notification updates');
   }, []);
 
   const unsubscribeFromUpdates = useCallback(() => {
     // Cleanup WebSocket or SSE connection here
-    console.log('Unsubscribing from notification updates');
   }, []);
 
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt'>) => {
@@ -407,18 +407,19 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Load initial data
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchNotifications();
     fetchPreferences();
-  }, [fetchNotifications, fetchPreferences]);
+  }, [isAuthenticated, fetchNotifications, fetchPreferences]);
 
   // Periodic notification refresh - Check once every 60 seconds
   useEffect(() => {
+    if (!isAuthenticated) return;
     const interval = setInterval(() => {
       fetchNewNotifications({ limit: 15 });
-    }, 60000); // Check for new notifications every 60 seconds (1 minute)
-
+    }, 60000);
     return () => clearInterval(interval);
-  }, [fetchNewNotifications]);
+  }, [isAuthenticated, fetchNewNotifications]);
 
   // Auto-refresh on login: listen to a custom event dispatched by authService
   useEffect(() => {
@@ -433,26 +434,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   // Refresh notifications when page becomes visible (user switches back to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && isAuthenticated) {
         fetchNewNotifications({ limit: 10 });
       }
     };
-    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchNewNotifications]);
+  }, [isAuthenticated, fetchNewNotifications]);
 
   // Listen for withdrawal status changes to refresh notifications
   useEffect(() => {
     const handleWithdrawalStatusChange = () => {
+      if (!isAuthenticated) return;
       setTimeout(() => {
         fetchNewNotifications({ limit: 10 });
       }, 1000);
     };
-    
     window.addEventListener('withdrawal:statusChanged', handleWithdrawalStatusChange);
     return () => window.removeEventListener('withdrawal:statusChanged', handleWithdrawalStatusChange);
-  }, [fetchNewNotifications]);
+  }, [isAuthenticated, fetchNewNotifications]);
 
   // Context value
   const value: NotificationContextValue = {

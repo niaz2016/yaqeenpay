@@ -34,10 +34,8 @@ class CartService {
       if (!cartData) return [];
       
       const items = JSON.parse(cartData) as CartItem[];
-      console.log('[CartService] Retrieved cart items:', items);
       return items;
     } catch (error) {
-      console.error('[CartService] Error parsing cart data:', error);
       return [];
     }
   }
@@ -71,7 +69,6 @@ class CartService {
         }
         
         items[existingItemIndex].quantity = newQuantity;
-        console.log('[CartService] Updated existing cart item quantity:', newQuantity);
       } else {
         // Add new item to cart
         const primaryImage = product.images?.find(img => img.isPrimary || img.IsPrimary);
@@ -93,7 +90,6 @@ class CartService {
         };
         
         items.push(cartItem);
-        console.log('[CartService] Added new cart item:', cartItem);
       }
       
       // Save updated cart
@@ -124,7 +120,6 @@ class CartService {
         detail: { totalItems: this.getTotalItems() } 
       }));
       
-      console.log('[CartService] Removed item from cart:', cartItemId);
       return true;
     } catch (error) {
       console.error('[CartService] Error removing from cart:', error);
@@ -156,14 +151,11 @@ class CartService {
         window.dispatchEvent(new CustomEvent('cartUpdated', { 
           detail: { totalItems: this.getTotalItems() } 
         }));
-        
-        console.log('[CartService] Updated item quantity:', newQuantity);
         return true;
       }
       
       return false;
     } catch (error) {
-      console.error('[CartService] Error updating quantity:', error);
       return false;
     }
   }
@@ -178,7 +170,6 @@ class CartService {
         detail: { totalItems: 0 } 
       }));
       
-      console.log('[CartService] Cart cleared');
     } catch (error) {
       console.error('[CartService] Error clearing cart:', error);
     }
@@ -190,8 +181,8 @@ class CartService {
     const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     
-    // Assume all items use the same currency (first item's currency)
-    const currency = items.length > 0 ? items[0].currency : 'USD';
+    // Everyone uses PKR - single currency system
+    const currency = 'PKR';
     
     return {
       items,

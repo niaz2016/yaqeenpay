@@ -66,25 +66,7 @@ const UserOrdersPage: React.FC = () => {
       };
 
   const response = await userService.getSellerOrders(filters as any);
-      
-      // Debug: Log the raw response to understand data structure
-      console.log('Seller Orders Debug - Filters sent:', filters);
-      console.log('Seller Orders Debug - Raw response:', response);
-      console.log('Seller Orders Debug - Response items count:', response.items?.length || 0);
-      if (response.items && response.items.length > 0) {
-        console.log('Seller Orders Debug - First order sample:', response.items[0]);
-      } else {
-        console.log('Seller Orders Debug - No orders found in response');
-      }
-      
-      // Also try to fetch user info to debug authentication
-      try {
-        const userInfo = await fetch('/api/auth/user', { credentials: 'include' }).then(r => r.json()).catch(() => null);
-        console.log('Seller Orders Debug - Current user info:', userInfo);
-      } catch (e) {
-        console.log('Seller Orders Debug - Could not fetch user info:', e);
-      }
-      
+
       // Ensure data structure integrity
       const sanitizedOrders = (response.items || []).map((order: any) => ({
         id: order.id || '',

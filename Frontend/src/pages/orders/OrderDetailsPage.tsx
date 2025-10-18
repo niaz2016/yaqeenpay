@@ -1,15 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Card, CardContent, Typography, Stack, Chip, Button, Divider, CircularProgress, Snackbar, Alert, Dialog, DialogContent, DialogTitle, IconButton, ImageList, ImageListItem, Paper } from '@mui/material';
+import { Box, Card, CardContent, Typography, Stack, Chip, Button, Divider, CircularProgress, Snackbar, Alert, Dialog, DialogContent, DialogTitle, IconButton, ImageList, ImageListItem, Paper, Rating as MuiRating } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ImageIcon from '@mui/icons-material/Image';
+import StarIcon from '@mui/icons-material/Star';
+import EditIcon from '@mui/icons-material/Edit';
 import { useAuth } from '../../context/AuthContext';
 import ordersService from '../../services/ordersService';
+import ratingService from '../../services/ratingService';
 import type { Order } from '../../types/order';
+import type { Rating } from '../../types/rating';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 
 import OrderStatusTimeline from '../../components/orders/OrderStatusTimeline';
 import DeliveryDecisionDialog from '../../components/orders/DeliveryDecisionDialog';
+import RateUserModal from '../../components/rating/RateUserModal';
+import RatingSummary from '../../components/rating/RatingSummary';
 
 // Local normalizeImageUrl removed (using shared util)
 
@@ -28,6 +34,12 @@ const OrderDetailsPage: React.FC = () => {
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string>('');
   const [confirmState, setConfirmState] = useState<{ open: boolean; action: null | 'pay' | 'ship' | 'confirmDelivery'; title?: string; message?: string; processing?: boolean }>({ open: false, action: null });
+  
+  // Rating modal state
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [showOtherUserRating, setShowOtherUserRating] = useState(false);
+  const [existingRating, setExistingRating] = useState<Rating | null>(null);
+  const [canEditRating, setCanEditRating] = useState(false);
 
   // Helper function to determine user's role in this order
   const getUserRole = (): 'buyer' | 'seller' | 'unknown' => {
@@ -94,10 +106,37 @@ const OrderDetailsPage: React.FC = () => {
       const res = await ordersService.getById(orderId);
       setOrder(res);
       setError(null);
+      
+      // Load existing rating if order is completed/rejected/cancelled
+      if (['Completed', 'Rejected', 'Cancelled'].includes(res.status)) {
+        await loadExistingRating(orderId);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load order');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExistingRating = async (orderIdToCheck: string) => {
+    try {
+      const ratings = await ratingService.getRatingsByOrder(orderIdToCheck);
+      
+      // Find rating given by current user
+      const myRating = ratings.find(r => r.reviewerId === user?.id);
+      
+      if (myRating) {
+        setExistingRating(myRating);
+        
+        // Check if rating can be edited (within 30 days)
+        const ratingDate = new Date(myRating.createdAt);
+        const now = new Date();
+        const daysSinceRating = Math.floor((now.getTime() - ratingDate.getTime()) / (1000 * 60 * 60 * 24));
+        setCanEditRating(daysSinceRating <= 30);
+      }
+    } catch (e) {
+      console.error('Failed to load existing rating:', e);
+      // Don't show error to user, just log it
     }
   };
 
@@ -371,6 +410,116 @@ const OrderDetailsPage: React.FC = () => {
               </Stack>
             </Box>
           </Stack>
+
+          {/* Ratings & Reviews Section - Always visible for transparency */}
+          {getUserRole() !== 'unknown' && (
+            <>
+              <Divider sx={{ my: 3 }} />
+              
+              <Box >
+                <Stack direction="row" alignItems="center" spacing={1} mb={2}>
+                  <StarIcon sx={{ color: 'warning.main' }} />
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Ratings & Reviews
+                  </Typography>
+                </Stack>
+
+                {/* Other User's Rating Summary - Show prominently for trust */}
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" fontWeight="medium" gutterBottom>
+                    {getUserRole() === 'buyer' ? `Seller Rating: ${order.sellerName || 'Seller'}` : `Buyer Rating: ${order.buyerName || 'Buyer'}`}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setShowOtherUserRating(!showOtherUserRating)}
+                    sx={{ mb: 2 }}
+                  >
+                    {showOtherUserRating ? 'Hide' : 'View'} Rating History
+                  </Button>
+                  {showOtherUserRating && (
+                    <RatingSummary
+                      userId={getUserRole() === 'buyer' ? order.sellerId : order.buyerId}
+                      compact={false}
+                    />
+                  )}
+                </Box>
+
+                {/* Your Rating - Only show for completed/rejected/cancelled orders */}
+                {(order.status === 'Completed' || order.status === 'Rejected' || order.status === 'Cancelled') && (
+                  <Box>
+                    <Divider sx={{ mb: 2 }} />
+                    <Typography variant="body2" color="text.secondary" fontWeight="medium" gutterBottom>
+                      Your Rating
+                    </Typography>
+                    
+                    {existingRating ? (
+                      // Show existing rating
+                      <Box>
+                        <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
+                          <MuiRating value={existingRating.score} readOnly size="large" />
+                          <Typography variant="h6">{existingRating.score}.0</Typography>
+                        </Stack>
+                        
+                        {existingRating.comment && (
+                          <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50' }}>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              Your Review
+                            </Typography>
+                            <Typography variant="body1">
+                              {existingRating.comment}
+                            </Typography>
+                          </Paper>
+                        )}
+                        
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography variant="caption" color="text.secondary">
+                            Rated on {new Date(existingRating.createdAt).toLocaleDateString()}
+                          </Typography>
+                          {canEditRating && (
+                            <>
+                              <Typography variant="caption" color="text.secondary">•</Typography>
+                              <Button
+                                size="small"
+                                startIcon={<EditIcon />}
+                                onClick={() => setRatingModalOpen(true)}
+                              >
+                                Edit Rating
+                              </Button>
+                            </>
+                          )}
+                          {!canEditRating && (
+                            <>
+                              <Typography variant="caption" color="text.secondary">•</Typography>
+                              <Typography variant="caption" color="error.main">
+                                Edit period expired (30 days)
+                              </Typography>
+                            </>
+                          )}
+                        </Stack>
+                      </Box>
+                    ) : (
+                      // Show rate button if not rated yet
+                      <>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          startIcon={<StarIcon />}
+                          onClick={() => setRatingModalOpen(true)}
+                        >
+                          Rate {getUserRole() === 'buyer' ? 'Seller' : 'Buyer'}
+                        </Button>
+                        <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                          Share your experience to help the community
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -570,13 +719,12 @@ const OrderDetailsPage: React.FC = () => {
                 Pay Now
               </Button>
             )}
-            {/* Buyer Delivery Confirmation (hidden entirely from seller) */}
-            {getUserRole() === 'buyer' && (
+            {/* Buyer Delivery Confirmation (only show when order has been shipped) */}
+            {getUserRole() === 'buyer' && (order.status === 'Shipped' || order.status === 'Delivered' || order.status === 'DeliveredPendingDecision') && (
               <Button
                 variant="contained"
                 color="success"
                 onClick={() => setConfirmState({ open: true, action: 'confirmDelivery', title: 'Confirm Delivery', message: 'Confirm you have received the order in good condition. This will release escrowed Wallet Credits to the seller.' })}
-                disabled={order.status !== 'Shipped' && order.status !== 'Delivered' && order.status !== 'DeliveredPendingDecision'}
               >
                 Confirm Delivery
               </Button>
@@ -601,6 +749,27 @@ const OrderDetailsPage: React.FC = () => {
           </Stack>
         </CardContent>
       </Card>
+
+      {/* Rating Modal */}
+      {order && getUserRole() !== 'unknown' && (
+        <RateUserModal
+          open={ratingModalOpen}
+          onClose={() => setRatingModalOpen(false)}
+          orderId={order.id}
+          revieweeId={getUserRole() === 'buyer' ? order.sellerId : order.buyerId}
+          revieweeName={getUserRole() === 'buyer' ? (order.sellerName || 'Seller') : (order.buyerName || 'Buyer')}
+          revieweeRole={getUserRole() === 'buyer' ? 'seller' : 'buyer'}
+          existingRating={existingRating || undefined}
+          onRatingSubmitted={async () => {
+            setSnack({ open: true, message: existingRating ? 'Rating updated successfully!' : 'Rating submitted successfully!', severity: 'success' });
+            setRatingModalOpen(false);
+            // Reload the existing rating
+            if (orderId) {
+              await loadExistingRating(orderId);
+            }
+          }}
+        />
+      )}
 
       {/* Image Preview Dialog */}
       <Dialog 

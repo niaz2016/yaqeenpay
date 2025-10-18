@@ -281,11 +281,6 @@ const columns: GridColDef[] = [
       const row = p.row || {};
       const description = row.description || '';
       
-      // Debug: Log transaction data to see what we're receiving
-      if (description.includes('Payment received for order')) {
-        console.log('Transaction debug:', { row, description, amount: row.amount });
-      }
-      
       // Get amount - backend sends it as 'amount' field
       let amount = row.amount;
       if (typeof amount === 'string') {

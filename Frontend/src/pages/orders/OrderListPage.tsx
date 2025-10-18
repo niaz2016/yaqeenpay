@@ -22,7 +22,11 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import ImageNotSupportedIcon from '@mui/icons-material/ImageNotSupported';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { ordersService, type PagedResult } from '../../services/ordersService';
+import ratingService from '../../services/ratingService';
+import RatingBadge from '../../components/rating/RatingBadge';
+import RatingStars from '../../components/rating/RatingStars';
 import type { Order } from '../../types/order';
+import type { RatingStats } from '../../types/rating';
 import { useAuth } from '../../context/AuthContext';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 
@@ -63,6 +67,7 @@ const OrderListPage: React.FC = () => {
   const [data, setData] = useState<PagedResult<Order>>({ items: [], total: 0, page: 1, pageSize: 10 });
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [userRatings, setUserRatings] = useState<Record<string, RatingStats>>({});
 
   // Helper function to determine user's role in an order
   const getUserRole = (order: Order): 'buyer' | 'seller' | 'unknown' => {
@@ -71,6 +76,37 @@ const OrderListPage: React.FC = () => {
     if (order.sellerId === user.id) return 'seller';
     return 'unknown';
   };
+
+  // Load ratings for other parties in orders
+  useEffect(() => {
+    const loadUserRatings = async () => {
+      if (!data.items.length || !user?.id) return;
+
+      const otherUserIds = data.items.map(order => {
+        const role = getUserRole(order);
+        return role === 'buyer' ? order.sellerId : order.buyerId;
+      }).filter((id, index, arr) => id && arr.indexOf(id) === index); // unique non-null ids
+
+      const ratingsMap: Record<string, RatingStats> = {};
+      
+      await Promise.all(
+        otherUserIds.map(async (userId) => {
+          if (userId) {
+            try {
+              const stats = await ratingService.getRatingStats(userId);
+              ratingsMap[userId] = stats;
+            } catch (error) {
+              console.error(`Failed to load ratings for user ${userId}:`, error);
+            }
+          }
+        })
+      );
+      
+      setUserRatings(ratingsMap);
+    };
+
+    loadUserRatings();
+  }, [data.items, user?.id]);
 
   const load = async (page = 1) => {
     try {
@@ -301,9 +337,25 @@ const OrderListPage: React.FC = () => {
                         />
                       </Stack>
                       <Typography variant="h6">{order.description || 'Escrow order'}</Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {getUserRole(order) === 'buyer' ? `Seller: ${order.sellerName || order.sellerId}` : `Buyer: ${order.buyerId}`}
-                      </Typography>
+                      <Stack direction="row" alignItems="center" gap={1}>
+                        <Typography variant="body2" color="text.secondary">
+                          {getUserRole(order) === 'buyer' ? `Seller: ${order.sellerName || order.sellerId}` : `Buyer: ${order.buyerId}`}
+                        </Typography>
+                        {(() => {
+                          const role = getUserRole(order);
+                          const otherUserId = role === 'buyer' ? order.sellerId : order.buyerId;
+                          const rating = otherUserId ? userRatings[otherUserId] : null;
+                          return rating && rating.totalRatings > 0 ? (
+                            <>
+                              <RatingBadge stats={rating} size="small" />
+                              <RatingStars value={rating.averageRating} readonly size="small" />
+                              <Typography variant="caption" color="text.secondary">
+                                ({rating.totalRatings})
+                              </Typography>
+                            </>
+                          ) : null;
+                        })()}
+                      </Stack>
                     </Stack>
                   </Stack>
 

@@ -19,6 +19,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { registerSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
+import profileService from '../../services/profileService';
 import type { z } from 'zod';
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -64,18 +65,35 @@ const RegisterForm: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
       });
+      // Request SMS OTP to phone via profile verification endpoint
+      try {
+        await profileService.requestPhoneVerification(data.phoneNumber);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        if (/too many attempts/i.test(msg)) {
+          // Mark rate-limited so OTP screen can show a longer cooldown
+          sessionStorage.setItem('otp_rate_limited', '1');
+        }
+        console.warn('Failed to request SMS OTP', e);
+      }
+
+      // Save pending login email (no password for security)
+      sessionStorage.setItem('pending_login_email', data.email);
+      sessionStorage.setItem('pending_login_channel', 'phone');
+      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
+      // User will need to re-enter password after OTP verification for security
+
+  setSuccess('Registration successful! We sent an OTP to your mobile number.');
       
-      setSuccess('Registration successful! Please check your email for verification.');
-      
-      // Redirect to verification page after short delay
+      // Redirect to phone verification page
       setTimeout(() => {
-        navigate('/auth/verify-email', { 
+        navigate('/auth/verify-phone', { 
           state: { 
-            email: data.email,
-            channel: 'email',
+            phoneNumber: data.phoneNumber,
+            channel: 'phone',
           } 
         });
-      }, 1500);
+      }, 1200);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -199,8 +217,9 @@ const RegisterForm: React.FC = () => {
               margin="normal"
               fullWidth
               id="phoneNumber"
-              label="Phone Number (Optional)"
+              label="Mobile Number"
               autoComplete="tel"
+              required
               error={!!errors.phoneNumber}
               helperText={errors.phoneNumber?.message}
             />

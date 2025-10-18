@@ -102,12 +102,6 @@ export class SellerService {
         // KYC documents
         documents: documentsWithBase64
       };
-
-      console.log('Applying for seller role with payload structure:', {
-        businessName: requestPayload.businessName,
-        documentCount: requestPayload.documents.length,
-        documentTypes: requestPayload.documents.map(d => d.documentType)
-      });
       
       const response = await apiService.post<SellerRegistrationResponse>('/SellerRegistration/apply', requestPayload);
       return response;

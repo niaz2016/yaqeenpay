@@ -36,7 +36,7 @@ public class ProductsController : ApiControllerBase
     /// Get product by ID - accessible to product owner or for active products
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize]
+    [AllowAnonymous]
     public async Task<IActionResult> GetProductById(Guid id)
     {
         var query = new GetProductByIdQuery { Id = id };

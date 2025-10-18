@@ -38,18 +38,25 @@ public record AuthenticationResponse
     public Guid UserId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
+    public bool RequiresDeviceVerification { get; set; }
+    public Guid? PendingDeviceId { get; set; }
+    public bool IsNewUser { get; set; }
 }
 
 public class LoginCommandHandler(
     IApplicationDbContext context,
     IIdentityService identityService,
     IJwtService jwtService,
-    ICurrentUserService currentUserService) : IRequestHandler<LoginCommand, ApiResponse<AuthenticationResponse>>
+    ICurrentUserService currentUserService,
+    IDeviceService deviceService,
+    ISmsSender smsSender) : IRequestHandler<LoginCommand, ApiResponse<AuthenticationResponse>>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly IIdentityService _identityService = identityService;
     private readonly IJwtService _jwtService = jwtService;
     private readonly ICurrentUserService _currentUserService = currentUserService;
+    private readonly IDeviceService _deviceService = deviceService;
+    private readonly ISmsSender _smsSender = smsSender;
 
     public async Task<ApiResponse<AuthenticationResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
@@ -94,24 +101,79 @@ public class LoginCommandHandler(
             return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
         }
 
+        // Check for device recognition
+        var userAgent = _currentUserService.UserAgent ?? "Unknown";
+        var deviceFingerprint = _deviceService.GenerateDeviceFingerprint(userAgent);
+        var existingDevice = await _deviceService.GetUserDeviceAsync(user.Id, deviceFingerprint, cancellationToken);
+
+        // If this is a new device, require OTP verification
+        if (existingDevice == null)
+        {
+            // Register the new device
+            var newDevice = await _deviceService.RegisterDeviceAsync(user.Id, userAgent, ipAddress, cancellationToken);
+
+            // Send OTP to user's phone
+            if (!string.IsNullOrEmpty(user.PhoneNumber))
+            {
+                // Generate OTP and store it temporarily
+                var otp = GenerateOtp();
+                var otpExpiry = DateTime.UtcNow.AddMinutes(10);
+                
+                // Store OTP in cache or temp storage (using notification for now)
+                var otpNotification = new YaqeenPay.Domain.Entities.Notification
+                {
+                    UserId = user.Id,
+                    Type = YaqeenPay.Domain.Enums.NotificationType.Security,
+                    Title = "Device Verification Required",
+                    Message = $"Your verification code is: {otp}. This code will expire in 10 minutes. Device: {newDevice.Browser} on {newDevice.OperatingSystem}",
+                    Priority = YaqeenPay.Domain.Enums.NotificationPriority.High,
+                    Status = YaqeenPay.Domain.Enums.NotificationStatus.Unread,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = Guid.Empty,
+                    IsActive = true,
+                    Metadata = $"{{\"otp\":\"{otp}\",\"deviceId\":\"{newDevice.Id}\",\"expiry\":\"{otpExpiry:O}\",\"attempts\":0,\"lastSentAt\":\"{DateTime.UtcNow:O}\"}}"
+                };
+
+                _context.Notifications.Add(otpNotification);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Send SMS with OTP
+                try
+                {
+                    await _smsSender.SendOtpAsync(user.PhoneNumber, otp, cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // Log the error but don't fail the request
+                    // User can still see OTP in notification for testing/fallback
+                    Console.WriteLine($"Failed to send SMS: {ex.Message}");
+                }
+            }
+
+            // Return response indicating OTP is required
+            return ApiResponse<AuthenticationResponse>.SuccessResponse(new AuthenticationResponse
+            {
+                Token = string.Empty,
+                RefreshToken = string.Empty,
+                TokenExpires = DateTime.UtcNow,
+                UserId = user.Id,
+                Email = user.Email!,
+                UserName = user.UserName!,
+                RequiresDeviceVerification = true,
+                PendingDeviceId = newDevice.Id,
+                IsNewUser = false
+            }, "New device detected. Please verify with OTP sent to your phone.");
+        }
+
+        // Device is recognized, proceed with login
         var roles = await _identityService.GetUserRolesAsync(user.Id);
         var (jwtToken, refreshToken) = _jwtService.GenerateTokens(user, roles, ipAddress);
 
-        // Create success notification only for the user who logged in
-        var successLoginNotification = new YaqeenPay.Domain.Entities.Notification
-        {
-            UserId = user.Id,
-            Type = YaqeenPay.Domain.Enums.NotificationType.System,
-            Title = "Successful login",
-            Message = $"You have successfully logged in from IP: {ipAddress}",
-            Priority = YaqeenPay.Domain.Enums.NotificationPriority.Low,
-            Status = YaqeenPay.Domain.Enums.NotificationStatus.Unread,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = user.Id,
-            IsActive = true
-        };
+        // Update device last seen
+        await _deviceService.UpdateDeviceLastSeenAsync(existingDevice.Id, cancellationToken);
 
-        _context.Notifications.Add(successLoginNotification);
+        // Only send notification for new devices (already handled above)
+        // For existing devices, no notification needed
 
         // Save the refresh token
         user.RefreshTokens.Add(refreshToken);
@@ -127,8 +189,16 @@ public class LoginCommandHandler(
             TokenExpires = refreshToken.ExpiresAt,
             UserId = user.Id,
             Email = user.Email!,
-            UserName = user.UserName!
+            UserName = user.UserName!,
+            RequiresDeviceVerification = false,
+            IsNewUser = false
         });
+    }
+
+    private string GenerateOtp()
+    {
+        var random = new Random();
+        return random.Next(100000, 999999).ToString();
     }
 
     private void RemoveOldRefreshTokens(ApplicationUser user)

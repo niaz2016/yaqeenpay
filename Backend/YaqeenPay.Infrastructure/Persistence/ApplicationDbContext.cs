@@ -41,6 +41,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<SettingsAudit> SettingsAudits => Set<SettingsAudit>();
     public DbSet<AdminSystemSettings> AdminSystemSettings => Set<AdminSystemSettings>();
     public DbSet<AdminSettingsAudit> AdminSettingsAudits => Set<AdminSettingsAudit>();
+    public DbSet<UserDevice> UserDevices => Set<UserDevice>();
     
     // Product Management
     public DbSet<Category> Categories => Set<Category>();
@@ -48,6 +49,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    // Rating System
+    public DbSet<Rating> Ratings => Set<Rating>();
+    public DbSet<RatingStats> RatingStats => Set<RatingStats>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

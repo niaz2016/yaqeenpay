@@ -142,8 +142,13 @@ const ProfileDetails: React.FC = () => {
 
   const handleVerifyEmail = async () => {
     try {
+      setError(null);
       const result = await profileService.verifyEmail();
-      setSuccess(result.message);
+      setSuccess(result.message || 'Email verification completed.');
+      setProfile((prev) => prev ? { ...prev, isEmailVerified: true } : prev);
+      if (user) {
+        updateUser({ ...user, isEmailVerified: true });
+      }
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -212,7 +217,7 @@ const ProfileDetails: React.FC = () => {
     try {
       setError(null);
       const res = await profileService.confirmPhoneVerification(otpCode);
-      if (res?.success) {
+      if (res && res.success !== false) {
         setSuccess(res.message || 'Phone verified successfully');
         // refresh profile state so chip updates
         const refreshed = await profileService.getProfile();

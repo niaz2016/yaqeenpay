@@ -74,7 +74,7 @@ function seedMock() {
   if (!seeded) {
     const summary: WalletSummary = {
       balance: 0,
-      currency: 'USD',
+      currency: 'PKR',
       status: 'Active',
       updatedAt: nowIso(),
     };
@@ -223,7 +223,7 @@ class WalletService {
     return this.tryGet<WalletSummary>('/wallets/summary', async () => {
       return readLS<WalletSummary>(getUserWalletKey(), {
         balance: 0,
-        currency: 'USD',
+        currency: 'PKR',
         status: 'Active',
         updatedAt: nowIso(),
       });
@@ -282,21 +282,20 @@ class WalletService {
   }
 
   async topUp(request: TopUpRequest): Promise<TopUpResponse | TopUpDto> {
-    // Transform frontend request to backend command format
+    // Transform frontend request to backend command format - PKR is implicit
     const backendRequest = {
       amount: request.amount,
-      currency: request.currency || 'PKR',
       channel: request.channel
     };
     
     if (this.mockMode) {
       // Mock mode - return TopUpResponse format
       if (request.amount <= 0) {
-        return { success: false, receiptId: '', newBalance: readLS<WalletSummary>(getUserWalletKey(), { balance: 0, currency: 'USD', status: 'Active', updatedAt: nowIso() }).balance, message: 'Amount must be positive' };
+        return { success: false, receiptId: '', newBalance: readLS<WalletSummary>(getUserWalletKey(), { balance: 0, currency: 'PKR', status: 'Active', updatedAt: nowIso() }).balance, message: 'Amount must be positive' };
       }
       const summary = readLS<WalletSummary>(getUserWalletKey(), {
         balance: 0,
-        currency: 'USD',
+        currency: 'PKR',
         status: 'Active',
         updatedAt: nowIso(),
       });
@@ -313,7 +312,7 @@ class WalletService {
         amount: Number(request.amount),
         status: 'Completed',
         description: `${request.channel} top-up`,
-        currency: request.currency || summary.currency || 'USD'
+        currency: 'PKR'
       };
       const newSummary: WalletSummary = { ...summary, balance: newBalance, updatedAt: nowIso() };
       writeLS(getUserWalletKey(), newSummary);
@@ -324,7 +323,7 @@ class WalletService {
         userId: 'mock-user',
         walletId: 'mock-wallet',
         amount: request.amount,
-        currency: request.currency || summary.currency || 'USD',
+        currency: 'PKR',
         channel: request.channel,
         status: 'Completed',
         requestedAt: now,
@@ -341,7 +340,7 @@ class WalletService {
         try {
           await notificationTrigger.onWalletTopUp({
             amount: result.amount,
-            currency: result.currency,
+            currency: 'PKR',
             method: result.channel,
             transactionId: result.id,
             newBalance: result.amount // Will need to get actual new balance
@@ -359,7 +358,7 @@ class WalletService {
       try {
         await notificationTrigger.onWalletTopUpFailed({
           amount: request.amount,
-          currency: request.currency || 'PKR',
+          currency: 'PKR',
           method: request.channel
         }, 'Database connection failed');
       } catch (error) {
@@ -376,7 +375,7 @@ class WalletService {
       // Generate a 30d mock series from transactions
   let txs = readLS<WalletTransaction[]>(getUserTransactionsKey(), []);
   txs = sanitizeTransactions(txs);
-      const summary = readLS<WalletSummary>(getUserWalletKey(), { balance: 0, currency: 'USD', status: 'Active', updatedAt: nowIso() });
+      const summary = readLS<WalletSummary>(getUserWalletKey(), { balance: 0, currency: 'PKR', status: 'Active', updatedAt: nowIso() });
       const today = new Date();
       const series = [] as WalletAnalytics['series'];
       let running = 0;

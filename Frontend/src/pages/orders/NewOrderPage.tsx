@@ -36,11 +36,8 @@ const NewOrderPage: React.FC = () => {
         ).join('\n')}`;
 
         // For marketplace orders, we need to handle multiple sellers
-        console.log('[NewOrderPage] Cart items for order creation:', cartData.cartItems);
         
         const firstSeller = cartData.cartItems.find(item => item.sellerId);
-        console.log('[NewOrderPage] First seller found:', firstSeller);
-        
         if (!firstSeller || !firstSeller.sellerId) {
           setSnack({ 
             open: true, 

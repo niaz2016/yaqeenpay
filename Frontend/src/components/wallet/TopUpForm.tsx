@@ -121,7 +121,6 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
     try {
       const result = await api.post<QrTopupResponse>('/wallets/create-qr-topup', {
         amount: data.amount,
-        currency: 'PKR',
         paymentMethod: 'QR'
       });
       if (result.success) {

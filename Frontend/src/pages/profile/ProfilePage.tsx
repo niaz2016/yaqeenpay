@@ -16,7 +16,8 @@ import {
   IconButton,
   Divider,
   LinearProgress,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import {
   Person,
@@ -27,13 +28,19 @@ import {
   Email,
   Phone,
   LocationOn,
-  Business
+  Business,
+  Star as StarIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import ProfileDetails from '../../components/profile/ProfileDetails';
 import ChangePassword from '../../components/profile/ChangePassword';
+import RatingSummary from '../../components/rating/RatingSummary';
+import RatingsList from '../../components/rating/RatingsList';
+import RatingBadge from '../../components/rating/RatingBadge';
 import profileService from '../../services/profileService';
+import ratingService from '../../services/ratingService';
 import { validateFileForUpload } from '../../utils/fileUploadTest';
+import type { RatingStats } from '../../types/rating';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -75,9 +82,31 @@ const ProfilePage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
+  const [loadingRatings, setLoadingRatings] = useState(false);
 
   // Hidden file input ref (use id to trigger)
   const fileInputId = 'profile-image-input';
+
+  // Load rating stats on mount
+  React.useEffect(() => {
+    if (user?.id) {
+      loadRatingStats();
+    }
+  }, [user?.id]);
+
+  const loadRatingStats = async () => {
+    if (!user?.id) return;
+    try {
+      setLoadingRatings(true);
+      const stats = await ratingService.getRatingStats(user.id);
+      setRatingStats(stats);
+    } catch (error) {
+      console.error('Failed to load rating stats:', error);
+    } finally {
+      setLoadingRatings(false);
+    }
+  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -355,6 +384,33 @@ const ProfilePage: React.FC = () => {
             </Box>
           </CardContent>
         </Card>
+
+        {/* Rating Stats Card */}
+        {ratingStats && (
+          <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                  <StarIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Reputation
+                  </Typography>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <RatingBadge stats={ratingStats} size="small" />
+                    <Typography variant="body2" fontWeight={500}>
+                      {ratingStats.averageRating.toFixed(1)} ★
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ({ratingStats.totalRatings})
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
       </Box>
 
       {/* Main Content with Tabs */}
@@ -385,10 +441,16 @@ const ProfilePage: React.FC = () => {
               {...a11yProps(2)}
             />
             <Tab
+              label="Reputation"
+              icon={<StarIcon />}
+              iconPosition="start"
+              {...a11yProps(3)}
+            />
+            <Tab
               label="Notifications"
               icon={<Notifications />}
               iconPosition="start"
-              {...a11yProps(3)}
+              {...a11yProps(4)}
             />
           </Tabs>
         </Box>
@@ -483,6 +545,42 @@ const ProfilePage: React.FC = () => {
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              My Reputation & Reviews
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Your reputation score is built from verified transactions and helps other users trust you.
+            </Typography>
+
+            {loadingRatings ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : ratingStats ? (
+              <>
+                {/* Rating Summary */}
+                <Box sx={{ mb: 4 }}>
+                  <RatingSummary userId={user.id} compact={false} />
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Ratings List */}
+                <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                  Recent Reviews
+                </Typography>
+                <RatingsList userId={user.id} />
+              </>
+            ) : (
+              <Alert severity="info">
+                You haven't received any ratings yet. Complete transactions to build your reputation!
+              </Alert>
+            )}
+          </Box>
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={4}>
           <Box sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Notification Settings

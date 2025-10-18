@@ -5,11 +5,11 @@ using YaqeenPay.Application.Features.UserManagement.Queries.GetUserProfile;
 using YaqeenPay.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using YaqeenPay.Domain.Entities.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace YaqeenPay.API.Controllers;
 
-[
-Authorize]
+[Authorize]
 public class ProfileController : ApiControllerBase
 {
     private readonly IOtpService _otpService;
@@ -71,17 +71,83 @@ public class ProfileController : ApiControllerBase
         return Ok(new { success = true, data = new { url } });
     }
 
-    // Request phone verification OTP
-    [HttpPost("verify-phone/request")]
-    public async Task<IActionResult> RequestPhoneVerification()
+    [HttpPost("verify-email")]
+    public async Task<IActionResult> VerifyEmail()
     {
         var userId = _currentUser.UserId;
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-            return BadRequest(new { success = false, message = "No phone number on file" });
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { success = false, message = "User is not authenticated." });
+        }
 
-        var key = $"phone:{user.PhoneNumber}";
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return Unauthorized(new { success = false, message = "User account could not be found." });
+        }
+
+        if (string.IsNullOrWhiteSpace(user.Email))
+        {
+            return BadRequest(new { success = false, message = "No email address is associated with this account." });
+        }
+
+        var alreadyVerified = user.EmailConfirmed || user.EmailVerifiedAt.HasValue;
+        if (!alreadyVerified)
+        {
+            user.EmailConfirmed = true;
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+        }
+
+        return Ok(new
+        {
+            success = true,
+            message = alreadyVerified ? "Email is already verified." : "Email verified successfully.",
+            verifiedAt = user.EmailVerifiedAt,
+            data = (object?)null
+        });
+    }
+
+    public record RequestPhoneVerificationDto(string? PhoneNumber);
+
+    // Request phone verification OTP
+    [HttpPost("verify-phone/request")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestPhoneVerification([FromBody] RequestPhoneVerificationDto? dto)
+    {
+        ApplicationUser? user = null;
+        string phoneNumber = string.Empty;
+
+        // Check if user is authenticated
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            // Authenticated user - get phone from their profile
+            var userId = _currentUser.UserId;
+            user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                return BadRequest(new { success = false, message = "No phone number on file" });
+            phoneNumber = user.PhoneNumber;
+        }
+        else
+        {
+            // Unauthenticated request - phone number must be provided
+            if (dto?.PhoneNumber == null || string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                return BadRequest(new { success = false, message = "Phone number is required for unauthenticated requests" });
+            
+            phoneNumber = dto.PhoneNumber.Trim();
+            
+            // Validate phone number format
+            if (!IsValidPhoneNumber(phoneNumber))
+                return BadRequest(new { success = false, message = "Invalid phone number format" });
+            
+            // Find user by phone number
+            user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+            if (user == null)
+                return BadRequest(new { success = false, message = "No user found with this phone number" });
+        }
+
+        var key = $"phone:{phoneNumber}";
         var isLimited = await _otpService.IsRateLimitedAsync(key, maxAttempts: 5, windowSeconds: 3600);
         if (isLimited)
             return BadRequest(new { success = false, message = "Too many attempts. Try again later." });
@@ -90,31 +156,58 @@ public class ProfileController : ApiControllerBase
         // Enqueue SMS via outbox (provider integration to be added later)
         await _outboxService.EnqueueAsync(
             type: "sms",
-            payload: new { to = user.PhoneNumber, template = "PHONE_VERIFY", code = otp });
+            payload: new { to = phoneNumber, template = "PHONE_VERIFY", code = otp });
 
         // Mask phone for response
-        string masked = user.PhoneNumber.Length >= 4
-            ? new string('*', Math.Max(0, user.PhoneNumber.Length - 4)) + user.PhoneNumber[^4..]
-            : user.PhoneNumber;
+        string masked = phoneNumber.Length >= 4
+            ? new string('*', Math.Max(0, phoneNumber.Length - 4)) + phoneNumber[^4..]
+            : phoneNumber;
         return Ok(new { success = true, data = new { phone = masked, expiresInSeconds = 300 } });
     }
 
-    public record VerifyPhoneDto(string Otp);
+    public record VerifyPhoneDto(string Otp, string? PhoneNumber);
 
     // Confirm phone verification OTP
     [HttpPost("verify-phone/confirm")]
+    [AllowAnonymous]
     public async Task<IActionResult> ConfirmPhoneVerification([FromBody] VerifyPhoneDto dto)
     {
         if (dto is null || string.IsNullOrWhiteSpace(dto.Otp))
             return BadRequest(new { success = false, message = "OTP is required" });
 
-        var userId = _currentUser.UserId;
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null) return Unauthorized();
-        if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-            return BadRequest(new { success = false, message = "No phone number on file" });
+        ApplicationUser? user = null;
+        string phoneNumber = string.Empty;
 
-        var key = $"phone:{user.PhoneNumber}";
+        // Check if user is authenticated
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            // Authenticated user - get phone from their profile
+            var userId = _currentUser.UserId;
+            user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                return BadRequest(new { success = false, message = "No phone number on file" });
+            phoneNumber = user.PhoneNumber;
+        }
+        else
+        {
+            // Unauthenticated request - phone number must be provided
+            if (string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                return BadRequest(new { success = false, message = "Phone number is required for unauthenticated requests" });
+            
+            phoneNumber = dto.PhoneNumber.Trim();
+            
+            // Validate phone number format
+            if (!IsValidPhoneNumber(phoneNumber))
+                return BadRequest(new { success = false, message = "Invalid phone number format" });
+            
+            // Find user by phone number
+            user = await _userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+            if (user == null)
+                return BadRequest(new { success = false, message = "No user found with this phone number" });
+        }
+
+        var key = $"phone:{phoneNumber}";
         var valid = await _otpService.ValidateOtpAsync(key, dto.Otp);
         if (!valid)
             return BadRequest(new { success = false, message = "Invalid or expired OTP" });
@@ -122,6 +215,25 @@ public class ProfileController : ApiControllerBase
         user.PhoneNumberConfirmed = true;
         user.PhoneVerifiedAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
-        return Ok(new { success = true, message = "Phone verified" });
+        
+        return Ok(new { 
+            success = true, 
+            message = "Phone verified",
+            data = new { 
+                userId = user.Id,
+                phoneNumber = phoneNumber,
+                verifiedAt = user.PhoneVerifiedAt
+            }
+        });
+    }
+
+    private static bool IsValidPhoneNumber(string phoneNumber)
+    {
+        if (string.IsNullOrWhiteSpace(phoneNumber))
+            return false;
+            
+        // Basic validation for phone numbers - adjust regex as needed for your requirements
+        // This allows numbers with optional country code, 10-15 digits
+        return System.Text.RegularExpressions.Regex.IsMatch(phoneNumber, @"^\+?\d{10,15}$");
     }
 }

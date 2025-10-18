@@ -119,8 +119,6 @@ const DashboardPage: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const isSeller = user?.roles?.some(role => role.toLowerCase() === 'seller');
-
   // Load dashboard data
   const loadDashboardData = async () => {
     setDashboardData(prev => ({ ...prev, loading: true, error: null }));
@@ -137,39 +135,9 @@ const DashboardPage: React.FC = () => {
         return { items: [] };
       });
 
-      // For backward compatibility, still fetch separate buyer/seller data for debugging
-      const [buyerOrdersData, sellerOrdersData] = await Promise.allSettled([
-        ordersService.getBuyerOrders({ page: 1, pageSize: 20 }).catch(() => ({ items: [] })),
-        isSeller ? ordersService.getSellerOrdersPaginated({ page: 1, pageSize: 20 }).catch(() => ({ items: [] })) : Promise.resolve({ items: [] })
-      ]);
-
       // Use the unified orders data (primary source)
       const allOrders = allOrdersData?.items || [];
-      
-      // Extract order arrays from settled promises for debugging
-      const buyerOrders = buyerOrdersData.status === 'fulfilled' ? (buyerOrdersData.value?.items || []) : [];
-      const sellerOrders = sellerOrdersData.status === 'fulfilled' ? (sellerOrdersData.value?.items || []) : [];
-      
-      if (import.meta.env.DEV) {
-        console.log('Dashboard data debug:', {
-          userId: user?.id,
-          userRoles: user?.roles,
-          isSeller,
-          allOrdersCount: allOrders.length,
-          buyerOrdersCount: buyerOrders.length,
-          sellerOrdersCount: sellerOrders.length,
-          allOrdersPreview: allOrders.slice(0, 3).map(order => ({
-            id: order.id,
-            status: order.status,
-            buyerId: order.buyerId,
-            sellerId: order.sellerId,
-            amount: order.amount,
-            createdAt: order.createdAt
-          })),
-          unifiedOrdersWillShow: Math.min(allOrders.length, 8)
-        });
-      }
-
+  
       // Create unified orders array with type information from all orders
       const unifiedOrders: UnifiedOrder[] = allOrders.map((order: any) => {
         // Determine if this is a buying or selling order based on user ID
@@ -188,19 +156,6 @@ const DashboardPage: React.FC = () => {
       unifiedOrders.sort((a, b) => 
         new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
       );
-
-      if (import.meta.env.DEV) {
-        console.log('Final unified orders for dashboard:', {
-          totalUnified: unifiedOrders.length,
-          recentOrdersToShow: unifiedOrders.slice(0, 8).map(order => ({
-            id: order.id,
-            orderType: order.orderType,
-            partnerName: order.partnerName,
-            amount: order.amount,
-            status: order.status
-          }))
-        });
-      }
 
       // Calculate unified stats from both buying and selling orders
       const now = new Date();
@@ -657,7 +612,23 @@ const DashboardPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card sx={{ bgcolor: 'error.main', color: 'white' }}>
+            <Card 
+              sx={{ 
+                bgcolor: 'error.main', 
+                color: 'white',
+                cursor: dashboardData.stats.pendingOrders > 0 ? 'pointer' : 'default',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                '&:hover': dashboardData.stats.pendingOrders > 0 ? {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4
+                } : {}
+              }}
+              onClick={() => {
+                if (dashboardData.stats.pendingOrders > 0) {
+                  navigate('/orders');
+                }
+              }}
+            >
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box>
@@ -672,7 +643,12 @@ const DashboardPage: React.FC = () => {
                       Pending Actions
                     </Typography>
                   </Box>
-                  <CheckCircleIcon sx={{ fontSize: 40, opacity: 0.3 }} />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <CheckCircleIcon sx={{ fontSize: 40, opacity: 0.3 }} />
+                    {dashboardData.stats.pendingOrders > 0 && (
+                      <ArrowForwardIcon sx={{ fontSize: 20, opacity: 0.6, mt: 0.5 }} />
+                    )}
+                  </Box>
                 </Box>
               </CardContent>
             </Card>

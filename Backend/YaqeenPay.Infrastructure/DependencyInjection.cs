@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using YaqeenPay.Application.Common.Interfaces;
+using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Domain.Entities.Identity;
 using YaqeenPay.Domain.Interfaces;
 using YaqeenPay.Infrastructure.Identity;
@@ -26,6 +27,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         // Payment Gateway Services Configuration
+        services.Configure<GoogleAuthSettings>(configuration.GetSection("GoogleAuth"));
         services.Configure<Services.Easypaisa.EasypaisaSettings>(configuration.GetSection("Easypaisa"));
         // TODO: Re-enable Jazz Cash configuration when namespace issues are resolved
         // services.Configure<Services.JazzCash.JazzCashSettings>(configuration.GetSection("JazzCash"));
@@ -61,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<CategorySeedService>();
         services.AddScoped<Application.Interfaces.IFileUploadService, FileUploadService>();
         services.AddScoped<Application.Interfaces.IAdminConfigurationService, Services.AdminConfigurationService>();
+        services.AddScoped<IDeviceService, DeviceService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 
         // Identity services
         services.AddIdentity<ApplicationUser, ApplicationRole>()
@@ -266,6 +270,7 @@ public static class DependencyInjection
         services.AddScoped<ITopUpRepository, TopUpRepository>();
         services.AddScoped<IAdminSystemSettingsRepository, AdminSystemSettingsRepository>();
         services.AddScoped<IAdminSettingsAuditRepository, AdminSettingsAuditRepository>();
+        services.AddScoped<IRatingRepository, RatingRepository>();
 
         // Register OutboxService for notifications
         services.AddScoped<IOutboxService, OutboxService>();

@@ -3,7 +3,11 @@ const PRECACHE_URLS = [
   '/',
   '/index.html',
   '/offline.html',
-  '/src/main.tsx'
+  '/manifest.webmanifest',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/assets/index.css',
+  '/assets/index.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,6 +32,15 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Navigation requests (SPA) should fallback to index.html -> offline.html
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => response)
+        .catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {

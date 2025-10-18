@@ -21,6 +21,7 @@ public class CurrentUserService : ICurrentUserService
 
     public Guid UserId => GetUserId() ?? Guid.Empty;
     public string? IpAddress => GetIpAddress();
+    public string? UserAgent => GetUserAgent();
 
     private Guid? GetUserId()
     {
@@ -55,5 +56,14 @@ public class CurrentUserService : ICurrentUserService
 
         // Fallback to remote IP address
         return httpContext.Connection.RemoteIpAddress?.ToString();
+    }
+
+    private string? GetUserAgent()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null)
+            return null;
+
+        return httpContext.Request.Headers["User-Agent"].FirstOrDefault();
     }
 }

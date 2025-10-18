@@ -45,6 +45,8 @@ namespace YaqeenPay.Infrastructure.Persistence.DesignTime
         {
             public Guid UserId => Guid.Empty;
             public string? IpAddress => "127.0.0.1";
+            public string? UserAgent => "design-time";
+
             public bool IsInRole(string role) => false;
         }
     }

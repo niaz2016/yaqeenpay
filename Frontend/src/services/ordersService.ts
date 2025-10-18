@@ -226,7 +226,6 @@ export const ordersService = {
     images: File[],
     targetUserMobile?: string
   ): Promise<Order> {
-    console.log('createSellerRequest called with:', { title, description, amount, currency, imageCount: images?.length || 0, targetUserMobile });
     
     // Use the existing seller-request endpoint
     const formData = new FormData();
@@ -234,26 +233,16 @@ export const ordersService = {
     formData.append('Description', description);
     formData.append('Amount', amount.toString());
     formData.append('Currency', currency);
+    formData.append('targetUserMobile', targetUserMobile || '');
     
     // Add images to FormData
     if (images && images.length > 0) {
       images.forEach((image) => {
-        console.log(`Appending image:`, image.name, image.type, image.size);
         formData.append('Images', image, image.name);
       });
     } else {
       formData.append('NoImages', 'true');
-    }
-    
-    console.log('About to POST seller-request. FormData contents:');
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        console.log(`${key}: File(${value.name}, ${value.size} bytes)`);
-      } else {
-        console.log(`${key}: ${value}`);
-      }
-    }
-    
+    }    
     return api.post(`${base}/seller-request`, formData);
   },
 
@@ -501,14 +490,8 @@ export const ordersService = {
             }));
 
           if (productsToReduce.length > 0) {
-            console.log('[OrdersService] Reducing stock for products after payment:', productsToReduce);
             await productService.bulkReduceStock(productsToReduce);
-            console.log('[OrdersService] Successfully reduced stock for all products');
-          } else {
-            console.log('[OrdersService] No products with IDs found in order items, skipping stock reduction');
           }
-        } else {
-          console.log('[OrdersService] No items found in order, skipping stock reduction');
         }
       } catch (error) {
         console.warn('Failed to trigger payment confirmation notification or reduce stock:', error);

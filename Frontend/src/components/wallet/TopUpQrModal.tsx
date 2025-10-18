@@ -190,7 +190,6 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
           amount: qrResponse.suggestedAmount
         });
         if (verifyResult?.message?.includes('success')) {
-          console.log('Payment already verified!');
           const newBalance = await fetchBalance();
           if (newBalance > startingBalance) {
             setPolling(false);
@@ -211,10 +210,8 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
         
         try {
           const latestBalance = await fetchBalance();
-          console.log(`Polling: starting=${startingBalance}, current=${latestBalance}`);
           
           if (latestBalance > startingBalance) {
-            console.log('Payment confirmed! Balance increased.');
             pollActive = false;
             setPolling(false);
             setPaymentClaimed(false);
@@ -226,13 +223,11 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
           if (Date.now() - start < POLL_TIMEOUT_MS) {
             setTimeout(poll, POLL_INTERVAL_MS);
           } else {
-            console.log('Polling timeout reached');
             pollActive = false;
             setPolling(false);
             setPaymentClaimed(false);
           }
         } catch (e) {
-          console.error('Error during polling:', e);
           // Continue polling on error if within timeout
           if (Date.now() - start < POLL_TIMEOUT_MS) {
             setTimeout(poll, POLL_INTERVAL_MS);

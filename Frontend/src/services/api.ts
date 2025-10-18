@@ -93,11 +93,7 @@ class ApiService {
             this.refreshPromise = null;
             return Promise.reject(refreshError);
           }
-        } else if (status === 401) {
-          console.log('401 Unauthorized but not retrying:', 
-            !originalRequest._retry ? 'already retried' : 'no refresh token available');
         }
-        
         return Promise.reject(error);
       }
     );
@@ -109,19 +105,54 @@ class ApiService {
     const data = axErr?.response?.data;
     if (!data) return axErr?.message || 'Request failed';
 
-    // ApiResponse wrapper
-    if (typeof data === 'object' && 'message' in data && data.message) {
-      return String((data as any).message);
-    }
-
-    // ASP.NET ProblemDetails with validation errors
-    if (typeof data === 'object' && data.errors && typeof data.errors === 'object') {
-      const messages: string[] = [];
-      for (const key of Object.keys(data.errors)) {
-        const arr = data.errors[key];
-        if (Array.isArray(arr)) messages.push(...arr);
+    // ApiResponse wrapper with Message or Errors array
+    if (typeof data === 'object') {
+      // Check for Message field first
+      if ('Message' in data && data.Message) {
+        return String(data.Message);
       }
-      if (messages.length) return messages.join('\n');
+      if ('message' in data && data.message) {
+        return String(data.message);
+      }
+      
+      // Check for Errors array (backend stack traces or error details)
+      if ('Errors' in data && Array.isArray(data.Errors) && data.Errors.length > 0) {
+        // Filter out stack trace lines and get meaningful error messages
+        const meaningfulErrors = data.Errors
+          .map((err: any) => typeof err === 'string' ? err.trim() : String(err))
+          .filter((err: string) => 
+            err && 
+            !err.startsWith('at ') && 
+            !err.includes('YaqeenPay.') &&
+            !err.includes('.cs:line')
+          );
+        if (meaningfulErrors.length > 0) {
+          return meaningfulErrors.join('\n');
+        }
+      }
+      if ('errors' in data && Array.isArray(data.errors) && data.errors.length > 0) {
+        const meaningfulErrors = data.errors
+          .map((err: any) => typeof err === 'string' ? err.trim() : String(err))
+          .filter((err: string) => 
+            err && 
+            !err.startsWith('at ') && 
+            !err.includes('YaqeenPay.') &&
+            !err.includes('.cs:line')
+          );
+        if (meaningfulErrors.length > 0) {
+          return meaningfulErrors.join('\n');
+        }
+      }
+
+      // ASP.NET ProblemDetails with validation errors object
+      if ('errors' in data && typeof data.errors === 'object' && !Array.isArray(data.errors)) {
+        const messages: string[] = [];
+        for (const key of Object.keys(data.errors)) {
+          const arr = data.errors[key];
+          if (Array.isArray(arr)) messages.push(...arr);
+        }
+        if (messages.length) return messages.join('\n');
+      }
     }
 
     // Text response or unknown shape

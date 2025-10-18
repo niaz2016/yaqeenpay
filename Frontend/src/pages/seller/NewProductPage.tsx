@@ -75,8 +75,6 @@ const NewProductPage: React.FC = () => {
         categoryService.clearCache();
         
         const fetchedCategories = await categoryService.getCategories();
-        console.log('[NewProductPage] Fetched categories:', fetchedCategories);
-        console.log('[NewProductPage] Sample category ID format:', fetchedCategories[0]?.id);
         
         if (fetchedCategories && fetchedCategories.length > 0) {
           setCategories(fetchedCategories);
@@ -99,8 +97,6 @@ const NewProductPage: React.FC = () => {
 
   const handleInputChange = (field: string, value: string | number) => {
     if (field === 'categoryId') {
-      console.log('[NewProductPage] Category selection:', value);
-      console.log('[NewProductPage] Available categories:', categories.map(c => ({ id: c.id, name: c.name })));
     }
     setFormData(prev => ({
       ...prev,
@@ -217,13 +213,6 @@ const NewProductPage: React.FC = () => {
         attributes: validAttributes,
         images: productImages
       };
-
-      console.log('[NewProductPage] Sending product data:', {
-        ...productData,
-        images: `${productImages.length} images`
-      });
-      console.log('[NewProductPage] CategoryId being sent:', formData.categoryId);
-
       await productService.createProduct(productData);
       
       setSuccess('Product created successfully!');

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Paper, Typography, Tabs, Tab, Box, Alert, Snackbar, TextField, MenuItem, Stack, Button, Chip, Fade } from '@mui/material';
+import { Container, Paper, Typography, Tabs, Tab, Box, Alert, TextField, MenuItem, Stack, Button, Chip, Fade } from '@mui/material';
 import walletService from '../../services/walletService';
 import type { WalletSummary, WalletTransaction, WalletAnalytics, TopUpDto, TransactionType } from '../../types/wallet';
 import BalanceCard from '../../components/wallet/BalanceCard';
 import TransactionTable from '../../components/wallet/TransactionTable';
 import TopUpQrModal from '../../components/wallet/TopUpQrModal';
 import WalletCharts from '../../components/wallet/WalletCharts';
+import { useErrorHandler } from '../../hooks/useErrorHandler';
 
 const WalletPage: React.FC = () => {
   const [tab, setTab] = useState(0);
@@ -16,20 +17,21 @@ const WalletPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [analytics, setAnalytics] = useState<WalletAnalytics | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [txType, setTxType] = useState<TransactionType | 'All'>('All');
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [topUpSubmitting, setTopUpSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [withdrawableBadge, setWithdrawableBadge] = useState<{ amount?: number; currency?: string; orderCode?: string; ts: string } | null>(null);
+  
+  const { handleError, handleSuccess } = useErrorHandler();
 
   const loadSummary = async () => {
     try {
       const data = await walletService.getSummary();
       setSummary(data);
     } catch (e: any) {
-      console.error('Wallet summary load failed:', e);
+      handleError(e, 'WalletPage.loadSummary', 'Failed to load wallet summary');
       setError(e?.message || 'Failed to load wallet summary');
     }
   };
@@ -39,7 +41,9 @@ const WalletPage: React.FC = () => {
     try {
       await loadSummary();
       setError(null);
+      handleSuccess('Balance refreshed successfully');
     } catch (e: any) {
+      handleError(e, 'WalletPage.refreshBalance', 'Failed to refresh balance');
       setError(e?.message || 'Failed to refresh balance');
     } finally {
       setRefreshing(false);
@@ -53,6 +57,8 @@ const WalletPage: React.FC = () => {
       setTx(res.items);
       setRowCount(res.total);
       setError(null);
+    } catch (e) {
+      handleError(e, 'WalletPage.loadTransactions', 'Failed to load transactions');
     } finally {
       setLoading(false);
     }
@@ -63,8 +69,8 @@ const WalletPage: React.FC = () => {
       const data = await walletService.getAnalytics();
       setAnalytics(data);
     } catch (e: any) {
+      // Not critical; don't show toast for analytics failures
       console.error('Wallet analytics load failed:', e);
-      // Not critical; don't block page
     }
   };
 
@@ -98,20 +104,19 @@ const WalletPage: React.FC = () => {
     try {
       const topUp: TopUpDto = await walletService.topUp({
         amount,
-        currency: summary?.currency || 'PKR',
         channel: 'Easypaisa',
       }) as TopUpDto;
 
       // submit the transaction id against the created topup
       await walletService.submitTopUpReference(topUp.id, transactionId);
 
-      setToast('Transaction submitted. Awaiting admin approval.');
+      handleSuccess('Transaction submitted. Awaiting admin approval.');
       setQrModalOpen(false);
       await loadSummary();
       await loadTx();
       await loadAnalytics();
     } catch (e: any) {
-      setToast(e?.message || 'Top-up submit failed');
+      handleError(e, 'WalletPage.topUp', 'Top-up submission failed');
     } finally {
       setTopUpSubmitting(false);
     }
@@ -231,10 +236,6 @@ const WalletPage: React.FC = () => {
           </Box>
         )}
       </Paper>
-
-      <Snackbar open={!!toast} autoHideDuration={3000} onClose={() => setToast(null)}>
-        <Alert severity="info" onClose={() => setToast(null)}>{toast}</Alert>
-      </Snackbar>
     </Container>
   );
 };

@@ -3,7 +3,7 @@ export type WalletStatus = 'Active' | 'Suspended' | 'Pending';
 
 export interface WalletSummary {
   balance: number;
-  currency: string; // e.g., USD, SAR
+  currency: string; // Always PKR - single currency system
   status: WalletStatus;
   updatedAt: string; // ISO
 }
@@ -43,7 +43,6 @@ export interface PagedResult<T> {
 
 export interface TopUpRequest {
   amount: number;
-  currency?: string;
   channel: 'JazzCash' | 'Easypaisa' | 'BankTransfer' | 'ManualAdjustment';
   // Legacy field for compatibility
   method?: 'Card' | 'BankTransfer' | 'ApplePay' | 'GooglePay' | 'Cash';

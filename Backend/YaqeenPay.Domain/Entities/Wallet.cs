@@ -101,7 +101,8 @@ namespace YaqeenPay.Domain.Entities
             return new Money(availableAmount, Balance.Currency);
         }
 
-        public void FreezeAmount(Money amount, string reason)
+        // Added optional reference parameters so callers can link wallet transactions to domain entities (e.g., orders)
+        public void FreezeAmount(Money amount, string reason, Guid? referenceId = null, string? referenceType = null)
         {
             if (!IsActive)
                 throw new InvalidOperationException("Cannot freeze amount in inactive wallet");
@@ -122,7 +123,9 @@ namespace YaqeenPay.Domain.Entities
                 this.Id,
                 TransactionType.Freeze,
                 amount,
-                reason);
+                reason,
+                referenceId,
+                referenceType);
             
             Transactions.Add(transaction);
         }
@@ -153,7 +156,8 @@ namespace YaqeenPay.Domain.Entities
             Transactions.Add(transaction);
         }
 
-        public void TransferFrozenToDebit(Money amount, string reason)
+        // Added optional reference parameters to aid tracing which order a frozen-to-debit transfer belongs to
+        public void TransferFrozenToDebit(Money amount, string reason, Guid? referenceId = null, string? referenceType = null)
         {
             if (!IsActive)
                 throw new InvalidOperationException("Cannot transfer frozen amount in inactive wallet");
@@ -176,7 +180,9 @@ namespace YaqeenPay.Domain.Entities
                 this.Id,
                 TransactionType.FrozenToDebit,
                 amount,
-                reason);
+                reason,
+                referenceId,
+                referenceType);
             
             Transactions.Add(transaction);
         }

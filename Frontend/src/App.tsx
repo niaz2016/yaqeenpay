@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { lazy } from 'react';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { ErrorProvider } from './context/ErrorContext';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -44,15 +45,16 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import WithdrawalsPage from './pages/WithdrawalsPage.tsx';
 import NotificationsPage from './pages/notifications/NotificationsPage';
-// Admin Pages (Phase 6)
-import AdminDashboard from './pages/admin/AdminDashboard';
-import UserManagement from './pages/admin/UserManagement';
-import KycVerification from './pages/admin/KycVerification';
-import SellerApproval from './pages/admin/SellerApproval';
-import OrderMonitoring from './pages/admin/OrderMonitoring';
-import AdminWithdrawals from './pages/admin/AdminWithdrawals';
-import AdminProfilePage from './pages/admin/AdminProfilePage';
-import AdminSettings from './pages/admin/AdminSettings';
+
+// Admin Pages (Phase 6) - Lazy loaded for code splitting
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const KycVerification = lazy(() => import('./pages/admin/KycVerification'));
+const SellerApproval = lazy(() => import('./pages/admin/SellerApproval'));
+const OrderMonitoring = lazy(() => import('./pages/admin/OrderMonitoring'));
+const AdminWithdrawals = lazy(() => import('./pages/admin/AdminWithdrawals'));
+const AdminProfilePage = lazy(() => import('./pages/admin/AdminProfilePage'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
 // Error Pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -63,6 +65,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import Privacy from './pages/Privacy.tsx';
 import WalletPage from './pages/wallet/WalletPage.tsx';
 import NotificationSentToaster from './components/notifications/NotificationSentToaster';
+import PwaInstallPrompt from './components/common/PwaInstallPrompt';
+import SuspenseLoader from './components/common/SuspenseLoader';
 
 
 // Theme configuration
@@ -83,9 +87,10 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
-        <NotificationProvider>
-          <BrowserRouter>
+      <ErrorProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <BrowserRouter>
           <Routes>
             {/* Landing page without layout */}
             <Route path="/" element={<LandingPage />} />
@@ -97,6 +102,7 @@ const App: React.FC = () => {
               <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/verify-email" element={<VerifyOtpPage />} />
+              <Route path="/auth/verify-phone" element={<VerifyOtpPage />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               
@@ -139,17 +145,49 @@ const App: React.FC = () => {
               </Route>
             </Route>
 
-            {/* Admin routes with AdminLayout */}
+            {/* Admin routes with AdminLayout - Code Split with Suspense */}
             <Route element={<ProtectedRoute allowedRoles={["Admin", "admin"]} />}>
               <Route element={<AdminLayout />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/profile" element={<AdminProfilePage />} />
-                <Route path="/admin/users" element={<UserManagement />} />
-                <Route path="/admin/kyc" element={<KycVerification />} />
-                <Route path="/admin/sellers" element={<SellerApproval />} />
-                <Route path="/admin/orders" element={<OrderMonitoring />} />
-                <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Admin Dashboard..." />}>
+                    <AdminDashboard />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/profile" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Profile..." />}>
+                    <AdminProfilePage />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/users" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading User Management..." />}>
+                    <UserManagement />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/kyc" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading KYC Verification..." />}>
+                    <KycVerification />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/sellers" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Seller Approval..." />}>
+                    <SellerApproval />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/orders" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Order Monitoring..." />}>
+                    <OrderMonitoring />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/withdrawals" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Withdrawals..." />}>
+                    <AdminWithdrawals />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/settings" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Settings..." />}>
+                    <AdminSettings />
+                  </React.Suspense>
+                } />
               </Route>
             </Route>
 
@@ -159,9 +197,11 @@ const App: React.FC = () => {
           
           {/* Debug panel removed */}
           <NotificationSentToaster />
+          <PwaInstallPrompt position="bottom" />
           </BrowserRouter>
         </NotificationProvider>
       </AuthProvider>
+      </ErrorProvider>
     </ThemeProvider>
   );
 };

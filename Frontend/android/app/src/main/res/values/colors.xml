@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- YaqeenPay brand colors matching the app theme -->
+    <color name="colorPrimary">#1976d2</color>
+    <color name="colorPrimaryDark">#115293</color>
+    <color name="colorAccent">#1976d2</color>
+    
+    <!-- Status bar color for Android -->
+    <color name="statusBarColor">#1976d2</color>
+    
+    <!-- Background colors -->
+    <color name="backgroundColor">#FFFFFF</color>
+</resources>

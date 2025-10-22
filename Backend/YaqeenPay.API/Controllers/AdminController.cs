@@ -236,4 +236,71 @@ public class AdminController : ApiControllerBase
     {
         return Ok(await Mediator.Send(command));
     }
+
+    [HttpGet("bank-sms-payments")]
+    public async Task<IActionResult> GetBankSmsPayments([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] bool? processed = null)
+    {
+        var db = HttpContext.RequestServices.GetRequiredService<YaqeenPay.Application.Common.Interfaces.IApplicationDbContext>();
+        
+        var query = db.BankSmsPayments.AsQueryable();
+        
+        if (processed.HasValue)
+        {
+            query = query.Where(x => x.Processed == processed.Value);
+        }
+        
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        return Ok(new { 
+            items, 
+            totalCount, 
+            page, 
+            pageSize,
+            totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        });
+    }
+
+    [HttpGet("wallet-topup-locks")]
+    public async Task<IActionResult> GetWalletTopupLocks([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] int? status = null)
+    {
+        var db = HttpContext.RequestServices.GetRequiredService<YaqeenPay.Application.Common.Interfaces.IApplicationDbContext>();
+        
+        var query = db.WalletTopupLocks.AsQueryable();
+        
+        if (status.HasValue)
+        {
+            query = query.Where(x => (int)x.Status == status.Value);
+        }
+        
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new {
+                x.Id,
+                x.UserId,
+                Amount = x.Amount.Amount,
+                Currency = x.Amount.Currency,
+                x.LockedAt,
+                x.ExpiresAt,
+                x.Status,
+                x.TransactionReference,
+                x.CreatedAt
+            })
+            .ToListAsync();
+        
+        return Ok(new { 
+            items, 
+            totalCount, 
+            page, 
+            pageSize,
+            totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        });
+    }
 }

@@ -168,7 +168,7 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
 
   const renderPersonalInfo = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Box sx={{ display: 'flex', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
         <Controller
           name="firstName"
           control={control}
@@ -472,13 +472,13 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Store sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-        <Typography variant="h4" component="h1" gutterBottom>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 600, mx: 'auto', width: '100%' }}>
+      <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 4 } }}>
+        <Store sx={{ fontSize: { xs: 36, sm: 48 }, color: 'success.main', mb: 2 }} />
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Seller Registration
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Join YaqeenPay as a trusted seller
         </Typography>
       </Box>
@@ -486,7 +486,14 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
         {steps.map((label) => (
           <Step key={label}>
-            <StepLabel>{label}</StepLabel>
+            <StepLabel sx={{ 
+              '& .MuiStepLabel-label': { 
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                display: { xs: 'none', sm: 'block' }
+              } 
+            }}>
+              {label}
+            </StepLabel>
           </Step>
         ))}
       </Stepper>
@@ -502,11 +509,18 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
 
         <Divider sx={{ my: 3 }} />
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+          justifyContent: 'space-between' 
+        }}>
           <Button
             startIcon={<ArrowBack />}
             onClick={activeStep === 0 ? onBack : handleBack}
             variant="outlined"
+            fullWidth={true}
+            sx={{ maxWidth: { xs: '100%', sm: 'auto' } }}
           >
             {activeStep === 0 ? 'Back to Role Selection' : 'Back'}
           </Button>
@@ -516,6 +530,8 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
               type="submit"
               variant="contained"
               disabled={isSubmitting}
+              fullWidth={true}
+              sx={{ maxWidth: { xs: '100%', sm: 'auto' } }}
             >
               {isSubmitting ? 'Creating Account...' : 'Create Seller Account'}
             </Button>
@@ -523,6 +539,8 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
             <Button
               onClick={handleNext}
               variant="contained"
+              fullWidth={true}
+              sx={{ maxWidth: { xs: '100%', sm: 'auto' } }}
             >
               Next
             </Button>

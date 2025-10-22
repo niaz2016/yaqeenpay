@@ -146,22 +146,22 @@ const ProfilePage: React.FC = () => {
 
   if (!user) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, px: { xs: 2, sm: 3 } }}>
         <Alert severity="error">Please log in to view your profile.</Alert>
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: 4, px: { xs: 2, sm: 3 } }}>
       {/* Header Section */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #4288e9ff 100%)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, background: 'linear-gradient(135deg, #667eea 0%, #4288e9ff 100%)' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', gap: { xs: 2, sm: 3 }, textAlign: { xs: 'center', sm: 'left' } }}>
           <Box sx={{ position: 'relative' }}>
             <Avatar
               sx={{
-                width: 100,
-                height: 100,
+                width: { xs: 80, sm: 100 },
+                height: { xs: 80, sm: 100 },
                 border: '4px solid white',
                 fontSize: '2rem',
                 bgcolor: 'primary.main'
@@ -252,14 +252,14 @@ const ProfilePage: React.FC = () => {
           </Box>
 
           <Box sx={{ flex: 1, color: 'white' }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, fontSize: { xs: '1.75rem', sm: '2.125rem' } }}>
               {user.firstName} {user.lastName}
             </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
+            <Typography variant="body1" sx={{ opacity: 0.9, mb: 2, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               {user.email}
             </Typography>
 
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Stack direction="row" spacing={1} sx={{ mb: 2, justifyContent: { xs: 'center', sm: 'flex-start' }, flexWrap: 'wrap' }}>
               {user.roles?.map((role) => (
                 <Chip
                   key={role}
@@ -306,8 +306,8 @@ const ProfilePage: React.FC = () => {
       </Paper>
 
       {/* Quick Stats Cards */}
-      <Box sx={{ display: 'flex', gap: 3, mb: 3, flexWrap: 'wrap' }}>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
+      <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3 }, mb: 3, flexWrap: 'wrap' }}>
+        <Card sx={{ flex: '1 1 250px', minWidth: { xs: '100%', sm: 250 } }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -415,12 +415,23 @@ const ProfilePage: React.FC = () => {
 
       {/* Main Content with Tabs */}
       <Paper elevation={2}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', overflowX: 'auto' }}>
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
             aria-label="profile tabs"
-            sx={{ px: 3 }}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{ 
+              px: { xs: 1, sm: 3 },
+              minHeight: { xs: 48, sm: 56 },
+              '& .MuiTab-root': {
+                minHeight: { xs: 48, sm: 56 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                px: { xs: 1, sm: 2 }
+              }
+            }}
           >
             <Tab
               label="Overview"

@@ -3,11 +3,8 @@ using MediatR;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Domain.Entities.Identity;
-using System.Linq;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace YaqeenPay.Application.Features.Authentication.Commands.Login;
 
@@ -49,7 +46,8 @@ public class LoginCommandHandler(
     IJwtService jwtService,
     ICurrentUserService currentUserService,
     IDeviceService deviceService,
-    ISmsSender smsSender) : IRequestHandler<LoginCommand, ApiResponse<AuthenticationResponse>>
+    ISmsSender smsSender,
+    IConfiguration configuration) : IRequestHandler<LoginCommand, ApiResponse<AuthenticationResponse>>
 {
     private readonly IApplicationDbContext _context = context;
     private readonly IIdentityService _identityService = identityService;
@@ -57,6 +55,7 @@ public class LoginCommandHandler(
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IDeviceService _deviceService = deviceService;
     private readonly ISmsSender _smsSender = smsSender;
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task<ApiResponse<AuthenticationResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
@@ -101,13 +100,16 @@ public class LoginCommandHandler(
             return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
         }
 
+        // Check if device verification is enabled (disabled in development by default)
+        var deviceVerificationEnabled = _configuration["DeviceVerification:Enabled"] != "false";
+        
         // Check for device recognition
         var userAgent = _currentUserService.UserAgent ?? "Unknown";
         var deviceFingerprint = _deviceService.GenerateDeviceFingerprint(userAgent);
         var existingDevice = await _deviceService.GetUserDeviceAsync(user.Id, deviceFingerprint, cancellationToken);
 
-        // If this is a new device, require OTP verification
-        if (existingDevice == null)
+        // If this is a new device and device verification is enabled, require OTP verification
+        if (existingDevice == null && deviceVerificationEnabled)
         {
             // Register the new device
             var newDevice = await _deviceService.RegisterDeviceAsync(user.Id, userAgent, ipAddress, cancellationToken);
@@ -165,12 +167,20 @@ public class LoginCommandHandler(
             }, "New device detected. Please verify with OTP sent to your phone.");
         }
 
-        // Device is recognized, proceed with login
+        // Device is recognized or verification is disabled, proceed with login
         var roles = await _identityService.GetUserRolesAsync(user.Id);
         var (jwtToken, refreshToken) = _jwtService.GenerateTokens(user, roles, ipAddress);
 
-        // Update device last seen
-        await _deviceService.UpdateDeviceLastSeenAsync(existingDevice.Id, cancellationToken);
+        // Update device last seen if device exists
+        if (existingDevice != null)
+        {
+            await _deviceService.UpdateDeviceLastSeenAsync(existingDevice.Id, cancellationToken);
+        }
+        else if (!deviceVerificationEnabled)
+        {
+            // If device verification is disabled, register the device automatically
+            await _deviceService.RegisterDeviceAsync(user.Id, userAgent, ipAddress, cancellationToken);
+        }
 
         // Only send notification for new devices (already handled above)
         // For existing devices, no notification needed

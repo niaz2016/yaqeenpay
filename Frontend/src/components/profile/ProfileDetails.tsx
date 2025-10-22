@@ -257,7 +257,7 @@ const ProfileDetails: React.FC = () => {
   }
 
   return (
-    <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, mb: 4 }}>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}

@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import cartService from '../services/cartService';
+import { normalizeImageUrl, placeholderDataUri } from '../utils/image';
 
 interface ProductDetail {
   id: string;
@@ -287,14 +288,11 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const getImageUrl = (imageUrl: string) => {
-    
     if (imageUrl && imageUrl.trim() !== '') {
-      return imageUrl;
+      // Use centralized image URL normalization for proper mobile/backend resolution
+      return normalizeImageUrl(imageUrl) || placeholderDataUri(600, '#F5F5F5');
     }
-    
-    // Use local SVG placeholder to avoid external random images
-    const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNDAgMTYwQzI0MCAyMDkuMDE5IDI1OS45ODEgMjI0IDMwMCAyMjRDMzQwLjAxOSAyMjQgMzYwIDIwOS4wMTkgMzYwIDE2MEMzNjAgMTEwLjk4MSAzNDAuMDE5IDk2IDMwMCA5NkMyNTkuOTgxIDk2IDI0MCAxMTAuOTgxIDI0MCAxNjBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yMDAgMjgwTDQwMCAyODBMMzYwIDIzMkwzMDAgMjYwTDI0MCAyMzJMMjAwIDI4MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMwMCIgeT0iMzQwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
-    return placeholderUrl;
+    return placeholderDataUri(600, '#F5F5F5');
   };
 
   if (loading) {

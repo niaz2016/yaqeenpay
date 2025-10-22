@@ -32,6 +32,7 @@ import {
   Visibility as EyeIcon,
   Clear as ClearIcon
 } from '@mui/icons-material';
+import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 
 interface Product {
   id: string;
@@ -183,7 +184,8 @@ const SellerProductsPage: React.FC = () => {
 
   const getPrimaryImage = (images: Array<{ imageUrl: string; isPrimary: boolean }>) => {
     const primary = images.find(img => img.isPrimary);
-    return primary?.imageUrl || images[0]?.imageUrl || '/api/placeholder/300/200';
+    const imageUrl = primary?.imageUrl || images[0]?.imageUrl;
+    return imageUrl ? (normalizeImageUrl(imageUrl) || placeholderDataUri(300, '#F5F5F5')) : placeholderDataUri(300, '#F5F5F5');
   };
 
   if (loading && products.length === 0) {

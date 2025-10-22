@@ -280,18 +280,26 @@ public static class DependencyInjection
     services.AddScoped<YaqeenPay.Application.Common.Interfaces.ISmsSender, YaqeenPay.Infrastructure.Services.Sms.MacroDroidSmsSender>();
     services.AddHostedService<Services.OutboxDispatcherService>();
 
-        // Redis & OTP
+        // Redis & OTP - Use in-memory OTP service if Redis is disabled in configuration
+        var useInMemoryOtp = configuration["Redis:UseInMemory"] == "true";
+        if (useInMemoryOtp)
+        {
+            services.AddSingleton<IOtpService, InMemoryOtpService>();
+        }
+        else
+        {
             // Redis & OTP (resilient connection)
             var redisConnection = configuration.GetSection("Redis")["ConnectionString"] ?? "localhost:6379";
-        var redisOptions = ConfigurationOptions.Parse(redisConnection);
-        redisOptions.AllowAdmin = false;
+            var redisOptions = ConfigurationOptions.Parse(redisConnection);
+            redisOptions.AllowAdmin = false;
             // Ensure the multiplexer keeps retrying instead of throwing on startup
             redisOptions.AbortOnConnectFail = false;
             // Reasonable defaults for local/dev
             if (redisOptions.ConnectRetry == 0) redisOptions.ConnectRetry = 3;
             if (redisOptions.ConnectTimeout == 0) redisOptions.ConnectTimeout = 5000;
             services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisOptions));
-        services.AddScoped<IOtpService, RedisOtpService>();
+            services.AddScoped<IOtpService, RedisOtpService>();
+        }
 
         return services;
     }

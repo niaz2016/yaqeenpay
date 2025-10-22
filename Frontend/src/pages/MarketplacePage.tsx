@@ -27,6 +27,7 @@ import {
     Add as AddIcon
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
+import { normalizeImageUrl, placeholderDataUri } from '../utils/image';
 
 import productService from '../services/productService';
 import categoryService, { type Category } from '../services/categoryService';
@@ -308,9 +309,9 @@ const MarketplacePage: React.FC = () => {
         const validPrimaryUrl = primaryUrl && primaryUrl.trim() !== '' ? primaryUrl : null;
         const validFallbackUrl = fallbackUrl && fallbackUrl.trim() !== '' ? fallbackUrl : null;
 
-        // Use data URL for local placeholder to avoid external requests
-        const localPlaceholder = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5QUk9EVUNUIElNQUdFPC90eXBlPgo8L3N2Zz4=';
-        return validPrimaryUrl || validFallbackUrl || localPlaceholder;
+        // Use centralized image normalization for proper mobile/backend resolution
+        const resolvedUrl = validPrimaryUrl || validFallbackUrl;
+        return resolvedUrl ? normalizeImageUrl(resolvedUrl) || placeholderDataUri(300, '#F5F5F5') : placeholderDataUri(300, '#F5F5F5');
     };
 
     const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {

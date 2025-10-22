@@ -20,6 +20,7 @@ import {
   ArrowBack as BackIcon
 } from '@mui/icons-material';
 import cartService, { type CartSummary } from '../services/cartService';
+import { normalizeImageUrl, placeholderDataUri } from '../utils/image';
 
 const CartPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,10 +30,9 @@ const CartPage: React.FC = () => {
 
   const getImageUrl = (imageUrl?: string) => {
     if (imageUrl && imageUrl.trim() !== '') {
-      return imageUrl;
+      return normalizeImageUrl(imageUrl) || placeholderDataUri(120, '#F5F5F5');
     }
-    // Use local SVG placeholder for cart items
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik00OCA0OEM0OCA1OC4wNDU3IDUxLjk1NDMgNjIgNjAgNjJDNjguMDQ1NyA2MiA3MiA1OC4wNDU3IDcyIDQ4QzcyIDM3Ljk1NDMgNjguMDQ1NyAzNCA2MCAzNEM1MS45NTQzIDM0IDQ4IDM3Ljk1NDMgNDggNDhaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik00MCA4NEw4MCA4NEw3MiA3Mkw2MCA3OEw0OCA3Mkw0MCA4NFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjYwIiB5PSIxMDAiPk5vIEltYWdlPC90eXBlPgo8L3N2Zz4=';
+    return placeholderDataUri(120, '#F5F5F5');
   };
 
   useEffect(() => {

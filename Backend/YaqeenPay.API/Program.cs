@@ -74,7 +74,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("https://*.ngrok-free.app\", \"https://*.ngrok.io")
+        policy.WithOrigins(
+                  "http://localhost",
+                  "https://localhost",
+                  "http://127.0.0.1",
+                  "https://127.0.0.1",
+                  "capacitor://localhost")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -103,7 +108,6 @@ else
 // Custom exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
 app.UseAuthentication();

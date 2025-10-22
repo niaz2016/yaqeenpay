@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 using YaqeenPay.Application.Common.Interfaces;
 
 namespace YaqeenPay.Infrastructure.Services.Sms
@@ -14,16 +15,26 @@ namespace YaqeenPay.Infrastructure.Services.Sms
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly Services.MacroDroidOptions _options;
         private readonly ILogger<MacroDroidSmsSender> _logger;
+        private readonly IConfiguration _configuration;
 
-        public MacroDroidSmsSender(IHttpClientFactory httpClientFactory, IOptions<Services.MacroDroidOptions> options, ILogger<MacroDroidSmsSender> logger)
+        public MacroDroidSmsSender(IHttpClientFactory httpClientFactory, IOptions<Services.MacroDroidOptions> options, ILogger<MacroDroidSmsSender> logger, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
             _options = options.Value;
             _logger = logger;
+            _configuration = configuration;
         }
 
         public async Task SendOtpAsync(string phoneNumber, string otp, string? template = null, CancellationToken cancellationToken = default)
         {
+            // Check if SMS sending is enabled
+            var smsEnabled = _configuration["MacroDroid:Enabled"] != "false";
+            if (!smsEnabled)
+            {
+                _logger.LogInformation("SMS sending is disabled. OTP {Otp} would have been sent to {PhoneNumber}", otp, phoneNumber);
+                return;
+            }
+
             if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new ArgumentException("Phone number is required", nameof(phoneNumber));
             if (string.IsNullOrWhiteSpace(otp))

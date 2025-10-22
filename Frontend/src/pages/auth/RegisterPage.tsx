@@ -33,8 +33,8 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
+      <Box sx={{ mt: { xs: 4, sm: 8 }, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {renderContent()}
       </Box>
     </Container>

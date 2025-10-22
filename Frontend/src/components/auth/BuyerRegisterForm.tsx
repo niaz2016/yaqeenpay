@@ -105,13 +105,13 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <ShoppingCart sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-        <Typography variant="h4" component="h1" gutterBottom>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 600, mx: 'auto', width: '100%' }}>
+      <Box sx={{ textAlign: 'center', mb: { xs: 2, sm: 4 } }}>
+        <ShoppingCart sx={{ fontSize: { xs: 36, sm: 48 }, color: 'primary.main', mb: 2 }} />
+        <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Buyer Registration
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
           Join YaqeenPay to start shopping securely
         </Typography>
       </Box>
@@ -130,7 +130,7 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <Controller
               name="firstName"
               control={control}
@@ -293,11 +293,18 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
 
         <Divider sx={{ my: 3 }} />
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+          justifyContent: 'space-between' 
+        }}>
           <Button
             startIcon={<ArrowBack />}
             onClick={onBack}
             variant="outlined"
+            fullWidth={true}
+            sx={{ maxWidth: { xs: '100%', sm: 'auto' } }}
           >
             Back to Role Selection
           </Button>
@@ -306,6 +313,8 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
             type="submit"
             variant="contained"
             disabled={isSubmitting}
+            fullWidth={true}
+            sx={{ maxWidth: { xs: '100%', sm: 'auto' } }}
           >
             {isSubmitting ? 'Creating Account...' : 'Create Buyer Account'}
           </Button>

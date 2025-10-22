@@ -53,7 +53,7 @@ public class ResendOtpCommandHandler : IRequestHandler<ResendOtpCommand, ApiResp
         // Find the most recent OTP notification for this device
         var otpNotification = await _context.Notifications
             .Where(n => n.UserId == request.UserId && 
-                       n.Type == YaqeenPay.Domain.Enums.NotificationType.Security &&
+                       n.Type == Domain.Enums.NotificationType.Security &&
                        n.Title == "Device Verification Required" &&
                        n.IsActive)
             .OrderByDescending(n => n.CreatedAt)

@@ -9,8 +9,18 @@ import {
   CardMedia,
   CardActions,
   Alert,
+  Menu,
+  MenuItem,
 } from '@mui/material';
-import { Delete as DeleteIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
+import { 
+  Delete as DeleteIcon, 
+  CloudUpload as UploadIcon,
+  CameraAlt as CameraIcon,
+  PhotoLibrary as GalleryIcon,
+  MoreVert as MoreIcon 
+} from '@mui/icons-material';
+import { Capacitor } from '@capacitor/core';
+import { cameraService } from '../../services/cameraService';
 
 interface Props {
   images: File[];
@@ -32,7 +42,10 @@ const ImageUpload: React.FC<Props> = ({
   disabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isNative = Capacitor.isNativePlatform();
 
   const validateFile = (file: File): boolean => {
     if (!acceptedFormats.includes(file.type)) {
@@ -67,14 +80,77 @@ const ImageUpload: React.FC<Props> = ({
     }
 
     onImagesChange([...images, ...validFiles]);
-    
+
     // Reset input value to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+    }
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleCameraCapture = async () => {
+    setAnchorEl(null);
+    setError(null);
+    
+    try {
+      if (!isNative) {
+        // Fallback to file input with camera capture
+        cameraInputRef.current?.click();
+        return;
+      }
+
+      // Use native camera service
+      const file = await cameraService.takePhoto();
+      if (file) {
+        // Validate the captured file
+        if (validateFile(file)) {
+          onImagesChange([...images, file]);
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setError('Failed to access camera. Please check permissions.');
+      // Fallback to file input
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const handleGallerySelect = async () => {
+    setAnchorEl(null);
+    setError(null);
+    
+    try {
+      if (!isNative) {
+        // Fallback to file input
+        fileInputRef.current?.click();
+        return;
+      }
+
+      // Use native gallery service
+      const file = await cameraService.selectFromGallery();
+      if (file) {
+        // Validate the selected file
+        if (validateFile(file)) {
+          onImagesChange([...images, file]);
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing gallery:', error);
+      setError('Failed to access gallery.');
+      // Fallback to file input
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };  const handleRemoveImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     onImagesChange(newImages);
     setError(null);
@@ -90,20 +166,49 @@ const ImageUpload: React.FC<Props> = ({
         <Typography variant="subtitle2">
           Product Images {required && <span style={{ color: 'red' }}>*</span>}
         </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<UploadIcon />}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || images.length >= maxImages}
-          size="small"
-        >
-          Upload Images
-        </Button>
+        {isNative ? (
+          <>
+            <Button
+              variant="outlined"
+              startIcon={<MoreIcon />}
+              onClick={handleMenuOpen}
+              disabled={disabled || images.length >= maxImages}
+              size="small"
+            >
+              Add Image
+            </Button>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+            >
+              <MenuItem onClick={handleCameraCapture}>
+                <CameraIcon sx={{ mr: 1 }} />
+                Take Photo
+              </MenuItem>
+              <MenuItem onClick={handleGallerySelect}>
+                <GalleryIcon sx={{ mr: 1 }} />
+                Choose from Gallery
+              </MenuItem>
+            </Menu>
+          </>
+        ) : (
+          <Button
+            variant="outlined"
+            startIcon={<UploadIcon />}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || images.length >= maxImages}
+            size="small"
+          >
+            Upload Images
+          </Button>
+        )}
         <Typography variant="caption" color="text.secondary">
           ({images.length}/{maxImages})
         </Typography>
       </Stack>
 
+      {/* File input for gallery selection */}
       <input
         ref={fileInputRef}
         type="file"
@@ -112,6 +217,18 @@ const ImageUpload: React.FC<Props> = ({
         onChange={handleFileSelect}
         style={{ display: 'none' }}
       />
+
+      {/* Camera input for direct photo capture */}
+      {isNative && (
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+        />
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

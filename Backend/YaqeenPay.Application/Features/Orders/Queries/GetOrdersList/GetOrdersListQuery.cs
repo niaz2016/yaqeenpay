@@ -47,6 +47,7 @@ public class GetOrdersListQueryHandler : IRequestHandler<GetOrdersListQuery, Api
         IQueryable<Order> query = _context.Orders
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
+            .AsNoTracking() // Read-only query - no change tracking needed
             .AsQueryable();
 
         // Filter by role if specified

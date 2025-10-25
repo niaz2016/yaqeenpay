@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "browser-image-compression": "^2.0.2",
-    "date-fns": "^4.1.0"
+    "date-fns": "^4.1.0",
+    "react-google-recaptcha": "^3.1.0"
   }
 }

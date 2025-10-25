@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://techtorio.online/sitemap.xml

@@ -30,7 +30,7 @@ export interface NotificationHistory {
 class NotificationService {
   async sendNotification(notification: NotificationPayload): Promise<void> {
     try {
-      await apiService.post('/notifications', notification);
+      await apiService.post('/notifications/send', notification);
       
       // Show browser notification if permission granted
       if (Notification.permission === 'granted') {

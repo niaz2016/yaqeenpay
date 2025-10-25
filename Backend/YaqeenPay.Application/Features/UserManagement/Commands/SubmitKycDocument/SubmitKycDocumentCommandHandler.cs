@@ -30,7 +30,7 @@ public class SubmitKycDocumentCommandHandler : IRequestHandler<SubmitKycDocument
     public async Task<KycDocumentDto> Handle(SubmitKycDocumentCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        if (userId == null)
+        if (userId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User is not authenticated");
         }
@@ -41,12 +41,31 @@ public class SubmitKycDocumentCommandHandler : IRequestHandler<SubmitKycDocument
             throw new KeyNotFoundException("User not found");
         }
 
-        // Upload the document to storage
-        var documentUrl = await _documentStorageService.StoreDocumentAsync(
-            request.DocumentBase64,
-            request.FileName,
-            userId,
-            "kyc");
+        // Validate input
+        if (string.IsNullOrWhiteSpace(request.DocumentBase64))
+        {
+            throw new ArgumentException("Document content is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.FileName))
+        {
+            throw new ArgumentException("File name is required");
+        }
+
+        string documentUrl;
+        try
+        {
+            // Upload the document to storage
+            documentUrl = await _documentStorageService.StoreDocumentAsync(
+                request.DocumentBase64,
+                request.FileName,
+                userId,
+                "kyc");
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to upload document: {ex.Message}", ex);
+        }
 
         // Create new KYC document
         var document = new KycDocument
@@ -54,9 +73,10 @@ public class SubmitKycDocumentCommandHandler : IRequestHandler<SubmitKycDocument
             Id = Guid.NewGuid(),
             UserId = userId,
             DocumentType = request.DocumentType,
-            DocumentNumber = request.DocumentNumber,
+            DocumentNumber = request.DocumentNumber ?? string.Empty,
             DocumentUrl = documentUrl,
-            Status = KycDocumentStatus.Pending
+            Status = KycDocumentStatus.Pending,
+            CreatedAt = DateTime.UtcNow
         };
 
         // Save to database
@@ -69,11 +89,26 @@ public class SubmitKycDocumentCommandHandler : IRequestHandler<SubmitKycDocument
             await _userManager.UpdateAsync(user);
         }
         
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to save KYC document to database: {ex.Message}", ex);
+        }
 
         // Update user profile completeness
-        user.UpdateProfileCompleteness();
-        await _userManager.UpdateAsync(user);
+        try
+        {
+            user.UpdateProfileCompleteness();
+            await _userManager.UpdateAsync(user);
+        }
+        catch
+        {
+            // Log but don't fail the request if profile completeness update fails
+            // The document has already been saved successfully
+        }
 
         return new KycDocumentDto
         {

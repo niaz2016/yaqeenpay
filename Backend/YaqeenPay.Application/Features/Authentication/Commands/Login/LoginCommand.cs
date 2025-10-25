@@ -12,6 +12,10 @@ public record LoginCommand : IRequest<ApiResponse<AuthenticationResponse>>
 {
     public string Email { get; set; } = null!;
     public string Password { get; set; } = null!;
+    public string? CaptchaToken { get; set; } // CAPTCHA token for bot protection
+    public string? DeviceLocation { get; set; } // Optional location for device verification
+    public double? Latitude { get; set; } // Optional coordinates
+    public double? Longitude { get; set; } // Optional coordinates
 }
 
 public class LoginCommandValidator : AbstractValidator<LoginCommand>
@@ -47,6 +51,9 @@ public class LoginCommandHandler(
     ICurrentUserService currentUserService,
     IDeviceService deviceService,
     ISmsSender smsSender,
+    ISmsRateLimitService smsRateLimitService,
+    IApiRateLimitService apiRateLimitService,
+    ICaptchaService captchaService,
     IConfiguration configuration) : IRequestHandler<LoginCommand, ApiResponse<AuthenticationResponse>>
 {
     private readonly IApplicationDbContext _context = context;
@@ -55,46 +62,58 @@ public class LoginCommandHandler(
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IDeviceService _deviceService = deviceService;
     private readonly ISmsSender _smsSender = smsSender;
+    private readonly ISmsRateLimitService _smsRateLimitService = smsRateLimitService;
+    private readonly IApiRateLimitService _apiRateLimitService = apiRateLimitService;
+    private readonly ICaptchaService _captchaService = captchaService;
     private readonly IConfiguration _configuration = configuration;
 
     public async Task<ApiResponse<AuthenticationResponse>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
+        var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
+        
+        // 1. API RATE LIMITING - Block excessive login attempts (5 attempts per 15 minutes)
+        var isAllowed = await _apiRateLimitService.IsAllowedAsync(ipAddress, "/api/auth/login", 5, 15);
+        if (!isAllowed)
+        {
+            return ApiResponse<AuthenticationResponse>.FailureResponse(
+                "Too many login attempts. Please try again in 15 minutes.");
+        }
+        
+        // Record the attempt
+        await _apiRateLimitService.RecordRequestAsync(ipAddress, "/api/auth/login");
+        
+        // 2. CAPTCHA VALIDATION - Prevent automated attacks
+        var captchaEnabled = _configuration["Captcha:Enabled"] != "false";
+        if (captchaEnabled)
+        {
+            if (string.IsNullOrEmpty(request.CaptchaToken))
+            {
+                return ApiResponse<AuthenticationResponse>.FailureResponse(
+                    "CAPTCHA verification required.");
+            }
+            
+            var isCaptchaValid = await _captchaService.ValidateCaptchaAsync(request.CaptchaToken, ipAddress);
+            if (!isCaptchaValid)
+            {
+                return ApiResponse<AuthenticationResponse>.FailureResponse(
+                    "CAPTCHA verification failed. Please try again.");
+            }
+        }
+        
+        // 3. AUTHENTICATE USER
         var authResult = await _identityService.AuthenticateAsync(request.Email, request.Password);
         var result = authResult.Item1;
         var user = authResult.Item2;
 
-        // Get the user attempting to login (even if authentication failed)
-        var attemptingUser = user ?? await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
-
-        // Create notification only for the user involved in the login attempt
+        // SECURITY: Don't reveal if email exists or password is wrong - generic error message
         if (!result.Succeeded)
         {
-            // Only notify the user who attempted to login (if user exists)
-            if (attemptingUser != null)
-            {
-                var failedLoginNotification = new YaqeenPay.Domain.Entities.Notification
-                {
-                    UserId = attemptingUser.Id,
-                    Type = YaqeenPay.Domain.Enums.NotificationType.Security,
-                    Title = "Failed login attempt",
-                    Message = $"Failed login attempt detected on your account from IP: {_currentUserService.IpAddress ?? "Unknown"}",
-                    Priority = YaqeenPay.Domain.Enums.NotificationPriority.High,
-                    Status = YaqeenPay.Domain.Enums.NotificationStatus.Unread,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = Guid.Empty,
-                    IsActive = true
-                };
-
-                _context.Notifications.Add(failedLoginNotification);
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-
-            return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
+            // Log failed attempt for security monitoring (don't save to notifications)
+            // This prevents email enumeration attacks
+            return ApiResponse<AuthenticationResponse>.FailureResponse("Invalid email or password.");
         }
 
-        // Generate JWT token with roles
-        var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
+        // 4. DEVICE VERIFICATION AND OTP (after successful authentication)
         if (user == null)
         {
             return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
@@ -117,23 +136,40 @@ public class LoginCommandHandler(
             // Send OTP to user's phone
             if (!string.IsNullOrEmpty(user.PhoneNumber))
             {
+                // Check SMS rate limit before sending
+                var deviceIdentifier = ipAddress; // Use IP address as device identifier
+                var smsAllowed = await _smsRateLimitService.IsAllowedAsync(deviceIdentifier, user.PhoneNumber);
+                
+                if (!smsAllowed)
+                {
+                    var blockDuration = await _smsRateLimitService.GetBlockDurationAsync(deviceIdentifier);
+                    var hoursRemaining = blockDuration.HasValue ? (int)Math.Ceiling(blockDuration.Value.TotalHours) : 24;
+                    
+                    return ApiResponse<AuthenticationResponse>.FailureResponse(
+                        $"Too many SMS requests. Your device has been temporarily blocked. Please try again after {hoursRemaining} hour(s).");
+                }
+                
                 // Generate OTP and store it temporarily
                 var otp = GenerateOtp();
                 var otpExpiry = DateTime.UtcNow.AddMinutes(10);
                 
                 // Store OTP in cache or temp storage (using notification for now)
+                var locationInfo = !string.IsNullOrEmpty(request.DeviceLocation) 
+                    ? $" from {request.DeviceLocation}" 
+                    : "";
+                
                 var otpNotification = new YaqeenPay.Domain.Entities.Notification
                 {
                     UserId = user.Id,
                     Type = YaqeenPay.Domain.Enums.NotificationType.Security,
-                    Title = "Device Verification Required",
-                    Message = $"Your verification code is: {otp}. This code will expire in 10 minutes. Device: {newDevice.Browser} on {newDevice.OperatingSystem}",
+                    Title = "New Device Login Detected",
+                    Message = $"A new device login was detected{locationInfo}. Your verification code is: {otp}. This code will expire in 10 minutes. Device: {newDevice.Browser} on {newDevice.OperatingSystem}",
                     Priority = YaqeenPay.Domain.Enums.NotificationPriority.High,
                     Status = YaqeenPay.Domain.Enums.NotificationStatus.Unread,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = Guid.Empty,
                     IsActive = true,
-                    Metadata = $"{{\"otp\":\"{otp}\",\"deviceId\":\"{newDevice.Id}\",\"expiry\":\"{otpExpiry:O}\",\"attempts\":0,\"lastSentAt\":\"{DateTime.UtcNow:O}\"}}"
+                    Metadata = $"{{\"otp\":\"{otp}\",\"deviceId\":\"{newDevice.Id}\",\"expiry\":\"{otpExpiry:O}\",\"attempts\":0,\"lastSentAt\":\"{DateTime.UtcNow:O}\",\"location\":\"{request.DeviceLocation ?? "Unknown"}\",\"latitude\":{request.Latitude?.ToString() ?? "null"},\"longitude\":{request.Longitude?.ToString() ?? "null"}}}"
                 };
 
                 _context.Notifications.Add(otpNotification);
@@ -143,6 +179,9 @@ public class LoginCommandHandler(
                 try
                 {
                     await _smsSender.SendOtpAsync(user.PhoneNumber, otp, cancellationToken: cancellationToken);
+                    
+                    // Record SMS attempt after successful send
+                    await _smsRateLimitService.RecordAttemptAsync(deviceIdentifier, user.PhoneNumber);
                 }
                 catch (Exception ex)
                 {

@@ -42,7 +42,13 @@ namespace YaqeenPay.Infrastructure.Services.Sms
 
             var normalized = NormalizePakistaniPhone(phoneNumber) ?? throw new InvalidOperationException($"Invalid recipient phone provided: '{phoneNumber}'");
 
-            var url = $"{_options.BaseUrl.TrimEnd('/')}/{_options.Key}/{_options.Action}?{_options.OtpParamName}={Uri.EscapeDataString(otp)}&{_options.ReceiverParamName}={Uri.EscapeDataString(normalized)}";
+            // Ensure special characters in the action path are safely URL-encoded
+            var baseUrl = (_options.BaseUrl ?? "https://trigger.macrodroid.com").TrimEnd('/');
+            var keySegment = (_options.Key ?? string.Empty).Trim();
+            var actionRaw = (_options.Action ?? string.Empty).Trim();
+            var actionSegment = Uri.EscapeDataString(actionRaw);
+
+            var url = $"{baseUrl}/{keySegment}/{actionSegment}?{_options.OtpParamName}={Uri.EscapeDataString(otp)}&{_options.ReceiverParamName}={Uri.EscapeDataString(normalized)}";
 
             var client = _httpClientFactory.CreateClient();
             var resp = await client.GetAsync(url, cancellationToken);

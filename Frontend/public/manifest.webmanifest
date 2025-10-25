@@ -1,8 +1,8 @@
 {
   "name": "Yaqeen Pay",
   "short_name": "YaqeenPay",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "start_url": "/yaqeenpay/?source=pwa",
+  "scope": "/yaqeenpay/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
@@ -11,27 +11,27 @@
   "categories": ["finance", "shopping"],
   "icons": [
     {
-      "src": "/icons/icon-72.png",
+      "src": "/yaqeenpay/icons/icon-72.png",
       "sizes": "72x72",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-96.png",
+      "src": "/yaqeenpay/icons/icon-96.png",
       "sizes": "96x96",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-128.png",
+      "src": "/yaqeenpay/icons/icon-128.png",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-192.png",
+      "src": "/yaqeenpay/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/yaqeenpay/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -42,15 +42,15 @@
       "name": "Create Order",
       "short_name": "New Order",
       "description": "Create a new buying order",
-      "url": "/orders/new",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "/yaqeenpay/orders/new",
+      "icons": [{ "src": "/yaqeenpay/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Marketplace",
       "short_name": "Market",
       "description": "Open the marketplace",
-      "url": "/marketplace",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "url": "/yaqeenpay/marketplace",
+      "icons": [{ "src": "/yaqeenpay/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

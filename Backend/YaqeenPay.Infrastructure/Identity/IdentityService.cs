@@ -121,15 +121,27 @@ public class IdentityService : IIdentityService
     }
     public async Task<(Result Result, ApplicationUser? User)> AuthenticateAsync(string email, string password)
     {
+        // Find by email (case-insensitive via Identity's normalized column)
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
         {
-            return (Result.Failure(new[] { "User not found" }), null);
+            return (Result.Failure(new[] { "Invalid credentials" }), null);
         }
-        var result = await _signInManager.PasswordSignInAsync(user, password, false, false);
-        return result.Succeeded 
-            ? (Result.Success(), user) 
-            : (Result.Failure(new[] { "Invalid credentials" }), null);
+
+        // If the account is locked, fail fast with a generic message
+        if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+        {
+            return (Result.Failure(new[] { "Invalid credentials" }), null);
+        }
+
+        // Validate password directly to avoid cookie/sign-in side effects in API scenarios
+        var valid = await _userManager.CheckPasswordAsync(user, password);
+        if (!valid)
+        {
+            return (Result.Failure(new[] { "Invalid credentials" }), null);
+        }
+
+        return (Result.Success(), user);
     }
 }
 public static class IdentityResultExtensions

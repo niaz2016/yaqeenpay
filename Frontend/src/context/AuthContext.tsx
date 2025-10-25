@@ -2,10 +2,11 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import type { User, AuthState } from '../types/auth';
 import authService from '../services/authService';
+import { locationService } from '../services/locationService';
 
 // Define context types
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<User>;
   loginWithGoogle: (idToken: string) => Promise<User>;
   register: (formData: any) => Promise<void>;
   logout: () => void;
@@ -159,10 +160,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login function
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = async (email: string, password: string, captchaToken?: string): Promise<User> => {
     dispatch({ type: 'LOGIN_START' });
     try {
-      const user = await authService.login({ email, password });
+      // Try to get device location for security notification
+      let deviceLocation: string | undefined;
+      let coordinates: { latitude: number; longitude: number } | undefined;
+      
+      try {
+        const location = await locationService.getLocationForDeviceNotification();
+        deviceLocation = location;
+        
+        // Also get precise coordinates if available
+        const locationInfo = await locationService.getCurrentLocation();
+        coordinates = {
+          latitude: locationInfo.latitude,
+          longitude: locationInfo.longitude
+        };
+      } catch (locationError) {
+        console.warn('Could not get location for login:', locationError);
+        // Continue login without location - not critical
+      }
+
+      const user = await authService.login({ email, password }, deviceLocation, coordinates, captchaToken);
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       return user;
     } catch (error) {

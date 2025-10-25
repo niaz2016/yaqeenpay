@@ -43,6 +43,8 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResp
             .Include(p => p.ProductImages.OrderBy(img => img.SortOrder))
             .Include(p => p.Seller)
                 .ThenInclude(s => s.BusinessProfile)
+            .AsNoTracking() // Read-only query - no change tracking needed
+            .AsSplitQuery() // Prevent cartesian explosion with multiple includes
             .Where(p => p.Status == ProductStatus.Active && p.IsActive);
 
         // Apply filters

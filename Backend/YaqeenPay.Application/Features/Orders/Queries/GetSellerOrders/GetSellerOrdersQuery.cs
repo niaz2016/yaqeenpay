@@ -66,6 +66,7 @@ public class GetSellerOrdersQueryHandler : IRequestHandler<GetSellerOrdersQuery,
         
         var query = _context.Orders
             .Include(o => o.Buyer)
+            .AsNoTracking() // Read-only query
             .Where(o => o.SellerId == userId) // Include all orders where user is seller (including seller requests)
             .AsQueryable();
         

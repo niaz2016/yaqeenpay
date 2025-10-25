@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YaqeenPay.API.Controllers;
+using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Application.Features.UserManagement.Commands.SubmitKycDocument;
 using YaqeenPay.Application.Features.UserManagement.Queries.GetKycDocuments;
 
@@ -12,12 +13,14 @@ public class KycController : ApiControllerBase
     [HttpGet]
     public async Task<IActionResult> GetDocuments()
     {
-        return Ok(await Mediator.Send(new GetKycDocumentsQuery()));
+        var result = await Mediator.Send(new GetKycDocumentsQuery());
+        return Ok(ApiResponse<object>.SuccessResponse(result, "KYC documents retrieved successfully"));
     }
 
     [HttpPost]
     public async Task<IActionResult> SubmitDocument(SubmitKycDocumentCommand command)
     {
-        return Ok(await Mediator.Send(command));
+        var result = await Mediator.Send(command);
+        return Ok(ApiResponse<object>.SuccessResponse(result, "KYC document submitted successfully"));
     }
 }

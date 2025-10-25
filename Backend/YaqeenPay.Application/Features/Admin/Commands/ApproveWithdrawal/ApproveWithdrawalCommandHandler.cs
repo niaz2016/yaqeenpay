@@ -19,7 +19,9 @@ namespace YaqeenPay.Application.Features.Admin.Commands.ApproveWithdrawal
 
         public async Task<bool> Handle(ApproveWithdrawalCommand request, CancellationToken cancellationToken)
         {
-            var withdrawal = await _context.Withdrawals.FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
+            var withdrawal = await _context.Withdrawals
+                .AsTracking() // Explicitly enable change tracking
+                .FirstOrDefaultAsync(w => w.Id == request.WithdrawalId, cancellationToken);
             if (withdrawal == null)
                 return false;
 

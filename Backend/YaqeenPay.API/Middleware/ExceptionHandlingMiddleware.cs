@@ -35,7 +35,8 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        _logger.LogError(exception, "An unhandled exception occurred: {Message}", exception.Message);
+        _logger.LogError(exception, "An unhandled exception occurred: {Message}. StackTrace: {StackTrace}", 
+            exception.Message, exception.StackTrace);
 
         var statusCode = HttpStatusCode.InternalServerError;
         var errorResponse = new ApiResponse<object>();
@@ -61,12 +62,40 @@ public class ExceptionHandlingMiddleware
                 errorResponse.Message = "You don't have permission to access this resource.";
                 break;
 
+            case UnauthorizedAccessException unauthorizedException:
+                statusCode = HttpStatusCode.Unauthorized;
+                errorResponse.Message = unauthorizedException.Message;
+                break;
+
+            case ArgumentException argumentException:
+                statusCode = HttpStatusCode.BadRequest;
+                errorResponse.Message = argumentException.Message;
+                break;
+
+            case InvalidOperationException invalidOpException:
+                statusCode = HttpStatusCode.BadRequest;
+                errorResponse.Message = invalidOpException.Message;
+                if (_environment.IsDevelopment() && invalidOpException.InnerException != null)
+                {
+                    errorResponse.Errors = new List<string> { invalidOpException.InnerException.Message };
+                }
+                break;
+
             default:
-                // For unhandled exceptions, don't reveal details in production
+                // For unhandled exceptions, reveal details in development
                 if (_environment.IsDevelopment())
                 {
-                    errorResponse.Message = exception.Message;
-                    errorResponse.Errors = new List<string> { exception.StackTrace ?? string.Empty };
+                    errorResponse.Message = $"{exception.GetType().Name}: {exception.Message}";
+                    var errors = new List<string>();
+                    if (!string.IsNullOrEmpty(exception.StackTrace))
+                    {
+                        errors.Add(exception.StackTrace);
+                    }
+                    if (exception.InnerException != null)
+                    {
+                        errors.Add($"Inner Exception: {exception.InnerException.Message}");
+                    }
+                    errorResponse.Errors = errors;
                 }
                 break;
         }

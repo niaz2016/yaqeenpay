@@ -17,6 +17,24 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Add Memory Cache for AdminConfigurationService
 builder.Services.AddMemoryCache();
 
+// Add Response Compression (Gzip/Brotli) for 70-80% size reduction
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -74,12 +92,23 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                  "http://localhost",
-                  "https://localhost",
-                  "http://127.0.0.1",
-                  "https://127.0.0.1",
-                  "capacitor://localhost")
+        // Get allowed origins from configuration
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+            ?? new[] { "http://localhost", "https://localhost" };
+        
+        // Add development origins if in development mode
+        var origins = new List<string>(allowedOrigins);
+        if (builder.Environment.IsDevelopment())
+        {
+            origins.AddRange(new[] 
+            { 
+                "http://127.0.0.1",
+                "https://127.0.0.1",
+                "capacitor://localhost"
+            });
+        }
+        
+        policy.WithOrigins(origins.ToArray())
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -107,6 +136,9 @@ else
 
 // Custom exception middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Enable response compression
+app.UseResponseCompression();
 
 app.UseCors("AllowAll");
 

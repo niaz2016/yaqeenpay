@@ -31,7 +31,11 @@ import NotificationDropdown from '../components/notifications/NotificationDropdo
 
 const drawerWidth = 240;
 
-const MainLayout: React.FC = () => {
+interface MainLayoutProps {
+  children?: React.ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -230,7 +234,7 @@ const MainLayout: React.FC = () => {
             mx: 'auto', // Center content on very large screens
           }}
         >
-          <Outlet />
+          {children ?? <Outlet />}
         </Box>
       </Box>
     </Box>

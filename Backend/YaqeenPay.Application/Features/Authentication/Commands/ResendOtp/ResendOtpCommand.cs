@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
@@ -37,19 +38,36 @@ public class ResendOtpCommandHandler : IRequestHandler<ResendOtpCommand, ApiResp
 {
     private readonly IApplicationDbContext _context;
     private readonly ISmsSender _smsSender;
+    private readonly ISmsRateLimitService _smsRateLimitService;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly IConfiguration _configuration;
     private const int MaxOtpAttempts = 3;
     private const int ResendCooldownSeconds = 60; // 1 minute
 
     public ResendOtpCommandHandler(
         IApplicationDbContext context,
-        ISmsSender smsSender)
+        ISmsSender smsSender,
+        ISmsRateLimitService smsRateLimitService,
+        ICurrentUserService currentUserService,
+        IConfiguration configuration)
     {
         _context = context;
         _smsSender = smsSender;
+        _smsRateLimitService = smsRateLimitService;
+        _currentUserService = currentUserService;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponse<ResendOtpResponse>> Handle(ResendOtpCommand request, CancellationToken cancellationToken)
     {
+        // Check if device verification is enabled
+        var deviceVerificationEnabled = _configuration["DeviceVerification:Enabled"] != "false";
+        if (!deviceVerificationEnabled)
+        {
+            return ApiResponse<ResendOtpResponse>.FailureResponse(
+                "Device verification is currently disabled. This endpoint is not available.");
+        }
+
         // Find the most recent OTP notification for this device
         var otpNotification = await _context.Notifications
             .Where(n => n.UserId == request.UserId && 
@@ -122,6 +140,19 @@ public class ResendOtpCommandHandler : IRequestHandler<ResendOtpCommand, ApiResp
                 return ApiResponse<ResendOtpResponse>.FailureResponse("User not found or phone number not set.");
             }
 
+            // Check SMS rate limit before sending
+            var deviceIdentifier = _currentUserService.IpAddress ?? "127.0.0.1";
+            var isAllowed = await _smsRateLimitService.IsAllowedAsync(deviceIdentifier, user.PhoneNumber);
+            
+            if (!isAllowed)
+            {
+                var blockDuration = await _smsRateLimitService.GetBlockDurationAsync(deviceIdentifier);
+                var hoursRemaining = blockDuration.HasValue ? (int)Math.Ceiling(blockDuration.Value.TotalHours) : 24;
+                
+                return ApiResponse<ResendOtpResponse>.FailureResponse(
+                    $"Too many SMS requests. Your device has been temporarily blocked. Please try again after {hoursRemaining} hour(s).");
+            }
+
             // Get OTP from metadata
             var otp = metadata["otp"].GetString();
             if (string.IsNullOrEmpty(otp))
@@ -143,6 +174,9 @@ public class ResendOtpCommandHandler : IRequestHandler<ResendOtpCommand, ApiResp
             try
             {
                 await _smsSender.SendOtpAsync(user.PhoneNumber, otp, cancellationToken: cancellationToken);
+                
+                // Record SMS attempt after successful send
+                await _smsRateLimitService.RecordAttemptAsync(deviceIdentifier, user.PhoneNumber);
             }
             catch (Exception ex)
             {

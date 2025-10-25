@@ -30,7 +30,7 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
     public async Task<SellerRegistrationResponse> Handle(ApplyForSellerRoleCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        if (userId == null)
+        if (userId == Guid.Empty)
         {
             throw new UnauthorizedAccessException("User is not authenticated");
         }
@@ -41,11 +41,23 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
             throw new KeyNotFoundException("User not found");
         }
 
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(request.BusinessName))
+        {
+            throw new ArgumentException("Business name is required");
+        }
+
+        if (request.Documents == null || !request.Documents.Any())
+        {
+            throw new ArgumentException("At least one KYC document is required");
+        }
+
         // Check if user already has seller role
         var isExistingSeller = await _userManager.IsInRoleAsync(user, UserRoleEnum.Seller.ToString());
         
         // Check if user already has a business profile
         var existingProfile = await _dbContext.BusinessProfiles
+            .AsTracking() // Need to track for updates
             .FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
 
         BusinessProfile businessProfile;
@@ -67,6 +79,7 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
             existingProfile.TaxId = request.TaxId;
             // Reset verification status when updating
             existingProfile.VerificationStatus = SellerVerificationStatus.Pending;
+            existingProfile.LastModifiedAt = DateTime.UtcNow;
             
             businessProfile = existingProfile;
         }
@@ -89,7 +102,8 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
                 Country = request.Country,
                 PostalCode = request.PostalCode,
                 TaxId = request.TaxId,
-                VerificationStatus = SellerVerificationStatus.Pending
+                VerificationStatus = SellerVerificationStatus.Pending,
+                CreatedAt = DateTime.UtcNow
             };
 
             _dbContext.BusinessProfiles.Add(businessProfile);
@@ -99,28 +113,50 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
         if (isExistingSeller)
         {
             var existingKycDocs = await _dbContext.KycDocuments
+                .AsTracking() // Need to track for deletion
                 .Where(k => k.UserId == userId)
                 .ToListAsync(cancellationToken);
             _dbContext.KycDocuments.RemoveRange(existingKycDocs);
         }
 
+        // Upload and create KYC documents
         foreach (var docRequest in request.Documents)
         {
-            // Upload document to storage
-            var documentUrl = await _documentStorageService.StoreDocumentAsync(
-                docRequest.DocumentBase64,
-                docRequest.FileName,
-                userId,
-                "seller-kyc");
+            // Validate document fields
+            if (string.IsNullOrWhiteSpace(docRequest.DocumentBase64))
+            {
+                throw new ArgumentException($"Document content is required for {docRequest.DocumentType}");
+            }
+
+            if (string.IsNullOrWhiteSpace(docRequest.FileName))
+            {
+                throw new ArgumentException($"File name is required for {docRequest.DocumentType}");
+            }
+
+            string documentUrl;
+            try
+            {
+                // Upload document to storage
+                documentUrl = await _documentStorageService.StoreDocumentAsync(
+                    docRequest.DocumentBase64,
+                    docRequest.FileName,
+                    userId,
+                    "seller-kyc");
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to upload {docRequest.DocumentType} document: {ex.Message}", ex);
+            }
 
             var document = new KycDocument
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 DocumentType = docRequest.DocumentType,
-                DocumentNumber = docRequest.DocumentNumber,
+                DocumentNumber = docRequest.DocumentNumber ?? string.Empty,
                 DocumentUrl = documentUrl,
-                Status = KycDocumentStatus.Pending
+                Status = KycDocumentStatus.Pending,
+                CreatedAt = DateTime.UtcNow
             };
 
             _dbContext.KycDocuments.Add(document);
@@ -132,16 +168,43 @@ public class ApplyForSellerRoleCommandHandler : IRequestHandler<ApplyForSellerRo
         // Add seller role if not already present
         if (!isExistingSeller)
         {
-            await _userManager.AddToRoleAsync(user, UserRoleEnum.Seller.ToString());
+            var roleResult = await _userManager.AddToRoleAsync(user, UserRoleEnum.Seller.ToString());
+            if (!roleResult.Succeeded)
+            {
+                var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to add seller role: {errors}");
+            }
         }
 
         // Save changes
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await _userManager.UpdateAsync(user);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to save seller registration: {ex.Message}", ex);
+        }
+
+        try
+        {
+            await _userManager.UpdateAsync(user);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to update user status: {ex.Message}", ex);
+        }
 
         // Update profile completeness
-        user.UpdateProfileCompleteness();
-        await _userManager.UpdateAsync(user);
+        try
+        {
+            user.UpdateProfileCompleteness();
+            await _userManager.UpdateAsync(user);
+        }
+        catch
+        {
+            // Don't fail if profile completeness update fails
+        }
 
         var roles = await _userManager.GetRolesAsync(user);
 

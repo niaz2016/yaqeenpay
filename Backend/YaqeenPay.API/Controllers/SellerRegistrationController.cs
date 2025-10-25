@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YaqeenPay.Application.Common.Models;
 using YaqeenPay.Application.Features.UserManagement.Commands.ApplyForSellerRole;
 
 namespace YaqeenPay.API.Controllers;
@@ -10,14 +11,16 @@ public class SellerRegistrationController : ApiControllerBase
     [HttpPost("apply")]
     public async Task<IActionResult> ApplyForSellerRole(ApplyForSellerRoleCommand command)
     {
-        return Ok(await Mediator.Send(command));
+        var result = await Mediator.Send(command);
+        return Ok(ApiResponse<SellerRegistrationResponse>.SuccessResponse(result, result.Message));
     }
 
     // Compatibility: accept ApplyForUserRoleCommand at the same endpoint
     [HttpPost("apply-user")]
     public async Task<IActionResult> ApplyForUserRole(YaqeenPay.Application.Features.UserManagement.Commands.ApplyForUserRole.ApplyForUserRoleCommand command)
     {
-        return Ok(await Mediator.Send(command));
+        var result = await Mediator.Send(command);
+        return Ok(ApiResponse<object>.SuccessResponse(result, "User role application submitted successfully"));
     }
 
     [HttpGet("analytics")]
@@ -32,6 +35,6 @@ public class SellerRegistrationController : ApiControllerBase
             avgOrderValue = 0.0m,
             period = "30d"
         };
-        return Ok(mockAnalytics);
+        return Ok(ApiResponse<object>.SuccessResponse(mockAnalytics, "Analytics retrieved successfully"));
     }
 }

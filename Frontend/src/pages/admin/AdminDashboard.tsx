@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import {
   Box,
   Card,
@@ -40,7 +39,6 @@ interface StatCard {
 const AdminDashboard: React.FC = () => {
   const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
   // Debug: Get current user info
-  const { user } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,29 +98,9 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  // Debugger Info: Show current user roles and email
-  const DebuggerInfo = () => (
-    <Card sx={{ mb: 3, border: '2px dashed #1976d2', background: '#f5faff' }}>
-      <CardContent>
-        <Typography variant="subtitle2" color="primary" gutterBottom>
-          Debugger Info: Current User
-        </Typography>
-        <Typography variant="body2">
-          <strong>Email:</strong> {user?.email || 'N/A'}
-        </Typography>
-        <Typography variant="body2">
-          <strong>Roles:</strong> {user?.roles?.length ? user.roles.join(', ') : 'N/A'}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-
   if (error) {
     return (
       <Box>
-        <Box flexShrink={0} width={{ xs: '100%', md: 300 }}>
-          <DebuggerInfo />
-        </Box>
         <Typography variant="h4" gutterBottom>
           Admin Dashboard
         </Typography>

@@ -40,6 +40,7 @@ public class VerifyKycDocumentCommandHandler : IRequestHandler<VerifyKycDocument
 
         var document = await _dbContext.KycDocuments
             .Include(d => d.User)
+            .AsTracking() // Explicitly enable change tracking for this query
             .FirstOrDefaultAsync(d => d.Id == request.DocumentId, cancellationToken);
 
         if (document == null)
@@ -56,6 +57,9 @@ public class VerifyKycDocumentCommandHandler : IRequestHandler<VerifyKycDocument
         document.RejectionReason = request.Status == KycDocumentStatus.Rejected ? request.RejectionReason : null;
         document.VerifiedAt = request.Status == KycDocumentStatus.Verified ? DateTime.UtcNow : null;
         document.VerifiedBy = request.Status == KycDocumentStatus.Verified ? adminId : null;
+        
+        // Mark entity as modified to ensure changes are tracked
+        _dbContext.KycDocuments.Update(document);
 
         // If document is verified, check if all required documents are verified
         // and update user KYC status accordingly

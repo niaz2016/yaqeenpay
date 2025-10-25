@@ -42,6 +42,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<AdminSystemSettings> AdminSystemSettings => Set<AdminSystemSettings>();
     public DbSet<AdminSettingsAudit> AdminSettingsAudits => Set<AdminSettingsAudit>();
     public DbSet<UserDevice> UserDevices => Set<UserDevice>();
+    public DbSet<SmsRateLimit> SmsRateLimits => Set<SmsRateLimit>();
+    public DbSet<ApiRateLimit> ApiRateLimits => Set<ApiRateLimit>();
     
     // Product Management
     public DbSet<Category> Categories => Set<Category>();
@@ -53,6 +55,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Rating System
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<RatingStats> RatingStats => Set<RatingStats>();
+
+    // Subdomain Management
+    public DbSet<Subdomain> Subdomains => Set<Subdomain>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

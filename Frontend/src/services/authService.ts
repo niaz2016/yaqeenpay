@@ -87,8 +87,19 @@ class AuthService {
     return user;
   }
 
-  async login(credentials: LoginCredentials): Promise<User> {
+  async login(credentials: LoginCredentials, deviceLocation?: string, coordinates?: { latitude: number; longitude: number }, captchaToken?: string): Promise<User> {
     try {
+      
+      // Prepare login payload with optional location data and CAPTCHA token
+      const loginPayload = {
+        ...credentials,
+        ...(deviceLocation && { deviceLocation }),
+        ...(coordinates && { 
+          latitude: coordinates.latitude, 
+          longitude: coordinates.longitude 
+        }),
+        ...(captchaToken && { captchaToken })
+      };
       
       // Direct API call to avoid potential circular dependencies or issues
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:7137/api'}/auth/login`, {
@@ -96,17 +107,45 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(loginPayload),
       });
       
       
+      const contentType = response.headers.get('content-type') || '';
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Login failed:', errorData);
-        throw new Error(errorData.message || 'Login failed');
+        let errorMessage = 'Login failed';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json().catch(() => null);
+          console.error('Login failed:', errorData);
+          if (errorData?.message) {
+            errorMessage = errorData.message;
+          }
+        } else {
+          const errorText = await response.text().catch(() => '');
+          console.error('Login failed with non-JSON response:', errorText);
+          if (errorText) {
+            errorMessage = errorText.substring(0, 500);
+          }
+        }
+
+        throw new Error(errorMessage);
       }
-      
-      const responseData = await response.json();
+
+      let responseData: any = null;
+
+      if (contentType.includes('application/json')) {
+        responseData = await response.json().catch(() => null);
+      } else {
+        const responseText = await response.text().catch(() => '');
+        console.error('Login response is not JSON:', responseText);
+        throw new Error('Unexpected response format from server. Please try again later.');
+      }
+
+      if (!responseData) {
+        throw new Error('Empty response received from server');
+      }
       const { authData, message } = this.extractAuthPayload(responseData);
 
       const requiresDeviceVerification = authData.requiresDeviceVerification || authData.RequiresDeviceVerification;

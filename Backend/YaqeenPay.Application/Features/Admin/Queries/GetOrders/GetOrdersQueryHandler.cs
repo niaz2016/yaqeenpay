@@ -17,6 +17,7 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, List<AdminO
         var orders = await _context.Orders
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
+            .AsNoTracking() // Read-only query
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(cancellationToken);
 

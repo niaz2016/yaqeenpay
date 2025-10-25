@@ -10,7 +10,7 @@ namespace YaqeenPay.API.Controllers;
 /// Admin-only controller for managing system-wide configuration settings
 /// These settings override values in appsettings.json and take effect without server restart
 /// </summary>
-[Authorize] // Temporarily removed role requirement to test basic auth
+[Authorize(Roles = "Admin")]
 [Route("api/admin/settings")]
 public class AdminSettingsController : ApiControllerBase
 {
@@ -44,7 +44,6 @@ public class AdminSettingsController : ApiControllerBase
     /// Test endpoint without authentication to verify routing
     /// </summary>
     [HttpGet("ping")]
-    [AllowAnonymous]
     public IActionResult Ping()
     {
         return Ok(new { message = "Admin settings controller reachable", timestamp = DateTime.UtcNow });
@@ -54,7 +53,6 @@ public class AdminSettingsController : ApiControllerBase
     /// Get all admin system settings grouped by category
     /// </summary>
     [HttpGet]
-    [AllowAnonymous] // Temporarily allow anonymous access for debugging
     public async Task<IActionResult> GetAllSettings()
     {
         try

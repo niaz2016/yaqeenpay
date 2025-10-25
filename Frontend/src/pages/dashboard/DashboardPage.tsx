@@ -657,7 +657,7 @@ const DashboardPage: React.FC = () => {
           {/* Recent Orders and Wallet */}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
             {/* Recent Activity (Unified Buying & Selling) */}
-            <Paper sx={{ p: 3 }}>
+            <Paper sx={{ p: { xs: 2, sm: 3 }, overflow: 'hidden' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">
                   Recent Activity
@@ -718,7 +718,11 @@ const DashboardPage: React.FC = () => {
                   {dashboardData.recentOrders.map((order, index) => (
                     <React.Fragment key={order.id}>
                       <ListItem
-                        sx={{ px: 0 }}
+                        sx={{ 
+                          px: 0,
+                          py: { xs: 1.5, sm: 2 },
+                          flexWrap: { xs: 'wrap', sm: 'nowrap' }
+                        }}
                         secondaryAction={
                           <IconButton 
                             onClick={() => navigate(`/orders/${order.id}`)}
@@ -747,43 +751,60 @@ const DashboardPage: React.FC = () => {
                         </ListItemIcon>
                         <ListItemText
                           primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                              <Typography variant="subtitle1" noWrap>
+                            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: 1, mb: 0.5 }}>
+                              <Typography variant="subtitle1" sx={{ 
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: 'vertical',
+                                maxWidth: { xs: '100%', sm: '60%' }
+                              }}>
                                 {order.description || `Order ${order.code || order.id?.slice(0, 8) || 'N/A'}`}
                               </Typography>
-                              <Chip 
-                                label={order.orderType === 'selling' ? 'Selling' : 'Buying'} 
-                                size="small" 
-                                color={order.orderType === 'selling' ? 'success' : 'info'}
-                                variant="outlined"
-                              />
-                              <Chip 
-                                label={order.status} 
-                                size="small" 
-                                color={getStatusColor(order.status) as any}
-                              />
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                <Chip 
+                                  label={order.orderType === 'selling' ? 'Selling' : 'Buying'} 
+                                  size="small" 
+                                  color={order.orderType === 'selling' ? 'success' : 'info'}
+                                  variant="outlined"
+                                />
+                                <Chip 
+                                  label={order.status} 
+                                  size="small" 
+                                  color={getStatusColor(order.status) as any}
+                                />
+                              </Box>
                             </Box>
                           }
                           secondary={
                             <Box>
-                              <Typography variant="body2" color="text.secondary" component="div">
+                              <Typography variant="body2" color="text.secondary" component="div" sx={{ 
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
                                 {order.orderType === 'selling' 
                                   ? `Buyer: ${order.partnerName || 'Unknown'}` 
                                   : `Seller: ${order.partnerName || 'Unknown'}`
                                 }
                               </Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                <MoneyIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  PKR {order.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 0.5, sm: 1 }, mt: 0.5 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <MoneyIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    PKR {order.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
                                   •
                                 </Typography>
-                                <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                <Typography variant="body2" color="text.secondary">
-                                  {new Date(order.createdAt).toLocaleDateString()}
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                                  <Typography variant="body2" color="text.secondary">
+                                    {new Date(order.createdAt).toLocaleDateString()}
+                                  </Typography>
+                                </Box>
                               </Box>
                             </Box>
                           }

@@ -15,13 +15,17 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { loginSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../services/authService';
+import StorageService from '../../services/storageService';
 import type { z } from 'zod';
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -44,8 +48,13 @@ const LoginForm: React.FC = () => {
   } | null>(null);
   const [googleError, setGoogleError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true); // Default to checked
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState('');
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
   const isChrome = useMemo(() => {
     const ua = navigator.userAgent.toLowerCase();
     const isChromium = ua.includes('chrome') || ua.includes('crios') || ua.includes('chromium');
@@ -57,13 +66,14 @@ const LoginForm: React.FC = () => {
 
   // Get pre-filled email and message from navigation state (post-OTP verification)
   const locationState = location.state as { email?: string; message?: string } | undefined;
-  const prefilledEmail = locationState?.email || '';
+  const prefilledEmail = locationState?.email || StorageService.getRememberedEmail();
   const successMessage = locationState?.message || '';
 
   const { 
     control, 
     handleSubmit, 
-    formState: { errors } 
+    formState: { errors },
+    setValue
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -75,7 +85,29 @@ const LoginForm: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
-      const user = await login(data.email, data.password);
+      setCaptchaError('');
+      
+      // Validate CAPTCHA token if reCAPTCHA is enabled
+      if (recaptchaSiteKey && !captchaToken) {
+        setCaptchaError('Please complete the CAPTCHA verification');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Handle remember me functionality
+      if (rememberMe) {
+        StorageService.saveRememberedEmail(data.email);
+      } else {
+        StorageService.clearRememberedEmail();
+      }
+      
+      const user = await login(data.email, data.password, captchaToken || undefined);
+      
+      // Reset CAPTCHA after successful login attempt
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setCaptchaToken(null);
+      }
       
       // Redirect based on user role
       // Buyers go to marketplace, sellers/admins go to dashboard
@@ -91,6 +123,12 @@ const LoginForm: React.FC = () => {
       }
       
     } catch (err: any) {
+      // Reset CAPTCHA on error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setCaptchaToken(null);
+      }
+      
       // Check if device verification is required
       if (err?.requiresDeviceVerification) {
         setDeviceVerificationData({
@@ -113,6 +151,14 @@ const LoginForm: React.FC = () => {
       }
     }
   };
+
+  // Load remembered email on component mount
+  useEffect(() => {
+    const rememberedEmail = StorageService.getRememberedEmail();
+    if (rememberedEmail && !prefilledEmail) {
+      setValue('email', rememberedEmail);
+    }
+  }, [setValue, prefilledEmail]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -351,11 +397,57 @@ const LoginForm: React.FC = () => {
           )}
         />
         
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              color="primary"
+              size="small"
+            />
+          }
+          label={
+            <Typography variant="body2" color="text.secondary">
+              Remember my email address
+            </Typography>
+          }
+          sx={{ mt: 1, mb: 1 }}
+        />
+
+        {/* CAPTCHA Error Display */}
+        {captchaError && (
+          <Alert severity="error" onClose={() => setCaptchaError('')} sx={{ mt: 2 }}>
+            {captchaError}
+          </Alert>
+        )}
+
+        {/* Google reCAPTCHA */}
+        {recaptchaSiteKey && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={recaptchaSiteKey}
+              onChange={(token: string | null) => {
+                setCaptchaToken(token);
+                setCaptchaError('');
+              }}
+              onExpired={() => {
+                setCaptchaToken(null);
+                setCaptchaError('CAPTCHA expired. Please verify again.');
+              }}
+              onErrored={() => {
+                setCaptchaToken(null);
+                setCaptchaError('CAPTCHA error. Please try again.');
+              }}
+            />
+          </Box>
+        )}
+        
         <Button
           type="submit"
           fullWidth
           variant="contained"
-          sx={{ mt: 3, mb: 2 }}
+          sx={{ mt: 2, mb: 2 }}
           disabled={isSubmitting}
         >
           {isSubmitting ? 'Logging in...' : 'Login'}

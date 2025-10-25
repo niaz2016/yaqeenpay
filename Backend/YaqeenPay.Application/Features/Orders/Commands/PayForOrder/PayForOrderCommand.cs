@@ -48,6 +48,7 @@ public class PayForOrderCommandHandler : IRequestHandler<PayForOrderCommand, Pay
         var order = await _context.Orders
             .Include(o => o.Buyer)
             .Include(o => o.Seller)
+            .AsTracking() // Need to track changes for update
             .FirstOrDefaultAsync(o => o.Id == request.OrderId, cancellationToken);
 
         if (order == null)

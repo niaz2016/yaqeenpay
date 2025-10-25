@@ -153,10 +153,22 @@ public class ProfileController : ApiControllerBase
             return BadRequest(new { success = false, message = "Too many attempts. Try again later." });
 
         var otp = await _otpService.GenerateOtpAsync(key, length: 6, expirySeconds: 300);
-        // Enqueue SMS via outbox (provider integration to be added later)
-        await _outboxService.EnqueueAsync(
-            type: "sms",
-            payload: new { to = phoneNumber, template = "PHONE_VERIFY", code = otp });
+        
+        // IMPORTANT: Only enqueue SMS if one hasn't been sent in the last 60 seconds to prevent spam
+        // This prevents duplicate requests from creating multiple SMS outbox messages
+        var smsCooldownKey = $"sms_sent:{phoneNumber}";
+        var recentlySent = await _otpService.IsRateLimitedAsync(smsCooldownKey, maxAttempts: 1, windowSeconds: 60);
+        
+        if (!recentlySent)
+        {
+            // Mark that we're sending an SMS now
+            await _otpService.GenerateOtpAsync(smsCooldownKey, length: 1, expirySeconds: 60);
+            
+            // Enqueue SMS via outbox
+            await _outboxService.EnqueueAsync(
+                type: "sms",
+                payload: new { to = phoneNumber, template = "PHONE_VERIFY", code = otp });
+        }
 
         // Mask phone for response
         string masked = phoneNumber.Length >= 4

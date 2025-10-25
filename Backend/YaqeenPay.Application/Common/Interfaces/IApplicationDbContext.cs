@@ -30,6 +30,8 @@ public interface IApplicationDbContext
     DbSet<UserSettings> UserSettings { get; }
     DbSet<SettingsAudit> SettingsAudits { get; }
     DbSet<UserDevice> UserDevices { get; }
+    DbSet<SmsRateLimit> SmsRateLimits { get; }
+    DbSet<ApiRateLimit> ApiRateLimits { get; }
     
     // Product Management
     DbSet<Category> Categories { get; }
@@ -37,6 +39,9 @@ public interface IApplicationDbContext
     DbSet<ProductImage> ProductImages { get; }
     DbSet<CartItem> CartItems { get; }
     DbSet<OrderItem> OrderItems { get; }
+
+    // Subdomain Management
+    DbSet<Subdomain> Subdomains { get; }
 
     Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);

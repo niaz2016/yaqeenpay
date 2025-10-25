@@ -8,9 +8,6 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Card,
-  CardContent,
-  CardActions,
   List,
   ListItem,
   ListItemText,
@@ -30,7 +27,6 @@ import {
 import {
   Save as SaveIcon,
   Shield as ShieldIcon,
-  Key as KeyIcon,
   Smartphone as PhoneIcon,
   Delete as DeleteIcon,
   Visibility,
@@ -40,6 +36,8 @@ import { useSettings } from '../../../context/SettingsContext';
 import { SettingsCategory } from '../../../services/settingsService';
 import type { SecuritySettings as SecuritySettingsType } from '../../../services/settingsService';
 import profileService from '../../../services/profileService';
+import { LoginPreferencesCard } from '../../../components/auth/LoginPreferencesCard';
+import PermissionDebugCard from '../../../components/PermissionDebugCard';
 
 const SessionTimeouts = [
   { value: 15, label: '15 minutes' },
@@ -252,34 +250,15 @@ const SecuritySettings: React.FC = () => {
         </Typography>
       </Paper>
 
-      {/* Password Management */}
-      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Password Management
-        </Typography>
-        
-        <Box sx={{ maxWidth: { md: '50%' } }}>
-          <Card variant="outlined">
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                <KeyIcon />
-                <Typography variant="h6">Change Password</Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                Last changed: {securitySettings.lastPasswordChange || 'Never'}
-              </Typography>
-            </CardContent>
-            <CardActions>
-              <Button
-                variant="outlined"
-                onClick={() => setShowChangePassword(true)}
-              >
-                Change Password
-              </Button>
-            </CardActions>
-          </Card>
-        </Box>
-      </Paper>
+      {/* Login Preferences */}
+      <Box sx={{ mb: 3 }}>
+        <LoginPreferencesCard />
+      </Box>
+
+      {/* Permission Debug (Development Only) */}
+      <Box sx={{ mb: 3 }}>
+        <PermissionDebugCard />
+      </Box>
 
       {/* Two-Factor Authentication */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>

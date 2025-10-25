@@ -47,11 +47,23 @@ public static class DependencyInjection
         
         // Register default payment service (keeping backward compatibility)
         services.AddScoped<Application.Interfaces.IPaymentGatewayService, Services.Easypaisa.EasypaisaPaymentService>();
-        // Add DbContext
+        
+        // Add DbContext with performance optimizations
         services.AddDbContext<ApplicationDbContext>(options =>
+        {
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                npgsqlOptions =>
+                {
+                    npgsqlOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    npgsqlOptions.CommandTimeout(30); // 30 second timeout
+                    // Note: EnableRetryOnFailure removed - incompatible with manual transaction control
+                    // Manual transactions are used in WalletService and OrderService for atomicity
+                })
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking) // Default to no tracking for reads
+                .EnableSensitiveDataLogging(false) // Disable in production
+                .EnableDetailedErrors(false); // Disable in production
+        });
 
         // Register interfaces
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
@@ -59,6 +71,9 @@ public static class DependencyInjection
         
         // Register services
         services.AddScoped<IDocumentStorageService, LocalDocumentStorageService>();
+        services.AddScoped<ISmsRateLimitService, SmsRateLimitService>();
+        services.AddScoped<IApiRateLimitService, ApiRateLimitService>();
+        services.AddHttpClient<ICaptchaService, GoogleRecaptchaService>();
         services.AddScoped<RoleSeedService>();
         services.AddScoped<CategorySeedService>();
         services.AddScoped<Application.Interfaces.IFileUploadService, FileUploadService>();

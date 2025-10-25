@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Models;
@@ -37,21 +38,32 @@ public class VerifyDeviceCommandHandler : IRequestHandler<VerifyDeviceCommand, A
     private readonly IDeviceService _deviceService;
     private readonly IJwtService _jwtService;
     private readonly IIdentityService _identityService;
+    private readonly IConfiguration _configuration;
 
     public VerifyDeviceCommandHandler(
         IApplicationDbContext context,
         IDeviceService deviceService,
         IJwtService jwtService,
-        IIdentityService identityService)
+        IIdentityService identityService,
+        IConfiguration configuration)
     {
         _context = context;
         _deviceService = deviceService;
         _jwtService = jwtService;
         _identityService = identityService;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponse<AuthenticationResponse>> Handle(VerifyDeviceCommand request, CancellationToken cancellationToken)
     {
+        // Check if device verification is enabled
+        var deviceVerificationEnabled = _configuration["DeviceVerification:Enabled"] != "false";
+        if (!deviceVerificationEnabled)
+        {
+            return ApiResponse<AuthenticationResponse>.FailureResponse(
+                "Device verification is currently disabled. This endpoint is not available.");
+        }
+
         // Find the OTP notification for this device
         var otpNotification = await _context.Notifications
             .Where(n => n.UserId == request.UserId && 

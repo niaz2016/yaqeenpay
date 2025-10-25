@@ -5,6 +5,7 @@ import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ErrorProvider } from './context/ErrorContext';
+import { AppInitializer } from './components/AppInitializer';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -45,6 +46,7 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import WithdrawalsPage from './pages/WithdrawalsPage.tsx';
 import NotificationsPage from './pages/notifications/NotificationsPage';
+import MarketplaceAccessRoute from './routes/MarketplaceAccessRoute';
 
 // Admin Pages (Phase 6) - Lazy loaded for code splitting
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -84,13 +86,15 @@ const theme = createTheme({
 // No debug UI in production or development
 
 const App: React.FC = () => {
+  const routerBase = getRouterBase();
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <ErrorProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <BrowserRouter>
+        <AppInitializer>
+          <AuthProvider>
+            <NotificationProvider>
+              <BrowserRouter basename={routerBase}>
           <Routes>
             {/* Landing page without layout */}
             <Route path="/" element={<LandingPage />} />
@@ -109,6 +113,32 @@ const App: React.FC = () => {
               {/* Debug routes removed */}
             </Route>
 
+              {/* Public marketplace routes */}
+              <Route
+                path="/marketplace"
+                element={
+                  <MarketplaceAccessRoute>
+                    <MarketplacePage />
+                  </MarketplaceAccessRoute>
+                }
+              />
+              <Route
+                path="/products/:id"
+                element={
+                  <MarketplaceAccessRoute>
+                    <ProductDetailPage />
+                  </MarketplaceAccessRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <MarketplaceAccessRoute>
+                    <CartPage />
+                  </MarketplaceAccessRoute>
+                }
+              />
+
             {/* Protected routes with MainLayout */}
             <Route element={<ProtectedRoute />}>
               <Route element={<MainLayout />}>
@@ -123,11 +153,6 @@ const App: React.FC = () => {
                 <Route path="/orders" element={<OrderListPage />} />
                 <Route path="/orders/new" element={<NewOrderPage />} />
                 <Route path="/orders/:orderId" element={<OrderDetailsPage />} />
-                
-                {/* Marketplace */}
-                <Route path="/marketplace" element={<MarketplacePage />} />
-                <Route path="/products/:id" element={<ProductDetailPage />} />
-                <Route path="/cart" element={<CartPage />} />
                 
                 {/* Seller Dashboard */}
                 <Route path="/seller/register" element={<UserRegistrationPage />} />
@@ -201,9 +226,21 @@ const App: React.FC = () => {
           </BrowserRouter>
         </NotificationProvider>
       </AuthProvider>
+      </AppInitializer>
       </ErrorProvider>
     </ThemeProvider>
   );
 };
 
 export default App;
+
+function getRouterBase(): string {
+  const raw = (import.meta.env.VITE_BASE_PATH as string | undefined) ?? '/';
+  if (!raw || raw === '/') {
+    return '/';
+  }
+
+  const trimmed = raw.trim().replace(/\/+$/, '');
+  const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  return withLeading || '/';
+}

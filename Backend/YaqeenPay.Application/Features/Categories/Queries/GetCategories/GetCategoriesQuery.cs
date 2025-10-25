@@ -36,6 +36,7 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, Api
     {
         var query = _context.Categories
             .Include(c => c.SubCategories)
+            .AsNoTracking() // Read-only query
             .AsQueryable();
 
         if (!request.IncludeInactive)

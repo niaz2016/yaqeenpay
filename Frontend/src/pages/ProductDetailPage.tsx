@@ -130,11 +130,13 @@ const ProductDetailPage: React.FC = () => {
 
       // Since the backend doesn't have a GET /products/{id} endpoint,
       // we'll fetch all products and filter by ID
-      const response = await fetch('/api/products?pageSize=1000', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || localStorage.getItem('token') || ''}`
-        }
-      });
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/products?pageSize=1000', { headers });
 
       if (response.ok) {
         const data = await response.json();

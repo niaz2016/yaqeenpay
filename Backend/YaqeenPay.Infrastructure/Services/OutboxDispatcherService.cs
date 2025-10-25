@@ -63,6 +63,17 @@ public class OutboxDispatcherService : BackgroundService
                     {
                         try
                         {
+                            // Safety mechanism: If message has been failing for more than 5 minutes, mark as processed
+                            // This prevents infinite retry loops from spamming users
+                            if (!string.IsNullOrEmpty(msg.Error) && msg.OccurredOn < DateTime.UtcNow.AddMinutes(-5))
+                            {
+                                _logger.LogWarning("Abandoning old failed outbox message {Id} (Type={Type}, Age={Age}min, Error={Error})", 
+                                    msg.Id, msg.Type, (DateTime.UtcNow - msg.OccurredOn).TotalMinutes, msg.Error);
+                                msg.Processed = true;
+                                msg.ProcessedOn = DateTime.UtcNow;
+                                continue;
+                            }
+
                             switch (msg.Type.ToLowerInvariant())
                             {
                                 case "sms":
@@ -197,10 +208,17 @@ public class OutboxDispatcherService : BackgroundService
         {
             throw new InvalidOperationException("Invalid SMS payload (null)");
         }
-        var otp = string.IsNullOrWhiteSpace(payload.Code) ? GenerateNumericCode(6) : payload.Code!;
+        
+        // CRITICAL: Always use the OTP from the payload if it exists
+        // Never regenerate OTP on retry - this causes infinite unique OTP spam
+        if (string.IsNullOrWhiteSpace(payload.Code))
+        {
+            throw new InvalidOperationException("SMS payload missing required OTP code");
+        }
+        
         var smsSender = sp.GetRequiredService<ISmsSender>();
-        await smsSender.SendOtpAsync(payload.To ?? string.Empty, otp, payload.Template, ct);
-        _logger.LogInformation("SMS dispatched to {To} with OTP {Otp}", payload.To, otp);
+        await smsSender.SendOtpAsync(payload.To ?? string.Empty, payload.Code!, payload.Template, ct);
+        _logger.LogInformation("SMS dispatched to {To} with OTP {Otp}", payload.To, payload.Code);
     }
 
     private static string GenerateNumericCode(int length)

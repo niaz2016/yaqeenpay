@@ -12,8 +12,9 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Register service worker in production builds
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// Register service worker only in web production builds (not in Capacitor/mobile apps)
+const isCapacitor = !!(window as any).Capacitor;
+if (import.meta.env.PROD && !isCapacitor && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then((reg) => {

@@ -10,6 +10,15 @@
         </trust-anchors>
     </base-config>
     
+    <!-- Production domain - allow both HTTP and HTTPS -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">techtorio.online</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+    
     <!-- Specific configuration for development IPs -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">localhost</domain>

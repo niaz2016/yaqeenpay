@@ -9,7 +9,9 @@ import {
   Stack,
   Chip,
   Paper,
-  Avatar
+  Avatar,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Security,
@@ -29,6 +31,8 @@ import { useNavigate } from 'react-router-dom';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Basic SEO: title, description, keywords, canonical, JSON-LD
   useEffect(() => {
@@ -217,7 +221,7 @@ const LandingPage: React.FC = () => {
         sx={{
           background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
           color: 'white',
-          py: { xs: 8, md: 12 },
+          py: isMobile ? 6 : { xs: 8, md: 12 },
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -270,6 +274,7 @@ const LandingPage: React.FC = () => {
                 <Button
                   variant="contained"
                   size="large"
+                  fullWidth={isMobile}
                   sx={{
                     bgcolor: '#ffeb3b',
                     color: '#1976d2',
@@ -286,6 +291,7 @@ const LandingPage: React.FC = () => {
                 <Button
                   variant="outlined"
                   size="large"
+                  fullWidth={isMobile}
                   onClick={() => window.open('https://www.youtube.com/watch?v=fZlHcazNMrc', '_blank', 'noopener,noreferrer')}
                   sx={{
                   color: 'white',
@@ -325,44 +331,47 @@ const LandingPage: React.FC = () => {
               </Stack>
             </Box>
             
-            <Box sx={{ flex: 1 }}>
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  position: 'relative',
-                }}
-              >
-                {/* Mockup/Illustration placeholder */}
-                <Paper
-                  elevation={8}
+            {/* Hide illustration on small screens for app-like compact view */}
+            {!isMobile && (
+              <Box sx={{ flex: 1 }}>
+                <Box
                   sx={{
-                    p: 4,
-                    borderRadius: 4,
-                    bgcolor: 'rgba(255,255,255,0.95)',
-                    color: 'primary.main',
-                    maxWidth: 400,
-                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    position: 'relative',
                   }}
                 >
-                  <Stack alignItems="center" spacing={2}>
-                    <Shield sx={{ fontSize: 60, color: '#4caf50' }} />
-                    <Typography variant="h6" color="primary" textAlign="center">
-                      Wallet Credits Protected
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" textAlign="center">
-                      Wallet Credits held securely until delivery is confirmed by both parties
-                    </Typography>
-                    <Chip
-                      label="100% Secure"
-                      color="success"
-                      variant="filled"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </Stack>
-                </Paper>
+                  {/* Mockup/Illustration placeholder */}
+                  <Paper
+                    elevation={8}
+                    sx={{
+                      p: 4,
+                      borderRadius: 4,
+                      bgcolor: 'rgba(255,255,255,0.95)',
+                      color: 'primary.main',
+                      maxWidth: 400,
+                      width: '100%',
+                    }}
+                  >
+                    <Stack alignItems="center" spacing={2}>
+                      <Shield sx={{ fontSize: 60, color: '#4caf50' }} />
+                      <Typography variant="h6" color="primary" textAlign="center">
+                        Wallet Credits Protected
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" textAlign="center">
+                        Wallet Credits held securely until delivery is confirmed by both parties
+                      </Typography>
+                      <Chip
+                        label="100% Secure"
+                        color="success"
+                        variant="filled"
+                        sx={{ fontWeight: 'bold' }}
+                      />
+                    </Stack>
+                  </Paper>
+                </Box>
               </Box>
-            </Box>
+            )}
           </Box>
         </Container>
       </Box>

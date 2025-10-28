@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme, useMediaQuery } from '@mui/material';
 import {
     Box,
     Typography,
@@ -33,43 +34,10 @@ import productService from '../services/productService';
 import categoryService, { type Category } from '../services/categoryService';
 import cartService from '../services/cartService';
 import ratingService from '../services/ratingService';
-import RatingStars from '../components/rating/RatingStars';
 import RatingBadge from '../components/rating/RatingBadge';
 import type { RatingStats } from '../types/rating';
 
-interface Product {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    currency: string;
-    discountPrice?: number;
-    stockQuantity: number;
-    status: 'Draft' | 'Active' | 'Inactive' | 'OutOfStock' | 'Discontinued';
-    category: {
-        id: string;
-        name: string;
-    };
-    seller: {
-        id: string;
-        businessName: string;
-        phoneNumber?: string;
-    };
-    images: Array<{
-        id: string;
-        imageUrl?: string;
-        ImageUrl?: string;
-        isPrimary?: boolean;
-        IsPrimary?: boolean;
-        altText?: string;
-        AltText?: string;
-        sortOrder?: number;
-        SortOrder?: number;
-    }>;
-    createdAt: string;
-    isOnSale: boolean;
-    effectivePrice: number;
-}
+import type { ProductDetail } from '../types/product';
 
 // Marketplace Configuration
 const PRODUCTS_PER_PAGE = 12; // Number of products to load per page
@@ -79,7 +47,7 @@ const SEARCH_DEBOUNCE_MS = 500; // Debounce delay in milliseconds
 const MarketplacePage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [products, setProducts] = useState<Product[]>([]);
+    const [products, setProducts] = useState<ProductDetail[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -92,6 +60,9 @@ const MarketplacePage: React.FC = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoriesLoading, setCategoriesLoading] = useState(true);
 
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
     // Check if user is a seller
     const isSeller = user?.roles?.some((role: string) => role.toLowerCase() === 'seller');
 
@@ -100,7 +71,7 @@ const MarketplacePage: React.FC = () => {
         const loadSellerRatings = async () => {
             const sellerIds = [...new Set(products.map(p => p.seller?.id).filter(Boolean))];
             const ratingsMap: Record<string, RatingStats> = {};
-            
+
             await Promise.all(
                 sellerIds.map(async (sellerId) => {
                     if (sellerId) {
@@ -113,7 +84,7 @@ const MarketplacePage: React.FC = () => {
                     }
                 })
             );
-            
+
             setSellerRatings(ratingsMap);
         };
 
@@ -149,7 +120,7 @@ const MarketplacePage: React.FC = () => {
         // Debounce search: only search after user stops typing for 500ms
         // and only if search term is empty or at least 3 characters
         const shouldSearch = search === '' || search.length >= SEARCH_MIN_CHARS;
-        
+
         if (!shouldSearch) {
             // Don't search if less than 3 characters (but not empty)
             // Don't update loading state to prevent unnecessary re-renders
@@ -181,6 +152,62 @@ const MarketplacePage: React.FC = () => {
         }
     }, [isSeller]);
 
+    // Add structured data when products change
+    useEffect(() => {
+        if (products.length === 0) return;
+
+        // Create canonical URL
+        const href = window.location.href;
+        document.querySelector('link[rel="canonical"]')?.remove();
+        const linkEl = document.createElement('link');
+        linkEl.rel = 'canonical';
+        linkEl.href = href;
+        document.head.appendChild(linkEl);
+
+        // JSON-LD structured data for ItemList
+        const itemListSchema = {
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            name: 'YaqeenPay Marketplace Products',
+            description: 'Browse and purchase products from verified sellers on YaqeenPay marketplace',
+            url: href,
+            numberOfItems: products.length,
+            itemListElement: products.slice(0, 10).map((product, index) => ({
+                '@type': 'Product',
+                position: index + 1,
+                name: product.name,
+                description: product.description,
+                image: product.images?.map(img => img.imageUrl || img.ImageUrl).filter(Boolean) || [],
+                offers: {
+                    '@type': 'Offer',
+                    price: product.effectivePrice.toString(),
+                    priceCurrency: product.currency,
+                    availability: product.isInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                    seller: {
+                        '@type': 'Organization',
+                        name: product.seller?.businessName || 'YaqeenPay Seller'
+                    }
+                },
+                url: `${window.location.origin}/product/${product.id}`
+            }))
+        };
+
+        const addJsonLd = (data: any) => {
+            const script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.text = JSON.stringify(data);
+            document.head.appendChild(script);
+            return script;
+        };
+
+        const scriptElement = addJsonLd(itemListSchema);
+
+        return () => {
+            // Cleanup
+            scriptElement.remove();
+        };
+    }, [products]);
+
     const fetchProducts = async () => {
         try {
             setLoading(true);
@@ -193,40 +220,15 @@ const MarketplacePage: React.FC = () => {
             };
 
             // Use different service method based on user role
-            const data = isSeller
+            const response = isSeller
                 ? await productService.getSellerProducts(params)
                 : await productService.getProducts(params);
 
-            // Handle different response structures
-            let productsArray = [];
-            let totalCount = 0;
-
-            if (data && typeof data === 'object' && 'items' in data) {
-                // ApiService has already unwrapped the response, data is the inner data object
-                productsArray = Array.isArray(data.items) ? data.items : [];
-                totalCount = data.totalCount || data.total || productsArray.length;
-
-            } else if (data.success && data.data) {
-                // API response wrapper format (if not unwrapped)
-
-                productsArray = Array.isArray(data.data.products) ? data.data.products :
-                    Array.isArray(data.data.items) ? data.data.items :
-                        Array.isArray(data.data) ? data.data : [];
-                totalCount = data.data.totalCount || data.data.total || productsArray.length;
-
-            } else if (Array.isArray(data)) {
-                // Direct array response
-                productsArray = data;
-                totalCount = data.length;
-            } else if (data.products && Array.isArray(data.products)) {
-                // Products property
-                productsArray = data.products;
-                totalCount = data.totalCount || data.total || productsArray.length;
-            } else {
-                // Fallback to empty array
-                productsArray = [];
-                totalCount = 0;
-            }
+            // Support both ApiResponse wrapper shape ({ success, data: { items, totalCount } })
+            // and unwrapped paginated response ({ items, totalCount }) returned by apiService
+            const paginated = (response && (response as any).data) ? (response as any).data : response as any;
+            const productsArray = (paginated && paginated.items) ? paginated.items : [];
+            const totalCount = (paginated && typeof paginated.totalCount === 'number') ? paginated.totalCount : (Array.isArray(productsArray) ? productsArray.length : 0);
 
             setProducts(productsArray);
             setTotalCount(totalCount);
@@ -261,7 +263,7 @@ const MarketplacePage: React.FC = () => {
         }
     };
 
-    const handleAddToCart = async (product: Product) => {
+    const handleAddToCart = async (product: ProductDetail) => {
         try {
 
             const success = cartService.addToCart(
@@ -327,14 +329,14 @@ const MarketplacePage: React.FC = () => {
     }
 
     return (
-        <Box sx={{ p: 3, position: 'relative' }}>
+        <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, position: 'relative' }}>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box>
-                    <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        YaqeenPay Marketplace
+                    <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                        Marketplace
                     </Typography>
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                         Discover amazing products from verified sellers
                     </Typography>
                 </Box>
@@ -349,293 +351,291 @@ const MarketplacePage: React.FC = () => {
                             </Button>
                         </>
                     )}
-                    {!isSeller && cartCount > 0 && (
-                        <Button
-                            variant="outlined"
-                            startIcon={<CartIcon />}
-                            onClick={() => navigate('/cart')}
-                            sx={{ position: 'relative' }}
-                        >
-                            View Cart
-                            <Badge
-                                badgeContent={cartCount}
-                                color="primary"
-                                sx={{ ml: 1 }}
-                            />
-                        </Button>
-                    )}
                 </Box>
             </Box>
 
-            {/* Filters */}
-            <Card sx={{ mb: 3 }}>
-                <CardContent sx={{ pt: 3 }}>
-                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-                        <TextField
-                            placeholder="Search products..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon />
-                                    </InputAdornment>
-                                ),
+    {/* Filters */ }
+    < Card sx={{ mb: 3 }}>
+        <CardContent sx={{ pt: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                <TextField
+                    placeholder="Search products..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    InputProps={{
+                        startAdornment: (
+                            <InputAdornment position="start">
+                                <SearchIcon />
+                            </InputAdornment>
+                        ),
+                    }}
+                    helperText={
+                        search.length > 0 && search.length < SEARCH_MIN_CHARS
+                            ? `Enter at least ${SEARCH_MIN_CHARS} characters to search`
+                            : ''
+                    }
+                    sx={{ flex: 1 }}
+                />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+
+                    {/* MUI Select */}
+                    <FormControl sx={{ minWidth: 200 }}>
+                        <InputLabel id="marketplace-category-label">Category</InputLabel>
+                        <Select
+                            labelId="marketplace-category-label"
+                            value={selectedCategory}
+                            onChange={(e) => {
+                                setSelectedCategory(e.target.value);
                             }}
-                            helperText={
-                                search.length > 0 && search.length < SEARCH_MIN_CHARS
-                                    ? `Enter at least ${SEARCH_MIN_CHARS} characters to search`
-                                    : ''
-                            }
-                            sx={{ flex: 1 }}
-                        />
-                        {/* Temporary: Add both native and MUI selects for testing */}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
+                            label="Category"
+                            disabled={categoriesLoading}
+                            MenuProps={{
+                                PaperProps: {
+                                    style: {
+                                        maxHeight: 300,
+                                        zIndex: 1500,
+                                    },
+                                },
+                                anchorOrigin: {
+                                    vertical: 'bottom',
+                                    horizontal: 'left',
+                                },
+                                transformOrigin: {
+                                    vertical: 'top',
+                                    horizontal: 'left',
+                                },
+                            }}
+                        >
+                            <MenuItem value="">All Categories</MenuItem>
+                            {categoriesLoading ? (
+                                <MenuItem disabled>Loading categories...</MenuItem>
+                            ) : (
+                                [
+                                    /* Only render backend categories */
+                                    ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
+                                        <MenuItem key={category.id} value={category.id}>
+                                            {category.name}
+                                        </MenuItem>
+                                    )),
 
-                            {/* MUI Select */}
-                            <FormControl sx={{ minWidth: 200 }}>
-                                <InputLabel id="marketplace-category-label">Category</InputLabel>
-                                <Select
-                                    labelId="marketplace-category-label"
-                                    value={selectedCategory}
-                                    onChange={(e) => {
-                                        setSelectedCategory(e.target.value);
-                                    }}
-                                    label="Category"
-                                    disabled={categoriesLoading}
-                                    MenuProps={{
-                                        PaperProps: {
-                                            style: {
-                                                maxHeight: 300,
-                                                zIndex: 1500,
-                                            },
-                                        },
-                                        anchorOrigin: {
-                                            vertical: 'bottom',
-                                            horizontal: 'left',
-                                        },
-                                        transformOrigin: {
-                                            vertical: 'top',
-                                            horizontal: 'left',
-                                        },
-                                    }}
-                                >
-                                    <MenuItem value="">All Categories</MenuItem>
-                                    {categoriesLoading ? (
-                                        <MenuItem disabled>Loading categories...</MenuItem>
-                                    ) : (
-                                        [
-                                            /* Only render backend categories */
-                                            ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
-                                                <MenuItem key={category.id} value={category.id}>
-                                                    {category.name}
-                                                </MenuItem>
-                                            )),
+                                    /* Show message if no categories loaded */
+                                    ...(categories.length === 0 ? [(
+                                        <MenuItem key="no-categories" disabled>
+                                            <Typography variant="body2" color="error">
+                                                No categories available
+                                            </Typography>
+                                        </MenuItem>
+                                    )] : [])
+                                ]
+                            )}
+                        </Select>
+                    </FormControl>
+                </Box>
+            </Box>
+        </CardContent>
+    </Card >
 
-                                            /* Show message if no categories loaded */
-                                            ...(categories.length === 0 ? [(
-                                                <MenuItem key="no-categories" disabled>
-                                                    <Typography variant="body2" color="error">
-                                                        No categories available
-                                                    </Typography>
-                                                </MenuItem>
-                                            )] : [])
-                                        ]
-                                    )}
-                                </Select>
-                            </FormControl>
-                        </Box>
-                    </Box>
+    {/* Error Alert */ }
+    {
+        error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                {error}
+            </Alert>
+        )
+    }
+
+    {/* Products Grid */ }
+    {
+        (() => {
+            return null;
+        })()
+    }
+    {
+        products.length === 0 ? (
+            <Card>
+                <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                    <StoreIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h5" sx={{ mb: 1 }}>
+                        {search || selectedCategory ? "No products found" : "No products available"}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                        {search || selectedCategory
+                            ? "Try adjusting your search criteria or browse all categories."
+                            : "Be the first to discover products when sellers start listing them!"}
+                    </Typography>
                 </CardContent>
             </Card>
+        ) : (
+            <>
+                {/* Product Count Display */}
+                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">
+                        Showing {((page - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(page * PRODUCTS_PER_PAGE, totalCount)} of {totalCount} products
+                        {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {PRODUCTS_PER_PAGE} per page
+                    </Typography>
+                </Box>
 
-            {/* Error Alert */}
-            {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-                    {error}
-                </Alert>
-            )}
-
-            {/* Products Grid */}
-            {(() => {
-                return null;
-            })()}
-            {products.length === 0 ? (
-                <Card>
-                    <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                        <StoreIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h5" sx={{ mb: 1 }}>
-                            {search || selectedCategory ? "No products found" : "No products available"}
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                            {search || selectedCategory
-                                ? "Try adjusting your search criteria or browse all categories."
-                                : "Be the first to discover products when sellers start listing them!"}
-                        </Typography>
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    {/* Product Count Display */}
-                    <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                            Showing {((page - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(page * PRODUCTS_PER_PAGE, totalCount)} of {totalCount} products
-                            {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {PRODUCTS_PER_PAGE} per page
-                        </Typography>
-                    </Box>
-
-                    <Box sx={{
-                        display: 'grid',
-                        gridTemplateColumns: {
-                            xs: '1fr',
-                            sm: 'repeat(2, 1fr)',
-                            md: 'repeat(3, 1fr)',
-                            lg: 'repeat(4, 1fr)'
-                        },
-                        gap: 3
-                    }}>
-                        {Array.isArray(products) && products.map(product => (
-                            <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                                <CardMedia
-                                    component="img"
-                                    height="200"
-                                    image={getPrimaryImage(product.images)}
-                                    alt={product.name}
-                                    loading="lazy"
-                                    sx={{
-                                        objectFit: 'cover',
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: 'repeat(2, 1fr)',
+                        sm: 'repeat(2, 1fr)',
+                        md: 'repeat(3, 1fr)',
+                        lg: 'repeat(4, 1fr)'
+                    },
+                    gap: { xs: 1, sm: 2, md: 3 }
+                }}>
+                    {Array.isArray(products) && products.map(product => (
+                        <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <CardMedia
+                                component="img"
+                                height={isMobile ? 120 : 200}
+                                image={getPrimaryImage(product.images)}
+                                alt={product.name}
+                                loading="lazy"
+                                sx={{
+                                    objectFit: 'cover',
+                                    cursor: 'pointer',
+                                    backgroundColor: '#f5f5f5'
+                                }}
+                                onClick={() => navigate(`/products/${product.id}`)}
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    // Use same local placeholder as getPrimaryImage function
+                                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
+                                }}
+                            />
+                            <CardContent sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
+                                <Typography
+                                    variant="h6"
+                                    component="h3"
+                                    sx={{ 
+                                        fontWeight: 'bold', 
+                                        mb: 1, 
                                         cursor: 'pointer',
-                                        backgroundColor: '#f5f5f5'
+                                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
                                     }}
                                     onClick={() => navigate(`/products/${product.id}`)}
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        // Use same local placeholder as getPrimaryImage function
-                                        target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
-                                    }}
-                                />
-                                <CardContent sx={{ flexGrow: 1 }}>
-                                    <Typography
-                                        variant="h6"
-                                        component="h3"
-                                        sx={{ fontWeight: 'bold', mb: 1, cursor: 'pointer' }}
-                                        onClick={() => navigate(`/products/${product.id}`)}
-                                    >
-                                        {product.name}
-                                    </Typography>
+                                >
+                                    {product.name}
+                                </Typography>
 
-                                    {product.seller && (
-                                        <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                By: {product.seller.businessName}
-                                            </Typography>
-                                            {sellerRatings[product.seller.id] && sellerRatings[product.seller.id].totalRatings > 0 && (
-                                                <>
-                                                    <RatingBadge stats={sellerRatings[product.seller.id]} size="small" />
-                                                    <RatingStars 
-                                                        value={sellerRatings[product.seller.id].averageRating} 
-                                                        readonly 
-                                                        size="small"
-                                                        showValue
-                                                    />
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        ({sellerRatings[product.seller.id].totalRatings})
-                                                    </Typography>
-                                                </>
-                                            )}
-                                        </Stack>
-                                    )}
+                                {product.seller && (
+                                    <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            By: {product.seller.businessName}
+                                        </Typography>
+                                        {sellerRatings[product.seller.id]?.totalRatings > 0 && 
+                                            <RatingBadge stats={sellerRatings[product.seller.id]} size="small" />
+                                        }
+                                    </Stack>
+                                )}
 
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        {categoryService.getCategoryName(product.category?.id || product.category?.name || '', categories)}
-                                    </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    {categoryService.getCategoryName(product.category?.id || product.category?.name || '', categories)}
+                                </Typography>
 
-                                    <Box sx={{ mb: 2 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            {product.isOnSale ? (
-                                                <>
-                                                    <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                                        {formatPrice(product.effectivePrice, product.currency)}
-                                                    </Typography>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
-                                                    >
-                                                        {formatPrice(product.price, product.currency)}
-                                                    </Typography>
-
-                                                </>
-                                            ) : (
-                                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                <Box sx={{ mb: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {product.isOnSale ? (
+                                            <>
+                                                <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                                                    {formatPrice(product.effectivePrice, product.currency)}
+                                                </Typography>
+                                                <Typography
+                                                    variant="body2"
+                                                    sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
+                                                >
                                                     {formatPrice(product.price, product.currency)}
                                                 </Typography>
-                                            )}
-                                        </Box>
-                                    </Box>
-                                    <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
-                                        {!isSeller && (
-                                            <>
-                                                <Button
-                                                    variant="contained"
-                                                    size="small"
-                                                    startIcon={<CartIcon />}
-                                                    onClick={() => handleAddToCart(product)}
-                                                    disabled={product.stockQuantity === 0}
-                                                >
-                                                    Add to Cart
-                                                </Button>
-                                                {product.isOnSale && <Chip label="Sale" color="error" size="small" />}
+
                                             </>
+                                        ) : (
+                                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                                {formatPrice(product.price, product.currency)}
+                                            </Typography>
                                         )}
                                     </Box>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </Box>
-                </>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                    <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={handlePageChange}
-                        color="primary"
-                        size="large"
-                    />
+                                </Box>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 'auto', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
+                                    {!isSeller && (
+                                        <>
+                                            <Button
+                                                variant="contained"
+                                                size={isMobile ? 'large' : 'small'}
+                                                startIcon={<CartIcon />}
+                                                onClick={() => handleAddToCart(product)}
+                                                disabled={product.stockQuantity === 0}
+                                                fullWidth={isMobile}
+                                            >
+                                                Add to Cart
+                                            </Button>
+                                            {product.isOnSale && (
+                                                <Chip
+                                                    label="Sale"
+                                                    color="error"
+                                                    size={isMobile ? 'medium' : 'small'}
+                                                    sx={isMobile ? { alignSelf: 'flex-start', mt: 1 } : undefined}
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </Box>
-            )}
+            </>
+        )
+    }
 
-            {/* Floating Cart Button */}
-            {!isSeller && cartCount > 0 && (
-                <Fab
+    {/* Pagination */ }
+    {
+        totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
                     color="primary"
-                    sx={{ position: 'fixed', bottom: 20, right: 20 }}
-                    onClick={() => navigate('/cart')}
-                >
-                    <Badge badgeContent={cartCount} color="error">
-                        <CartIcon />
-                    </Badge>
-                </Fab>
-            )}
+                    size="large"
+                />
+            </Box>
+        )
+    }
 
-            {/* Floating Add Product Button for Sellers */}
-            {isSeller && (
-                <Fab
-                    color="secondary"
-                    sx={{ position: 'fixed', bottom: 20, right: 20 }}
-                    onClick={() => navigate('/seller/products/new')}
-                    aria-label="Add new product"
-                >
-                    <AddIcon />
-                </Fab>
-            )}
-        </Box>
+    {/* Floating Cart Button */ }
+    {
+        !isSeller && cartCount > 0 && (
+            <Fab
+                color="primary"
+                sx={{ position: 'fixed', bottom: 20, right: 20 }}
+                onClick={() => navigate('/cart')}
+            >
+                <Badge badgeContent={cartCount} color="error">
+                    <CartIcon />
+                </Badge>
+            </Fab>
+        )
+    }
+
+    {/* Floating Add Product Button for Sellers */ }
+    {
+        isSeller && (
+            <Fab
+                color="secondary"
+                sx={{ position: 'fixed', bottom: 20, right: 20 }}
+                onClick={() => navigate('/seller/products/new')}
+                aria-label="Add new product"
+            >
+                <AddIcon />
+            </Fab>
+        )
+    }
+        </Box >
     );
 };
 

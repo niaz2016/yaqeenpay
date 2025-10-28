@@ -398,6 +398,16 @@ class AdminService {
       throw error;
     }
   }
+
+  // Email Management
+  async createEmailUser(data: { username: string; password: string }): Promise<any> {
+    try {
+      return await apiService.post('/admin/email/create', data);
+    } catch (error) {
+      console.error('Error creating email user:', error);
+      throw error;
+    }
+  }
 }
 
 export default new AdminService();

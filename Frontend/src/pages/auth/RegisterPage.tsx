@@ -1,6 +1,6 @@
 // src/pages/auth/RegisterPage.tsx
 import React, { useState } from 'react';
-import { Container, Box } from '@mui/material';
+import { Container, Box, useTheme, useMediaQuery } from '@mui/material';
 import RoleSelectionForm from '../../components/auth/RoleSelectionForm';
 import BuyerRegisterForm from '../../components/auth/BuyerRegisterForm';
 import SellerRegisterForm from '../../components/auth/SellerRegisterForm';
@@ -32,8 +32,11 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
-    <Container maxWidth="md" sx={{ px: { xs: 2, sm: 3 } }}>
+    <Container maxWidth={isMobile ? 'sm' : 'md'} sx={{ px: { xs: 2, sm: 3 } }}>
       <Box sx={{ mt: { xs: 4, sm: 8 }, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {renderContent()}
       </Box>

@@ -37,7 +37,6 @@ import { SettingsCategory } from '../../../services/settingsService';
 import type { SecuritySettings as SecuritySettingsType } from '../../../services/settingsService';
 import profileService from '../../../services/profileService';
 import { LoginPreferencesCard } from '../../../components/auth/LoginPreferencesCard';
-import PermissionDebugCard from '../../../components/PermissionDebugCard';
 
 const SessionTimeouts = [
   { value: 15, label: '15 minutes' },
@@ -254,12 +253,6 @@ const SecuritySettings: React.FC = () => {
       <Box sx={{ mb: 3 }}>
         <LoginPreferencesCard />
       </Box>
-
-      {/* Permission Debug (Development Only) */}
-      <Box sx={{ mb: 3 }}>
-        <PermissionDebugCard />
-      </Box>
-
       {/* Two-Factor Authentication */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>

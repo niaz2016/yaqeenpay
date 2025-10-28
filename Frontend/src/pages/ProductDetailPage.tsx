@@ -1,5 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import productService from '../services/productService';
+import { useProductCache } from '../hooks/useProductCache';
+import Breadcrumbs from '../components/common/Breadcrumbs';
+import ShareMenu from '../components/common/ShareMenu';
+import WishlistButton from '../components/product/WishlistButton';
+import { useWishlist } from '../context/WishlistContext';
+import LazyImage from '../components/common/LazyImage';
+import ProductImageModal from '../components/product/ProductImageModal';
+
+const RelatedProducts = lazy(() => import('../components/product/RelatedProducts'));
+import type { ProductDetail, ProductImage } from '../types/product';
 import {
   Box,
   Typography,
@@ -13,8 +24,13 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  IconButton
+  IconButton,
+  useTheme,
+  useMediaQuery,
+  TextField,
+  Skeleton,
 } from '@mui/material';
+
 import {
   ArrowBack as ArrowBackIcon,
   ShoppingCart as CartIcon,
@@ -29,191 +45,14 @@ import { useAuth } from '../context/AuthContext';
 import cartService from '../services/cartService';
 import { normalizeImageUrl, placeholderDataUri } from '../utils/image';
 
-interface ProductDetail {
-  id: string;
-  name: string;
-  description: string;
-  shortDescription?: string;
-  price: number;
-  currency: string;
-  discountPrice?: number;
-  sku: string;
-  stockQuantity: number;
-  minOrderQuantity: number;
-  maxOrderQuantity: number;
-  weight: number;
-  weightUnit: string;
-  dimensions?: string;
-  brand?: string;
-  model?: string;
-  color?: string;
-  size?: string;
-  material?: string;
-  status: string;
-  isFeatured: boolean;
-  allowBackorders: boolean;
-  viewCount: number;
-  averageRating: number;
-  reviewCount: number;
-  featuredUntil?: string;
-  tags: string[];
-  attributes: Record<string, string>;
-  createdAt: string;
-  lastModifiedAt?: string;
-  category: {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl?: string;
-  };
-  images: Array<{
-    id: string;
-    imageUrl?: string;
-    ImageUrl?: string;
-    altText?: string;
-    AltText?: string;
-    sortOrder?: number;
-    SortOrder?: number;
-    isPrimary?: boolean;
-    IsPrimary?: boolean;
-  }>;
-  effectivePrice: number;
-  isOnSale: boolean;
-  discountPercentage: number;
-  isInStock: boolean;
-  seller?: {
-    id: string;
-    businessName: string;
-  };
-}
-
-const ProductDetailPage: React.FC = () => {
+const ProductDetailPage: React.FC<{}> = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [addingToCart, setAddingToCart] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
-  const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [modalImageZoom, setModalImageZoom] = useState(1);
-  const [modalImagePosition, setModalImagePosition] = useState({ x: 0, y: 0 });
-  // State to handle click vs double-click in modal
-  const [clickTimeout, setClickTimeout] = useState<number | null>(null);
-
-  const isSeller = user?.roles?.some((role: string) => role.toLowerCase() === 'seller');
-
-  useEffect(() => {
-    if (id) {
-      fetchProduct();
-    }
-  }, [id]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (clickTimeout) {
-        clearTimeout(clickTimeout);
-      }
-    };
-  }, [clickTimeout]);
-
-  const fetchProduct = async () => {
-    if (!id) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Since the backend doesn't have a GET /products/{id} endpoint,
-      // we'll fetch all products and filter by ID
-      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch('/api/products?pageSize=1000', { headers });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Handle ApiResponse wrapper - the response should have success and data fields
-        let productsList = [];
-        if (data.success && data.data && data.data.items) {
-          productsList = data.data.items;
-        } else if (data.data && Array.isArray(data.data.items)) {
-          productsList = data.data.items;
-        } else if (Array.isArray(data)) {
-          productsList = data;
-        } else {
-          console.error('[ProductDetailPage] Unexpected response format:', data);
-          setError('Failed to load product data');
-          return;
-        }
-        
-        
-        // Find the specific product by ID
-        const foundProduct = productsList.find((product: any) => product.id === id);
-        
-        if (foundProduct) {
-          foundProduct.images.forEach((img: any, index: number) => {
-            console.log(`[ProductDetailPage] Image ${index + 1}:`, {
-              id: img.id,
-              imageUrl: img.imageUrl,
-              isPrimary: img.isPrimary,
-              IsPrimary: img.IsPrimary,
-              altText: img.altText
-            });
-          });
-          setProduct(foundProduct);
-        } else {
-          setError('Product not found');
-        }
-      } else if (response.status === 404) {
-        setError('Products not available');
-      } else if (response.status === 401) {
-        setError('Please log in to view product details');
-      } else {
-        setError('Failed to load product details');
-      }
-    } catch (error) {
-      console.error('[ProductDetailPage] Error fetching product:', error);
-      setError('Error loading product');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddToCart = async () => {
-    if (!product) return;
-
-    try {
-      setAddingToCart(true);
-      setError(null);
-      
-      const success = cartService.addToCart(product, quantity);
-      
-      if (success) {
-        setAddedToCart(true);
-        setQuantity(1);
-        
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-          setAddedToCart(false);
-        }, 3000);
-      } else {
-        setError('Failed to add product to cart. Please check stock availability.');
-      }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      setError('Error adding product to cart');
-    } finally {
-      setAddingToCart(false);
-    }
-  };
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isInWishlist } = useWishlist();
+  const { product, loading, error } = useProductCache(id);
 
   const handleImageClick = () => {
     setImageModalOpen(true);
@@ -234,17 +73,210 @@ const ProductDetailPage: React.FC = () => {
   const handleZoomOut = () => {
     setModalImageZoom(prev => Math.max(prev - 0.5, 1));
   };
+  
+  // Cart states
+  const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+  
+  // Image gallery states
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [modalImageZoom, setModalImageZoom] = useState(1);
+  const [modalImagePosition, setModalImagePosition] = useState({ x: 0, y: 0 });
+  const [clickTimeout, setClickTimeout] = useState<number | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<ProductDetail[]>([]);
+  const [loadingRelated, setLoadingRelated] = useState(false);
 
-  const handleImageDoubleClick = () => {
-    if (modalImageZoom === 1) {
-      // Zoom in to 2x on double click
-      setModalImageZoom(2);
-    } else {
-      // If already zoomed, zoom out to fit window
-      setModalImageZoom(1);
-      setModalImagePosition({ x: 0, y: 0 });
+  const isSeller = user?.roles?.some((role: string) => role.toLowerCase() === 'seller');
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+
+    try {
+      setAddingToCart(true);
+      setCartError(null);
+      
+      const success = cartService.addToCart(product, quantity);
+      
+      if (success) {
+        setAddedToCart(true);
+        setQuantity(1);
+        
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setAddedToCart(false);
+        }, 3000);
+      } else {
+        setCartError('Failed to add product to cart. Please check stock availability.');
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setCartError('Error adding product to cart');
+    } finally {
+      setAddingToCart(false);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      fetchRelatedProducts();
+    }
+  }, [id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeout) {
+        clearTimeout(clickTimeout);
+      }
+    };
+  }, [clickTimeout]);
+
+  const fetchRelatedProducts = async () => {
+    if (!id) return;
+
+    try {
+      setLoadingRelated(true);
+      const relatedData = await productService.getRelatedProducts(id).catch(() => []);
+      if (Array.isArray(relatedData)) {
+        const mappedProducts = relatedData.map(p => ({
+          ...p,
+          minOrderQuantity: p.minOrderQuantity || 1,
+          maxOrderQuantity: p.maxOrderQuantity || 999999,
+          images: p.images || [],
+          price: p.price || 0,
+          effectivePrice: p.effectivePrice || p.price || 0
+        }));
+        setRelatedProducts(mappedProducts);
+      }
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+      // Don't show error UI for related products failure
+    } finally {
+      setLoadingRelated(false);
+    }
+  };
+
+  // Add structured data when product loads
+  useEffect(() => {
+    if (!product) return;
+
+    // Create canonical URL
+    const href = window.location.href;
+    document.querySelector('link[rel="canonical"]')?.remove();
+    const linkEl = document.createElement('link');
+    linkEl.rel = 'canonical';
+    linkEl.href = href;
+    document.head.appendChild(linkEl);
+
+    // JSON-LD structured data for Product
+    const productSchema: any = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      description: product.description,
+      image: product.images?.map(img => normalizeImageUrl(img?.imageUrl || img?.ImageUrl || '')).filter(Boolean) ?? [],
+      offers: {
+        '@type': 'Offer',
+        price: (product.effectivePrice ?? 0).toString(),
+        priceCurrency: 'PKR',
+        availability: product.isInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        seller: {
+          '@type': 'Organization',
+          name: product.seller?.businessName || 'YaqeenPay Seller'
+        }
+      }
+    };
+
+    // Add aggregateRating if reviews exist
+    if (product.reviewCount && product.reviewCount > 0 && product.averageRating) {
+      productSchema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: (product.averageRating ?? 0).toString(),
+        reviewCount: (product.reviewCount ?? 0).toString()
+      };
+    }
+
+    const addJsonLd = (data: any) => {
+      const script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify(data);
+      document.head.appendChild(script);
+      return script;
+    };
+
+    const scriptElement = addJsonLd(productSchema);
+
+    return () => {
+      // Cleanup
+      scriptElement.remove();
+    };
+  }, [product]);
+
+  useEffect(() => {
+    if (product) {
+      setQuantity(Math.max(1, product.minOrderQuantity ?? 1));
+    }
+  }, [product]);
+
+
+
+  const handleQuantityChange = (newValue: number) => {
+    if (!product) return;
+    const min = product.minOrderQuantity ?? 1;
+    const maxOrder = product.maxOrderQuantity ?? 999999;
+    const stock = product.stockQuantity ?? 0;
+    const max = Math.max(1, Math.min(maxOrder, stock));
+    const validQuantity = Math.max(min, Math.min(max, newValue));
+    setQuantity(validQuantity);
+  };
+
+  if (loading) {
+    // Structured skeletons to improve perceived performance while product details load
+    return (
+      <Box sx={{ display: 'flex', gap: 2, p: { xs: 1, sm: 2, md: 3 } }}>
+        <Box sx={{ flex: '0 0 50%', minWidth: 280 }}>
+          <Skeleton variant="rectangular" height={360} />
+          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+            <Skeleton variant="rectangular" width={64} height={64} />
+            <Skeleton variant="rectangular" width={64} height={64} />
+            <Skeleton variant="rectangular" width={64} height={64} />
+          </Box>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+          <Skeleton variant="text" width="60%" height={48} />
+          <Skeleton variant="text" width="30%" height={36} />
+          <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+            <Skeleton variant="rectangular" width={88} height={32} />
+            <Skeleton variant="rectangular" width={88} height={32} />
+          </Box>
+          <Skeleton variant="rectangular" height={120} sx={{ mt: 2 }} />
+          <Skeleton variant="rectangular" height={40} sx={{ mt: 2, width: 160 }} />
+          <Box sx={{ mt: 4 }}>
+            <Skeleton variant="text" width="40%" />
+            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+              <Skeleton variant="rectangular" width={160} height={200} />
+              <Skeleton variant="rectangular" width={160} height={200} />
+              <Skeleton variant="rectangular" width={160} height={200} />
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
 
   const handleModalImageClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -253,7 +285,14 @@ const ProductDetailPage: React.FC = () => {
       // This is a double-click
       clearTimeout(clickTimeout);
       setClickTimeout(null);
-      handleImageDoubleClick();
+      if (modalImageZoom === 1) {
+        // Zoom in to 2x on double click
+        setModalImageZoom(2);
+      } else {
+        // If already zoomed, zoom out to fit window
+        setModalImageZoom(1);
+        setModalImagePosition({ x: 0, y: 0 });
+      }
     } else {
       // This might be a single click, wait to see if double-click follows
       const timeout = window.setTimeout(() => {
@@ -282,10 +321,354 @@ const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
+  if (!product) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary">
+          Product not found
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/marketplace')}
+          startIcon={<ArrowBackIcon />}
+          sx={{ mt: 2 }}
+        >
+          Back to Marketplace
+        </Button>
+      </Box>
+    );
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center',
+        minHeight: '50vh',
+        p: { xs: 1, sm: 2, md: 3 }
+      }}>
+        <CircularProgress size={60} />
+        <Typography sx={{ mt: 2 }}>Loading product details...</Typography>
+      </Box>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Box sx={{ 
+        p: { xs: 1, sm: 2, md: 3 },
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <Alert severity="error" sx={{ mb: 2, width: '100%', maxWidth: 600 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/marketplace')}
+          startIcon={<ArrowBackIcon />}
+        >
+          Back to Marketplace
+        </Button>
+      </Box>
+    );
+  }
+
+  // No product found
+  if (!product) {
+    return (
+      <Box sx={{ 
+        p: { xs: 1, sm: 2, md: 3 },
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <Alert severity="info" sx={{ mb: 2, width: '100%', maxWidth: 600 }}>
+          Product not found
+        </Alert>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/marketplace')}
+          startIcon={<ArrowBackIcon />}
+        >
+          Back to Marketplace
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+      {/* Back button and breadcrumbs */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Breadcrumbs
+          items={[
+            { label: 'Marketplace', href: '/marketplace' },
+            { label: product.category?.name || 'Products', href: `/marketplace?category=${product.category?.id}` },
+            { label: product.name }
+          ]}
+        />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <WishlistButton 
+            product={product}
+            initialState={isInWishlist(product.id)}
+          />
+          <ShareMenu
+            title={product.name}
+            description={product.description || ''}
+            image={normalizeImageUrl(product.images?.[0]?.imageUrl || product.images?.[0]?.ImageUrl) || ''}
+          />
+        </Box>
+      </Box>
+
+      {/* Main content grid */}
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+        gap: { xs: 2, md: 4 } 
+      }}>
+        {/* Image Gallery */}
+        <Card>
+          <Box sx={{ position: 'relative' }}>
+            <LazyImage
+              src={normalizeImageUrl(product.images?.[selectedImageIndex]?.imageUrl || product.images?.[selectedImageIndex]?.ImageUrl) || placeholderDataUri(600)}
+              alt={product.name}
+              lowResSrc={placeholderDataUri(100)}
+              aspectRatio={4/3}
+              style={{
+                cursor: 'zoom-in'
+              }}
+              onClick={() => setImageModalOpen(true)}
+            />
+            {product.isOnSale && (
+              <Chip
+                label="SALE"
+                color="error"
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16
+                }}
+              />
+            )}
+          </Box>
+          
+          {/* Thumbnails */}
+          {product.images?.length > 1 && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 1, 
+              p: 1, 
+              overflowX: 'auto' 
+            }}>
+              {(product.images || []).map((image: ProductImage, index: number) => (
+                <Box
+                  key={image.id}
+                  onClick={() => setSelectedImageIndex(index)}
+                  sx={{
+                    width: 60,
+                    height: 60,
+                    flexShrink: 0,
+                    cursor: 'pointer',
+                    border: index === selectedImageIndex ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <img
+                    src={normalizeImageUrl(image.imageUrl || image.ImageUrl || '') || placeholderDataUri(60)}
+                    alt={image.altText || image.AltText || `Product image ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Card>
+
+        {/* Product Details */}
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            {product.name}
+          </Typography>
+
+          {/* Seller info */}
+          {product.seller && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <StoreIcon color="action" />
+              <Typography variant="body2" color="text.secondary">
+                Sold by: {product.seller.businessName}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Price section */}
+          <Box sx={{ mb: 3 }}>
+            {product.isOnSale ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h5" color="error">
+                  {new Intl.NumberFormat('en-PK', {
+                    style: 'currency',
+                    currency: 'PKR',
+                    currencyDisplay: 'code'
+                  }).format(product.effectivePrice)}
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
+                >
+                  {new Intl.NumberFormat('en-PK', {
+                    style: 'currency',
+                    currency: 'PKR',
+                    currencyDisplay: 'code'
+                  }).format(product.price)}
+                </Typography>
+                <Chip
+                  label={`${Math.round(product.discountPercentage)}% OFF`}
+                  color="error"
+                  size="small"
+                />
+              </Box>
+            ) : (
+              <Typography variant="h5">
+                {new Intl.NumberFormat('en-PK', {
+                  style: 'currency',
+                  currency: 'PKR',
+                  currencyDisplay: 'code'
+                }).format(product.price)}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Stock status */}
+          <Box sx={{ mb: 3 }}>
+            {product.stockQuantity > 0 ? (
+              <Chip
+                label={`${product.stockQuantity} in stock`}
+                color="success"
+                variant="outlined"
+                size="small"
+              />
+            ) : (
+              <Chip
+                label="Out of stock"
+                color="error"
+                variant="outlined"
+                size="small"
+              />
+            )}
+          </Box>
+
+          {/* Add to cart section */}
+          {!isSeller && (
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField
+                  type="number"
+                  label="Quantity"
+                  value={quantity}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value))}
+                  InputProps={{
+                    inputProps: {
+                      min: product.minOrderQuantity || 1,
+                      max: Math.min(product.maxOrderQuantity || 999999, product.stockQuantity)
+                    }
+                  }}
+                  sx={{ width: 100 }}
+                />
+                <Button
+                  variant="contained"
+                  startIcon={<CartIcon />}
+                  onClick={handleAddToCart}
+                  disabled={addingToCart || product.stockQuantity === 0}
+                  sx={{ flexGrow: 1 }}
+                >
+                  {addingToCart ? 'Adding...' : 'Add to Cart'}
+                </Button>
+              </Box>
+              {(addedToCart || cartError) && (
+                <Alert 
+                  severity={addedToCart ? "success" : "error"}
+                  onClose={() => addedToCart ? setAddedToCart(false) : setCartError(null)}
+                >
+                  {addedToCart ? "Added to cart successfully!" : cartError}
+                </Alert>
+              )}
+            </Box>
+          )}
+
+          {/* Description */}
+          <Typography variant="h6" gutterBottom>
+            Description
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, whiteSpace: 'pre-line' }}>
+            {product.description}
+          </Typography>
+
+          {/* Product details/specs */}
+          <Typography variant="h6" gutterBottom>
+            Product Details
+          </Typography>
+          <Box component="dl" sx={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 2, mb: 3 }}>
+            {product.brand && (
+              <>
+                <Typography component="dt" color="text.secondary">Brand:</Typography>
+                <Typography component="dd" sx={{ m: 0 }}>{product.brand}</Typography>
+              </>
+            )}
+            {product.model && (
+              <>
+                <Typography component="dt" color="text.secondary">Model:</Typography>
+                <Typography component="dd" sx={{ m: 0 }}>{product.model}</Typography>
+              </>
+            )}
+            {product.sku && (
+              <>
+                <Typography component="dt" color="text.secondary">SKU:</Typography>
+                <Typography component="dd" sx={{ m: 0 }}>{product.sku}</Typography>
+              </>
+            )}
+            {Object.entries(product.attributes || {}).map(([key, value]) => (
+              <React.Fragment key={key}>
+                <Typography component="dt" color="text.secondary">{key}:</Typography>
+                <Typography component="dd" sx={{ m: 0 }}>{value}</Typography>
+              </React.Fragment>
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Image Modal */}
+      <ProductImageModal
+        open={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+        imageUrl={normalizeImageUrl(product.images?.[selectedImageIndex]?.imageUrl || product.images?.[selectedImageIndex]?.ImageUrl) || placeholderDataUri(1200)}
+        altText={product.name}
+        zoom={modalImageZoom}
+        position={modalImagePosition}
+        onZoomIn={() => setModalImageZoom(z => Math.min(3, z + 0.5))}
+        onZoomOut={() => setModalImageZoom(z => Math.max(1, z - 0.5))}
+        onSetZoom={(z) => setModalImageZoom(Math.max(1, Math.min(3, z)))}
+        onImageClick={handleModalImageClick}
+        onMouseMove={handleMouseMove}
+      />
+    </Box>
+  );
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: currency || 'USD'
+      currency: 'PKR',
+      currencyDisplay: 'code'
     }).format(price);
   };
 
@@ -349,7 +732,7 @@ const ProductDetailPage: React.FC = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-          {product.name}
+          {product?.name}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <IconButton>
@@ -365,34 +748,32 @@ const ProductDetailPage: React.FC = () => {
         {/* Product Images */}
         <Box>
           <Card>
-            {product.images && product.images.length > 0 ? (
+            {(product?.images?.length ?? 0) > 0 ? (
               <CardMedia
                 component="img"
-                height="400"
+                height={isMobile ? 260 : 400}
                 image={getImageUrl(
-                  product.images[selectedImageIndex]?.imageUrl || 
-                  product.images[selectedImageIndex]?.ImageUrl || 
-                  product.images[0]?.imageUrl || 
-                  product.images[0]?.ImageUrl || 
+                  product?.images[selectedImageIndex]?.imageUrl ||
+                  product?.images[selectedImageIndex]?.ImageUrl ||
+                  product?.images[0]?.imageUrl ||
+                  product?.images[0]?.ImageUrl ||
                   ''
                 )}
-                alt={product.images[selectedImageIndex]?.altText || product.name}
+                alt={product?.images[selectedImageIndex]?.altText || product?.name || 'Product image'}
                 sx={{ 
-                  objectFit: 'cover', 
+                  objectFit: isMobile ? 'contain' : 'cover', 
                   backgroundColor: '#f5f5f5',
                   cursor: 'zoom-in'
                 }}
                 onClick={handleImageClick}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  // Use same local placeholder as getImageUrl function
-                  target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0yNDAgMTYwQzI0MCAyMDkuMDE5IDI1OS45ODEgMjI0IDMwMCAyMjRDMzQwLjAxOSAyMjQgMzYwIDIwOS4wMTkgMzYwIDE2MEMzNjAgMTEwLjk4MSAzNDAuMDE5IDk2IDMwMCA5NkMyNTkuOTgxIDk2IDI0MCAxMTAuOTgxIDI0MCAxNjBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0yMDAgMjgwTDQwMCAyODBMMzYwIDIzMkwzMDAgMjYwTDI0MCAyMzJMMjAwIDI4MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjMwMCIgeT0iMzQwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
+                onError={() => {
+                  // Using local placeholder as getImageUrl function
                 }}
               />
             ) : (
               <Box 
                 sx={{ 
-                  height: 400, 
+                  height: isMobile ? 260 : 400, 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
@@ -400,15 +781,15 @@ const ProductDetailPage: React.FC = () => {
                   color: 'text.secondary'
                 }}
               >
-                <Typography variant="h6">{product.name}</Typography>
+                <Typography variant="h6">{product?.name || 'Product'}</Typography>
               </Box>
             )}
           </Card>
           
           {/* Image Thumbnails */}
-          {product.images.length > 1 && (
+          {(product?.images?.length ?? 0) > 1 && (
             <Box sx={{ display: 'flex', gap: 1, mt: 2, overflowX: 'auto' }}>
-              {product.images.map((image, index) => (
+              {product?.images?.map((image, index) => (
                 <Card
                   key={image.id}
                   sx={{ 
@@ -443,28 +824,28 @@ const ProductDetailPage: React.FC = () => {
             {/* Price */}
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                {product.isOnSale ? (
+                {product?.isOnSale ? (
                   <>
                     <Typography variant="h4" color="success.main" sx={{ fontWeight: 'bold' }}>
-                      {formatPrice(product.effectivePrice, product.currency)}
+                      {formatPrice(product?.effectivePrice || 0)}
                     </Typography>
                     <Typography 
                       variant="h6" 
                       sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
                     >
-                      {formatPrice(product.price, product.currency)}
+                      {formatPrice(product?.price || 0)}
                     </Typography>
-                    <Chip label={`${product.discountPercentage}% OFF`} color="error" />
+                    <Chip label={`${product?.discountPercentage || 0}% OFF`} color="error" />
                   </>
                 ) : (
                   <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                    {formatPrice(product.price, product.currency)}
+                    {formatPrice(product?.price || 0)}
                   </Typography>
                 )}
               </Box>
-              {product.isOnSale && (
+              {product?.isOnSale && (
                 <Typography variant="body2" color="text.secondary">
-                  You save {formatPrice(product.price - product.effectivePrice, product.currency)}
+                  You save {formatPrice((product?.price || 0) - (product?.effectivePrice || 0))}
                 </Typography>
               )}
             </Box>
@@ -472,15 +853,15 @@ const ProductDetailPage: React.FC = () => {
             {/* SKU & Stock */}
             <Box>
               <Typography variant="body2" color="text.secondary">
-                SKU: {product.sku}
+                SKU: {product?.sku}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
                 <Chip 
-                  label={product.isInStock ? 'In Stock' : 'Out of Stock'} 
-                  color={product.isInStock ? 'success' : 'error'}
+                  label={product?.isInStock ? 'In Stock' : 'Out of Stock'} 
+                  color={product?.isInStock ? 'success' : 'error'}
                 />
                 <Typography variant="body2" color="text.secondary">
-                  {product.stockQuantity} available
+                  {product?.stockQuantity} available
                 </Typography>
               </Box>
             </Box>
@@ -490,11 +871,11 @@ const ProductDetailPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 Category
               </Typography>
-              <Chip label={product.category.name} variant="outlined" />
+              <Chip label={product?.category?.name || 'Uncategorized'} variant="outlined" />
             </Box>
 
             {/* Seller Info */}
-            {product.seller && (
+            {product?.seller && (
               <Paper sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <StoreIcon color="action" />
@@ -502,30 +883,30 @@ const ProductDetailPage: React.FC = () => {
                     Sold by:
                   </Typography>
                   <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                    {product.seller.businessName}
+                    {product?.seller?.businessName}
                   </Typography>
                 </Box>
               </Paper>
             )}
 
             {/* Rating */}
-            {product.reviewCount > 0 && (
+            {product?.reviewCount && (product?.reviewCount ?? 0) > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Rating value={product.averageRating} readOnly precision={0.5} />
+                <Rating value={product?.averageRating ?? 0} readOnly precision={0.5} />
                 <Typography variant="body2" color="text.secondary">
-                  ({product.reviewCount} reviews)
+                  ({product?.reviewCount} reviews)
                 </Typography>
               </Box>
             )}
 
             {/* Attributes */}
-            {Object.keys(product.attributes).length > 0 && (
+            {product?.attributes && Object.keys(product?.attributes || {}).length > 0 && (
               <Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Specifications
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {Object.entries(product.attributes).map(([key, value]) => (
+                  {Object.entries(product?.attributes ?? {}).map(([key, value]) => (
                     <Chip 
                       key={key}
                       label={`${key}: ${value}`}
@@ -538,7 +919,7 @@ const ProductDetailPage: React.FC = () => {
             )}
 
             {/* Add to Cart */}
-            {!isSeller && product.isInStock && (
+            {!isSeller && product?.isInStock && (
               <Box sx={{ mt: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <Typography variant="body1">Quantity:</Typography>
@@ -547,7 +928,7 @@ const ProductDetailPage: React.FC = () => {
                       variant="outlined"
                       size="small"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity <= product.minOrderQuantity}
+                      disabled={quantity <= (product?.minOrderQuantity ?? 1)}
                     >
                       -
                     </Button>
@@ -557,8 +938,14 @@ const ProductDetailPage: React.FC = () => {
                     <Button
                       variant="outlined"
                       size="small"
-                      onClick={() => setQuantity(Math.min(product.maxOrderQuantity, quantity + 1))}
-                      disabled={quantity >= Math.min(product.stockQuantity, product.maxOrderQuantity)}
+                      onClick={() => product && setQuantity(Math.min(
+                        product.maxOrderQuantity !== undefined ? product.maxOrderQuantity : 999999, 
+                        quantity + 1
+                      ))}
+                      disabled={!product || quantity >= Math.min(
+                        product?.stockQuantity ?? 0,
+                        product?.maxOrderQuantity ?? 999999
+                      )}
                     >
                       +
                     </Button>
@@ -597,35 +984,58 @@ const ProductDetailPage: React.FC = () => {
           </Typography>
           <Divider sx={{ mb: 2 }} />
           <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-            {product.description}
+            {product?.description}
           </Typography>
           
           {/* Additional Details */}
           <Box sx={{ mt: 3, display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            {product.brand && (
+            {product?.brand && (
               <Box>
                 <Typography variant="body2" color="text.secondary">Brand</Typography>
-                <Typography variant="body1">{product.brand}</Typography>
+                <Typography variant="body1">{product?.brand}</Typography>
               </Box>
             )}
-            {product.model && (
+            {product?.model && (
               <Box>
                 <Typography variant="body2" color="text.secondary">Model</Typography>
-                <Typography variant="body1">{product.model}</Typography>
+                <Typography variant="body1">{product?.model}</Typography>
               </Box>
             )}
-            {product.weight > 0 && (
+            {product?.weight && (product?.weight ?? 0) > 0 && (
               <Box>
                 <Typography variant="body2" color="text.secondary">Weight</Typography>
-                <Typography variant="body1">{product.weight} {product.weightUnit}</Typography>
+                <Typography variant="body1">{product?.weight} {product?.weightUnit}</Typography>
               </Box>
             )}
-            {product.dimensions && (
+            {product?.dimensions && (
               <Box>
                 <Typography variant="body2" color="text.secondary">Dimensions</Typography>
-                <Typography variant="body1">{product.dimensions}</Typography>
+                <Typography variant="body1">{product?.dimensions}</Typography>
               </Box>
             )}
+          </Box>
+        </Paper>
+      </Box>
+
+      {/* Related Products */}
+      <Box sx={{ mt: 4 }}>
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
+            You May Also Like
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ my: 2 }}>
+            <Suspense fallback={
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                <CircularProgress />
+              </Box>
+            }>
+              <RelatedProducts
+                products={relatedProducts}
+                loading={loadingRelated}
+                currentProductId={product?.id || ''}
+              />
+            </Suspense>
           </Box>
         </Paper>
       </Box>
@@ -705,11 +1115,11 @@ const ProductDetailPage: React.FC = () => {
             onMouseMove={handleMouseMove}
           >
             <img
-              src={product ? getImageUrl(
-                product.images[selectedImageIndex]?.imageUrl || 
-                product.images[selectedImageIndex]?.ImageUrl || 
-                product.images[0]?.imageUrl || 
-                product.images[0]?.ImageUrl || 
+              src={product?.images ? getImageUrl(
+                product?.images?.[selectedImageIndex]?.imageUrl ||
+                product?.images?.[selectedImageIndex]?.ImageUrl ||
+                product?.images?.[0]?.imageUrl ||
+                product?.images?.[0]?.ImageUrl ||
                 ''
               ) : ''}
               alt={product?.images[selectedImageIndex]?.altText || product?.name || 'Product image'}

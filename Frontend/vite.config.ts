@@ -55,6 +55,12 @@ function normalizeBasePath(path: string): string {
   }
 
   const trimmed = path.trim();
+  
+  // Handle relative paths for mobile builds (e.g., './' or '.')
+  if (trimmed === '.' || trimmed === './') {
+    return './';
+  }
+  
   const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
 }

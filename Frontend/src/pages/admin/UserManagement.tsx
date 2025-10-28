@@ -28,7 +28,10 @@ import {
   Alert,
   LinearProgress,
   Tooltip,
-  Stack
+  Stack,
+  Divider,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -42,6 +45,8 @@ import adminService from '../../services/adminServiceSelector';
 import type { AdminUser, UserFilter, UserActionRequest } from '../../types/admin';
 
 const UserManagement: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -261,96 +266,190 @@ const UserManagement: React.FC = () => {
           </Card>
         )}
 
-        {/* Users Table */}
+        {/* Users List/Table */}
         <Card>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Roles</TableCell>
-                  <TableCell>KYC Status</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Registration Date</TableCell>
-                  <TableCell>Profile Complete</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {users
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        {user.firstName} {user.lastName}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {getRoleChips(user.roles)}
-                      </TableCell>
-                      <TableCell>
-                        {getKycStatusChip(user.kycStatus)}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusChip(user)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(user.registrationDate)}
-                      </TableCell>
-                      <TableCell>
-                        {user.profileCompleteness}%
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" gap={1}>
-                          <Tooltip title="Edit User">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => openActionDialog(user, 'changeRole')}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
+          {isMobile ? (
+            <Box>
+              {users
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((user) => (
+                  <Box key={user.id}>
+                    <CardContent>
+                      <Stack spacing={2}>
+                        {/* User Header */}
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              {user.firstName} {user.lastName}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {user.email}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            {getStatusChip(user)}
+                          </Box>
+                        </Stack>
+
+                        {/* Roles & KYC */}
+                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                          {getRoleChips(user.roles)}
+                          {getKycStatusChip(user.kycStatus)}
+                        </Stack>
+
+                        {/* Info & Progress */}
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2" color="text.secondary">
+                            Registered: {formatDate(user.registrationDate)}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Profile: {user.profileCompleteness}%
+                          </Typography>
+                        </Stack>
+
+                        {/* Actions */}
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<EditIcon />}
+                            onClick={() => openActionDialog(user, 'changeRole')}
+                          >
+                            Edit Role
+                          </Button>
                           {user.isActive ? (
-                            <Tooltip title="Deactivate User">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => openActionDialog(user, 'deactivate')}
-                              >
-                                <BlockIcon />
-                              </IconButton>
-                            </Tooltip>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              startIcon={<BlockIcon />}
+                              onClick={() => openActionDialog(user, 'deactivate')}
+                            >
+                              Deactivate
+                            </Button>
                           ) : (
-                            <Tooltip title="Activate User">
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => openActionDialog(user, 'activate')}
-                              >
-                                <CheckCircleIcon />
-                              </IconButton>
-                            </Tooltip>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="success"
+                              startIcon={<CheckCircleIcon />}
+                              onClick={() => openActionDialog(user, 'activate')}
+                            >
+                              Activate
+                            </Button>
                           )}
-                        </Box>
-                      </TableCell>
+                        </Stack>
+                      </Stack>
+                    </CardContent>
+                    <Divider />
+                  </Box>
+                ))}
+              <Box p={2}>
+                <TablePagination
+                  component="div"
+                  count={users.length}
+                  page={page}
+                  onPageChange={(_, newPage) => setPage(newPage)}
+                  rowsPerPage={rowsPerPage}
+                  onRowsPerPageChange={(e) => {
+                    setRowsPerPage(parseInt(e.target.value, 10));
+                    setPage(0);
+                  }}
+                />
+              </Box>
+            </Box>
+          ) : (
+            <>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Roles</TableCell>
+                      <TableCell>KYC Status</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Registration Date</TableCell>
+                      <TableCell>Profile Complete</TableCell>
+                      <TableCell>Actions</TableCell>
                     </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            component="div"
-            count={users.length}
-            page={page}
-            onPageChange={(_, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-          />
+                  </TableHead>
+                  <TableBody>
+                    {users
+                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                      .map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            {user.firstName} {user.lastName}
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            {getRoleChips(user.roles)}
+                          </TableCell>
+                          <TableCell>
+                            {getKycStatusChip(user.kycStatus)}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusChip(user)}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(user.registrationDate)}
+                          </TableCell>
+                          <TableCell>
+                            {user.profileCompleteness}%
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" gap={1}>
+                              <Tooltip title="Edit User">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => openActionDialog(user, 'changeRole')}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              {user.isActive ? (
+                                <Tooltip title="Deactivate User">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => openActionDialog(user, 'deactivate')}
+                                  >
+                                    <BlockIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              ) : (
+                                <Tooltip title="Activate User">
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => openActionDialog(user, 'activate')}
+                                  >
+                                    <CheckCircleIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <TablePagination
+                component="div"
+                count={users.length}
+                page={page}
+                onPageChange={(_, newPage) => setPage(newPage)}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(e) => {
+                  setRowsPerPage(parseInt(e.target.value, 10));
+                  setPage(0);
+                }}
+              />
+            </>
+          )}
         </Card>
 
         {/* Action Dialog */}

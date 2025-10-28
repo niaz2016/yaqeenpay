@@ -19,7 +19,7 @@ const getBackendOrigin = (): string => {
 };
 
 export const normalizeImageUrl = (url?: string): string | undefined => {
-  if (!url) return url;
+  if (!url) return undefined;
   let working = url.trim();
 
   // If already absolute HTTP(S)
@@ -37,7 +37,14 @@ export const normalizeImageUrl = (url?: string): string | undefined => {
   // Strip leading public/ or wwwroot/
   working = working.replace(/^(public|wwwroot)\//i, '');
 
-  // Ensure uploads prefix
+  // Handle absolute paths
+  if (working.startsWith('/')) {
+    working = working.slice(1);
+  }
+
+  // Add API base URL for relative paths
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  return `${baseUrl}/uploads/${working}`;
   if (!working.toLowerCase().startsWith('uploads/')) {
     // If it already starts with /uploads keep it
     if (!working.toLowerCase().startsWith('/uploads/')) {
@@ -80,4 +87,22 @@ export const normalizeImageUrl = (url?: string): string | undefined => {
 export const placeholderDataUri = (size = 64, color = '#e0e0e0'): string => {
   const hex = color.replace('#', '%23');
   return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><rect width='${size}' height='${size}' fill='${hex}'/></svg>`;
+};
+
+/**
+ * Format bytes into human readable string
+ * @param bytes Number of bytes
+ * @param decimals Number of decimal places
+ * @returns Formatted string (e.g., "1.5 MB")
+ */
+export const formatBytes = (bytes: number, decimals: number = 2): string => {
+  if (bytes === 0) return '0 Bytes';
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 };

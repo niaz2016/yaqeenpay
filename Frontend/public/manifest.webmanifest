@@ -1,13 +1,13 @@
 {
-  "name": "Yaqeen Pay",
-  "short_name": "YaqeenPay",
+  "name": "TechTorio - YaqeenPay",
+  "short_name": "TechTorio",
   "start_url": "/yaqeenpay/?source=pwa",
   "scope": "/yaqeenpay/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",
-  "description": "Yaqeen Pay - mobile friendly payments app",
+  "description": "TechTorio YaqeenPay - Secure Escrow Platform for Pakistan",
   "categories": ["finance", "shopping"],
   "icons": [
     {

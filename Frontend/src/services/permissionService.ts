@@ -8,13 +8,13 @@ export interface PermissionStatus {
 }
 
 export interface AllPermissionsStatus {
-  sms: PermissionStatus;
   location: PermissionStatus;
-  contacts: PermissionStatus;
-  phone: PermissionStatus;
   storage: PermissionStatus;
   camera: PermissionStatus;
   notifications: PermissionStatus;
+  sms: PermissionStatus;
+  contacts: PermissionStatus;
+  phone: PermissionStatus;
   microphone: PermissionStatus;
 }
 

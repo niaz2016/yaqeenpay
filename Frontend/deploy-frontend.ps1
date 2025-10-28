@@ -26,11 +26,11 @@ Set-Location $FrontendPath
 
 $buildOutput = npm run build 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Build failed!" -ForegroundColor Red
+    Write-Host " Build failed!" -ForegroundColor Red
     Write-Host $buildOutput
     exit 1
 }
-Write-Host "✅ Build completed successfully" -ForegroundColor Green
+Write-Host " Build completed successfully" -ForegroundColor Green
 Write-Host ""
 
 # Step 2: Check if rsync is available (from Git Bash or WSL)
@@ -41,15 +41,15 @@ $rsyncPath = $null
 # Try Git Bash rsync first
 if (Test-Path "C:\Program Files\Git\usr\bin\rsync.exe") {
     $rsyncPath = "C:\Program Files\Git\usr\bin\rsync.exe"
-    Write-Host "✅ Found rsync in Git Bash" -ForegroundColor Green
+    Write-Host " Found rsync in Git Bash" -ForegroundColor Green
 }
 # Try WSL rsync
 elseif (Get-Command wsl -ErrorAction SilentlyContinue) {
     $rsyncPath = "wsl"
-    Write-Host "✅ Found rsync in WSL" -ForegroundColor Green
+    Write-Host " Found rsync in WSL" -ForegroundColor Green
 }
 else {
-    Write-Host "⚠️  rsync not found. Installing via Chocolatey..." -ForegroundColor Yellow
+    Write-Host "  rsync not found. Installing via Chocolatey..." -ForegroundColor Yellow
     
     # Check if Chocolatey is installed
     if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
@@ -62,7 +62,7 @@ else {
     # Install rsync via Chocolatey
     choco install rsync -y
     $rsyncPath = "rsync"
-    Write-Host "✅ rsync installed" -ForegroundColor Green
+    Write-Host " rsync installed" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -91,9 +91,9 @@ $rsyncOptions = @(
 )
 
 if ($Force) {
-    Write-Host "🔄 Force mode: uploading all files" -ForegroundColor Cyan
+    Write-Host " Force mode: uploading all files" -ForegroundColor Cyan
 } else {
-    Write-Host "⚡ Smart sync: uploading only changed/new files" -ForegroundColor Cyan
+    Write-Host " Smart sync: uploading only changed/new files" -ForegroundColor Cyan
     $rsyncOptions += "--update"  # Skip files newer on receiver
 }
 
@@ -113,26 +113,26 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
-        Write-Host "✅ Deployment completed successfully!" -ForegroundColor Green
+        Write-Host " Deployment completed successfully!" -ForegroundColor Green
         Write-Host ""
-        Write-Host "🌐 Your app is live at: https://techtorio.online/yaqeenpay/" -ForegroundColor Cyan
+        Write-Host "Your app is live at: https://techtorio.online/yaqeenpay/" -ForegroundColor Cyan
     } else {
-        Write-Host "❌ Upload failed!" -ForegroundColor Red
+        Write-Host " Upload failed!" -ForegroundColor Red
         exit 1
     }
 }
 catch {
-    Write-Host "❌ Error during upload: $_" -ForegroundColor Red
+    Write-Host " Error during upload: $_" -ForegroundColor Red
     
     # Fallback to SCP if rsync fails
     Write-Host ""
-    Write-Host "⚠️  Falling back to SCP (full upload)..." -ForegroundColor Yellow
+    Write-Host "  Falling back to SCP (full upload)..." -ForegroundColor Yellow
     scp -i "$SSHKey" -r "$DistPath\*" "${ServerUser}@${ServerIP}:${ServerPath}"
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✅ SCP upload completed" -ForegroundColor Green
+        Write-Host " SCP upload completed" -ForegroundColor Green
     } else {
-        Write-Host "❌ SCP upload also failed!" -ForegroundColor Red
+        Write-Host " SCP upload also failed!" -ForegroundColor Red
         exit 1
     }
 }

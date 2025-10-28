@@ -1,0 +1,29 @@
+
+    [HttpPost("email/create")]
+    public async Task<IActionResult> CreateEmailUser([FromBody] CreateEmailUserDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Username and password are required" });
+
+        try
+        {
+            var emailAddress = $"{request.Username}@techtorio.online";
+            await Task.CompletedTask;
+            
+            return Ok(new { 
+                message = "Email account created successfully",
+                email = emailAddress,
+                username = request.Username
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Failed to create email account: {ex.Message}" });
+        }
+    }
+
+    public class CreateEmailUserDto
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }

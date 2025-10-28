@@ -14,7 +14,13 @@ import {
   MenuItem,
   TextField,
   InputAdornment,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery,
+  Card,
+  CardContent,
+  Stack,
+  Avatar
 } from '@mui/material';
 import {
   FilterList,
@@ -41,6 +47,8 @@ const UserOrdersPage: React.FC = () => {
   });
 
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const statusTabs = [
     { label: 'All Orders', value: '' },
@@ -335,7 +343,7 @@ const UserOrdersPage: React.FC = () => {
             Orders to Fulfill
           </Typography>
           
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, width: isMobile ? '100%' : 'auto' }}>
             <TextField
               size="small"
               placeholder="Search orders..."
@@ -348,16 +356,19 @@ const UserOrdersPage: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
-              sx={{ width: 250 }}
+              sx={{ width: isMobile ? '100%' : 250 }}
             />
-            
-            <IconButton onClick={(e) => setFilterAnchorEl(e.currentTarget)}>
-              <FilterList />
-            </IconButton>
-            
-            <IconButton onClick={handleRefresh}>
-              <Refresh />
-            </IconButton>
+            {!isMobile && (
+              <>
+                <IconButton onClick={(e) => setFilterAnchorEl(e.currentTarget)}>
+                  <FilterList />
+                </IconButton>
+                
+                <IconButton onClick={handleRefresh}>
+                  <Refresh />
+                </IconButton>
+              </>
+            )}
           </Box>
         </Box>
 
@@ -378,25 +389,59 @@ const UserOrdersPage: React.FC = () => {
             ))}
           </Tabs>
 
-          <Box sx={{ height: 600 }}>
-            <DataGrid
-              rows={orders || []}
-              columns={columns}
-              loading={loading}
-              paginationMode="server"
-              rowCount={totalCount}
-              paginationModel={paginationModel}
-              onPaginationModelChange={setPaginationModel}
-              pageSizeOptions={[5, 10, 25, 50]}
-              disableRowSelectionOnClick
-              sx={{
-                border: 0,
-                '& .MuiDataGrid-columnHeaders': {
-                  backgroundColor: 'grey.50'
-                }
-              }}
-            />
-          </Box>
+          {/* Desktop: keep DataGrid. Mobile: show stacked cards */}
+          {isMobile ? (
+            <Box sx={{ p: 2 }}>
+              <Stack spacing={2}>
+                {orders.map((o) => (
+                  <Card key={o.id} variant="outlined" sx={{ cursor: 'pointer' }} onClick={() => navigate(`/seller/orders/${o.id}`)}>
+                    <CardContent>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar sx={{ width: 56, height: 56 }}>{o.buyerName?.charAt(0) || 'U'}</Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="subtitle1" fontWeight="medium">{o.orderNumber || `Order-${o.id?.slice(0,8)}`}</Typography>
+                            <Typography variant="subtitle1" color="success.main">{o.currency} {Number(o.amount).toFixed(2)}</Typography>
+                          </Stack>
+                          <Typography variant="body2" color="text.secondary">{o.description}</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                            <Chip label={o.status} size="small" />
+                            <Typography variant="caption" color="text.secondary">{new Date(o.createdAt).toLocaleDateString()}</Typography>
+                          </Stack>
+                        </Box>
+                      </Stack>
+                      <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                        <Button size="small" variant="outlined" onClick={(e) => { e.stopPropagation(); navigate(`/seller/orders/${o.id}`); }}>View</Button>
+                        {o.canShip && (
+                          <Button size="small" variant="contained" color="primary" onClick={(e) => { e.stopPropagation(); navigate(`/seller/orders/${o.id}/ship`); }}>Ship</Button>
+                        )}
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Stack>
+            </Box>
+          ) : (
+            <Box sx={{ height: 600 }}>
+              <DataGrid
+                rows={orders || []}
+                columns={columns}
+                loading={loading}
+                paginationMode="server"
+                rowCount={totalCount}
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={[5, 10, 25, 50]}
+                disableRowSelectionOnClick
+                sx={{
+                  border: 0,
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: 'grey.50'
+                  }
+                }}
+              />
+            </Box>
+          )}
         </Paper>
 
         {/* Filter Menu */}

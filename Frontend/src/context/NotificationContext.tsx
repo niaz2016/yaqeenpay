@@ -97,13 +97,33 @@ function notificationReducer(state: NotificationState, action: NotificationActio
     
     case 'SET_NOTIFICATIONS':
       // Sort notifications by creation date (newest first)
-      const sortedNotifications = [...action.payload.notifications].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      const sortedNotifications = [...action.payload.notifications]
+        // First, merge with existing notifications to preserve read status
+        .map(notification => {
+          const existing = state.notifications.find(n => n.id === notification.id);
+          // If notification exists and was previously marked as read, preserve that status
+          if (existing && existing.status === 'read') {
+            return {
+              ...notification,
+              status: 'read' as const,
+              readAt: existing.readAt
+            };
+          }
+          return notification;
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Now recalculate stats based on actual notification statuses
+      const currentUnreadCount = sortedNotifications.filter(n => n.status === 'unread').length;
+      const updatedStats = {
+        ...action.payload.stats,
+        unread: currentUnreadCount
+      };
+
       return {
         ...state,
         notifications: sortedNotifications,
-        stats: action.payload.stats,
+        stats: updatedStats,
         loading: false,
         error: null,
       };

@@ -211,7 +211,7 @@ const NewProductPage: React.FC = () => {
         status: formData.status,
         currency: formData.currency,
         attributes: validAttributes,
-        images: productImages
+        newImages: productImages
       };
       await productService.createProduct(productData);
       

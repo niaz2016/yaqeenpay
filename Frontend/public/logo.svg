@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 70" width="280" height="70">
+  <!-- TechTorio Logo with Text - Network Hexagon Design -->
+  <defs>
+    <linearGradient id="hexFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34495e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon: Network Hexagon -->
+  <g id="icon">
+    <!-- Outer hexagon border -->
+    <path d="M 35 10 L 55 20 L 55 40 L 35 50 L 15 40 L 15 20 Z" 
+          fill="none" 
+          stroke="#3498db" 
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+    
+    <!-- Inner hexagon fill -->
+    <path d="M 35 13 L 52 21 L 52 39 L 35 47 L 18 39 L 18 21 Z" 
+          fill="url(#hexFill)" 
+          opacity="0.9"/>
+    
+    <!-- Network nodes (diamond formation) -->
+    <circle cx="35" cy="22" r="3" fill="#3498db" stroke="#1e88e5" stroke-width="0.5"/>
+    <circle cx="35" cy="38" r="3" fill="#3498db" stroke="#1e88e5" stroke-width="0.5"/>
+    <circle cx="23" cy="30" r="3" fill="#3498db" stroke="#1e88e5" stroke-width="0.5"/>
+    <circle cx="47" cy="30" r="3" fill="#3498db" stroke="#1e88e5" stroke-width="0.5"/>
+    
+    <!-- Central node -->
+    <circle cx="35" cy="30" r="2.5" fill="#3498db" stroke="#1e88e5" stroke-width="0.5"/>
+    
+    <!-- Connecting lines -->
+    <line x1="35" y1="30" x2="35" y2="22" stroke="#3498db" stroke-width="1.5" opacity="0.8"/>
+    <line x1="35" y1="30" x2="35" y2="38" stroke="#3498db" stroke-width="1.5" opacity="0.8"/>
+    <line x1="35" y1="30" x2="23" y2="30" stroke="#3498db" stroke-width="1.5" opacity="0.8"/>
+    <line x1="35" y1="30" x2="47" y2="30" stroke="#3498db" stroke-width="1.5" opacity="0.8"/>
+    
+    <!-- Cross connections -->
+    <line x1="23" y1="30" x2="35" y2="22" stroke="#3498db" stroke-width="1" opacity="0.6"/>
+    <line x1="47" y1="30" x2="35" y2="22" stroke="#3498db" stroke-width="1" opacity="0.6"/>
+    <line x1="23" y1="30" x2="35" y2="38" stroke="#3498db" stroke-width="1" opacity="0.6"/>
+    <line x1="47" y1="30" x2="35" y2="38" stroke="#3498db" stroke-width="1" opacity="0.6"/>
+  </g>
+  
+  <!-- Text: TechTorio -->
+  <text x="75" y="42" font-family="'Inter', 'Segoe UI', 'Arial', sans-serif" font-size="28" font-weight="700" fill="#2c3e50" letter-spacing="-0.5">
+    Tech<tspan fill="#3498db">Torio</tspan>
+  </text>
+</svg>
+

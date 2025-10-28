@@ -96,22 +96,43 @@ builder.Services.AddCors(options =>
         var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
             ?? new[] { "http://localhost", "https://localhost" };
         
-        // Add development origins if in development mode
+        // Add development origins and mobile app origins
         var origins = new List<string>(allowedOrigins);
+        
+        // Mobile app origins (Capacitor)
+        origins.AddRange(new[] 
+        { 
+            "capacitor://localhost",
+            "ionic://localhost",
+            "http://localhost",
+            "http://127.0.0.1",
+            "https://127.0.0.1"
+        });
+        
+        // Allow any origin in development (for mobile debugging)
         if (builder.Environment.IsDevelopment())
         {
-            origins.AddRange(new[] 
-            { 
-                "http://127.0.0.1",
-                "https://127.0.0.1",
-                "capacitor://localhost"
-            });
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
         }
-        
-        policy.WithOrigins(origins.ToArray())
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        else
+        {
+            policy.WithOrigins(origins.ToArray())
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials()
+                  .SetIsOriginAllowed(origin =>
+                  {
+                      // Allow Capacitor and file protocol origins for mobile apps
+                      if (string.IsNullOrEmpty(origin)) return true;
+                      if (origin.StartsWith("capacitor://")) return true;
+                      if (origin.StartsWith("ionic://")) return true;
+                      if (origin.StartsWith("http://localhost")) return true;
+                      if (origin.StartsWith("file://")) return true;
+                      return origins.Contains(origin);
+                  });
+        }
     });
 });
 

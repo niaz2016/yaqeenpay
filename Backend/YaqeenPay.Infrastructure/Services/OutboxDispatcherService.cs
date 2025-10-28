@@ -51,6 +51,7 @@ public class OutboxDispatcherService : BackgroundService
                         .Where(m => !m.Processed)
                         .OrderBy(m => m.OccurredOn)
                         .Take(_options.BatchSize)
+                        .AsTracking()
                         .ToListAsync(stoppingToken);
 
                     if (pending.Count > 0)
@@ -63,7 +64,7 @@ public class OutboxDispatcherService : BackgroundService
                     {
                         try
                         {
-                            // Safety mechanism: If message has been failing for more than 5 minutes, mark as processed
+                            // Safety mechanism 1: If message has been failing for more than 5 minutes, mark as processed
                             // This prevents infinite retry loops from spamming users
                             if (!string.IsNullOrEmpty(msg.Error) && msg.OccurredOn < DateTime.UtcNow.AddMinutes(-5))
                             {
@@ -71,6 +72,18 @@ public class OutboxDispatcherService : BackgroundService
                                     msg.Id, msg.Type, (DateTime.UtcNow - msg.OccurredOn).TotalMinutes, msg.Error);
                                 msg.Processed = true;
                                 msg.ProcessedOn = DateTime.UtcNow;
+                                continue;
+                            }
+                            
+                            // Safety mechanism 2: Limit retry attempts for SMS to prevent spam
+                            // For SMS: max 3 retries (total 4 attempts including first try)
+                            if (msg.Type.ToLowerInvariant() == "sms" && msg.RetryCount >= 3)
+                            {
+                                _logger.LogWarning("Abandoning SMS message {Id} after {Retries} retries (Error={Error})", 
+                                    msg.Id, msg.RetryCount, msg.Error);
+                                msg.Processed = true;
+                                msg.ProcessedOn = DateTime.UtcNow;
+                                msg.Error = $"Failed after {msg.RetryCount} retries: {msg.Error}";
                                 continue;
                             }
 
@@ -102,7 +115,9 @@ public class OutboxDispatcherService : BackgroundService
                         catch (Exception ex)
                         {
                             msg.Error = ex.Message;
-                            _logger.LogError(ex, "Failed processing outbox message {Id} of type {Type}", msg.Id, msg.Type);
+                            msg.RetryCount++;
+                            _logger.LogError(ex, "Failed processing outbox message {Id} of type {Type} (Retry {Retry}/3)", 
+                                msg.Id, msg.Type, msg.RetryCount);
                             // leave Processed=false to retry later
                         }
                     }

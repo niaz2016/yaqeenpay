@@ -269,20 +269,21 @@ public class AdminController : ApiControllerBase
     public async Task<IActionResult> GetWalletTopupLocks([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] int? status = null)
     {
         var db = HttpContext.RequestServices.GetRequiredService<YaqeenPay.Application.Common.Interfaces.IApplicationDbContext>();
-        
+
         var query = db.WalletTopupLocks.AsQueryable();
-        
+
         if (status.HasValue)
         {
             query = query.Where(x => (int)x.Status == status.Value);
         }
-        
+
         var totalCount = await query.CountAsync();
         var items = await query
             .OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new {
+            .Select(x => new
+            {
                 x.Id,
                 x.UserId,
                 Amount = x.Amount.Amount,
@@ -294,13 +295,191 @@ public class AdminController : ApiControllerBase
                 x.CreatedAt
             })
             .ToListAsync();
-        
-        return Ok(new { 
-            items, 
-            totalCount, 
-            page, 
+
+        return Ok(new
+        {
+            items,
+            totalCount,
+            page,
             pageSize,
             totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
         });
     }
+    
+    [HttpPost("email/create")]
+    public async Task<IActionResult> CreateEmailUser([FromBody] CreateEmailUserDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Username and password are required" });
+
+        // Validate username format
+        if (!System.Text.RegularExpressions.Regex.IsMatch(request.Username, "^[a-z0-9]+$"))
+            return BadRequest(new { message = "Username must contain only lowercase letters and numbers" });
+
+        if (request.Username.Length < 3 || request.Username.Length > 20)
+            return BadRequest(new { message = "Username must be between 3 and 20 characters" });
+
+        try
+        {
+            var emailAddress = $"{request.Username}@techtorio.online";
+            var mailboxPath = $"techtorio.online/{request.Username}/";
+
+            // Step 1: Generate password hash using doveadm
+            var hashProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/usr/bin/doveadm",
+                    Arguments = $"pw -s SHA512-CRYPT -p {request.Password}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            hashProcess.Start();
+            var passwordHash = await hashProcess.StandardOutput.ReadToEndAsync();
+            var hashError = await hashProcess.StandardError.ReadToEndAsync();
+            await hashProcess.WaitForExitAsync();
+
+            if (hashProcess.ExitCode != 0 || string.IsNullOrWhiteSpace(passwordHash))
+                throw new Exception($"Failed to generate password hash: {hashError}");
+
+            passwordHash = passwordHash.Trim();
+
+            // Step 2: Add user to /etc/dovecot/passwd
+            var passwdEntry = $"{emailAddress}:{passwordHash}:5000:5000::/var/mail/vhosts/{mailboxPath}::";
+            var appendPasswdProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"echo '{passwdEntry}' | sudo tee -a /etc/dovecot/passwd\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            appendPasswdProcess.Start();
+            await appendPasswdProcess.StandardOutput.ReadToEndAsync();
+            var passwdError = await appendPasswdProcess.StandardError.ReadToEndAsync();
+            await appendPasswdProcess.WaitForExitAsync();
+
+            if (appendPasswdProcess.ExitCode != 0)
+                throw new Exception($"Failed to add user to dovecot passwd: {passwdError}");
+
+            // Step 3: Add virtual mailbox mapping
+            var virtualEntry = $"{emailAddress} {mailboxPath}";
+            var appendVirtualProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"echo '{virtualEntry}' | sudo tee -a /etc/postfix/virtual_mailbox\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            appendVirtualProcess.Start();
+            await appendVirtualProcess.StandardOutput.ReadToEndAsync();
+            var virtualError = await appendVirtualProcess.StandardError.ReadToEndAsync();
+            await appendVirtualProcess.WaitForExitAsync();
+
+            if (appendVirtualProcess.ExitCode != 0)
+                throw new Exception($"Failed to add virtual mailbox mapping: {virtualError}");
+
+            // Step 4: Update Postfix database
+            var postmapProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/usr/bin/sudo",
+                    Arguments = "postmap /etc/postfix/virtual_mailbox",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            postmapProcess.Start();
+            await postmapProcess.StandardOutput.ReadToEndAsync();
+            var postmapError = await postmapProcess.StandardError.ReadToEndAsync();
+            await postmapProcess.WaitForExitAsync();
+
+            if (postmapProcess.ExitCode != 0)
+                throw new Exception($"Failed to update postfix database: {postmapError}");
+
+            // Step 5: Create mailbox directory structure
+            var mkdirProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"sudo mkdir -p /var/mail/vhosts/{mailboxPath}{{cur,new,tmp}}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            mkdirProcess.Start();
+            await mkdirProcess.StandardOutput.ReadToEndAsync();
+            var mkdirError = await mkdirProcess.StandardError.ReadToEndAsync();
+            await mkdirProcess.WaitForExitAsync();
+
+            if (mkdirProcess.ExitCode != 0)
+                throw new Exception($"Failed to create mailbox directories: {mkdirError}");
+
+            // Step 6: Set proper ownership
+            var chownProcess = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "/usr/bin/sudo",
+                    Arguments = $"chown -R vmail:vmail /var/mail/vhosts/{mailboxPath}",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            chownProcess.Start();
+            await chownProcess.StandardOutput.ReadToEndAsync();
+            var chownError = await chownProcess.StandardError.ReadToEndAsync();
+            await chownProcess.WaitForExitAsync();
+
+            if (chownProcess.ExitCode != 0)
+                throw new Exception($"Failed to set mailbox ownership: {chownError}");
+
+            return Ok(new
+            {
+                message = "Email account created successfully",
+                email = emailAddress,
+                username = request.Username,
+                server = "mail.techtorio.online",
+                imap = "993 (SSL/TLS)",
+                smtp = "465 (SSL/TLS) or 587 (STARTTLS)"
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = $"Failed to create email account: {ex.Message}" });
+        }
+    }
+
+    public class CreateEmailUserDto
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
 }

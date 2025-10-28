@@ -11,5 +11,6 @@ namespace YaqeenPay.Domain.Entities
         public bool Processed { get; set; }
         public DateTime? ProcessedOn { get; set; }
         public string? Error { get; set; }
+        public int RetryCount { get; set; } = 0; // Track number of retry attempts
     }
 }

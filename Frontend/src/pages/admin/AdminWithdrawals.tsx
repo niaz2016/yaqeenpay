@@ -18,6 +18,10 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -31,6 +35,8 @@ import { useNotifications } from '../../context/NotificationContext';
 const API_HOST = (import.meta.env.VITE_API_URL || 'https://localhost:7137/api').replace(/\/api\/?$/i, '');
 
 const AdminWithdrawals: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [totalCount, setTotalCount] = useState<number | null>(null);
@@ -180,54 +186,127 @@ const AdminWithdrawals: React.FC = () => {
       ) : (
         <Card>
           <CardContent>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Reference</TableCell>
-                  <TableCell>Seller</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Bank Name</TableCell>
-                  <TableCell>Account Title</TableCell>
-                  <TableCell>Account Number</TableCell>
-                  <TableCell>Requested</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paged.map((w) => (
-                  <TableRow key={w.id}>
-                    <TableCell>{w.reference || w.id}</TableCell>
-                    <TableCell>{w.sellerName || w.sellerId}</TableCell>
-                    <TableCell>{w.amount} {w.currency}</TableCell>
-                    {/* Parse bank details from notes: expected format e.g. "Account: 12345 | Account Title: John Doe | Bank: ABL" */}
-                    {(() => {
-                      const notes = w.notes || '';
-                      const bankMatch = notes.match(/Bank:\s*([^|]+)/i);
-                      const titleMatch = notes.match(/Account Title:\s*([^|]+)/i);
-                      const accMatch = notes.match(/Account:\s*([^|]+)/i);
-                      return (
-                        <>
-                          <TableCell>{bankMatch ? bankMatch[1].trim() : '-'}</TableCell>
-                          <TableCell>{titleMatch ? titleMatch[1].trim() : '-'}</TableCell>
-                          <TableCell>{accMatch ? accMatch[1].trim() : '-'}</TableCell>
-                        </>
-                      );
-                    })()}
-                    <TableCell>{w.requestedAt ? new Date(w.requestedAt).toLocaleString() : 'N/A'}</TableCell>
-                    <TableCell>{w.status}</TableCell>
-                    <TableCell>
-                      {(w.status === 'Initiated' || w.status === 'PendingProvider') && (
-                        <Button variant="contained" color="primary" size="small" onClick={() => { setSelectedApproveId(w.id); setSelectedWithdrawal(w); setConfirmOpen(true); }}>Approve</Button>
-                      )}
-                      {w.status === 'Settled' && (
-                        <Typography color="success.main">Paid</Typography>
-                      )}
-                    </TableCell>
+            {isMobile ? (
+              <Stack spacing={2}>
+                {paged.map((w) => {
+                  const notes = w.notes || '';
+                  const bankMatch = notes.match(/Bank:\s*([^|]+)/i);
+                  const titleMatch = notes.match(/Account Title:\s*([^|]+)/i);
+                  const accMatch = notes.match(/Account:\s*([^|]+)/i);
+
+                  return (
+                    <Box key={w.id}>
+                      <Stack spacing={2}>
+                        {/* Header with Reference and Status */}
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="subtitle1" fontWeight="medium">
+                            #{w.reference || w.id}
+                          </Typography>
+                          <Box>
+                            {w.status === 'Settled' ? (
+                              <Typography color="success.main">Paid</Typography>
+                            ) : (
+                              <Typography color="text.secondary">{w.status}</Typography>
+                            )}
+                          </Box>
+                        </Stack>
+
+                        {/* Seller and Amount */}
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body1">
+                            {w.sellerName || w.sellerId}
+                          </Typography>
+                          <Typography variant="h6" color="primary">
+                            {w.amount} {w.currency}
+                          </Typography>
+                        </Stack>
+
+                        {/* Bank Details */}
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {titleMatch ? titleMatch[1].trim() : '-'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {bankMatch ? bankMatch[1].trim() : '-'} • {accMatch ? accMatch[1].trim() : '-'}
+                          </Typography>
+                        </Box>
+
+                        {/* Date and Actions */}
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {w.requestedAt ? new Date(w.requestedAt).toLocaleString() : 'N/A'}
+                          </Typography>
+                          {(w.status === 'Initiated' || w.status === 'PendingProvider') && (
+                            <Button
+                              variant="contained"
+                              color="primary"
+                              size="small"
+                              onClick={() => {
+                                setSelectedApproveId(w.id);
+                                setSelectedWithdrawal(w);
+                                setConfirmOpen(true);
+                              }}
+                            >
+                              Approve
+                            </Button>
+                          )}
+                        </Stack>
+                      </Stack>
+                      <Divider sx={{ mt: 2 }} />
+                    </Box>
+                  );
+                })}
+              </Stack>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Reference</TableCell>
+                    <TableCell>Seller</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Bank Name</TableCell>
+                    <TableCell>Account Title</TableCell>
+                    <TableCell>Account Number</TableCell>
+                    <TableCell>Requested</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {paged.map((w) => (
+                    <TableRow key={w.id}>
+                      <TableCell>{w.reference || w.id}</TableCell>
+                      <TableCell>{w.sellerName || w.sellerId}</TableCell>
+                      <TableCell>{w.amount} {w.currency}</TableCell>
+                      {/* Parse bank details from notes: expected format e.g. "Account: 12345 | Account Title: John Doe | Bank: ABL" */}
+                      {(() => {
+                        const notes = w.notes || '';
+                        const bankMatch = notes.match(/Bank:\s*([^|]+)/i);
+                        const titleMatch = notes.match(/Account Title:\s*([^|]+)/i);
+                        const accMatch = notes.match(/Account:\s*([^|]+)/i);
+                        return (
+                          <>
+                            <TableCell>{bankMatch ? bankMatch[1].trim() : '-'}</TableCell>
+                            <TableCell>{titleMatch ? titleMatch[1].trim() : '-'}</TableCell>
+                            <TableCell>{accMatch ? accMatch[1].trim() : '-'}</TableCell>
+                          </>
+                        );
+                      })()}
+                      <TableCell>{w.requestedAt ? new Date(w.requestedAt).toLocaleString() : 'N/A'}</TableCell>
+                      <TableCell>{w.status}</TableCell>
+                      <TableCell>
+                        {(w.status === 'Initiated' || w.status === 'PendingProvider') && (
+                          <Button variant="contained" color="primary" size="small" onClick={() => { setSelectedApproveId(w.id); setSelectedWithdrawal(w); setConfirmOpen(true); }}>Approve</Button>
+                        )}
+                        {w.status === 'Settled' && (
+                          <Typography color="success.main">Paid</Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
             <Box display="flex" justifyContent="center" mt={2} gap={1}>
               <Button disabled={isFirstPage} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</Button>
               <Typography sx={{ alignSelf: 'center' }}>Page {page}</Typography>

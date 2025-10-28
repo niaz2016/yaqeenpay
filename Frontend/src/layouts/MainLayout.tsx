@@ -1,6 +1,6 @@
 // src/layouts/MainLayout.tsx
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -17,6 +17,9 @@ import {
   MenuItem,
   useTheme,
   useMediaQuery,
+  BottomNavigation,
+  BottomNavigationAction,
+  Badge,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -25,10 +28,15 @@ import {
   Logout,
   Settings,
 } from '@mui/icons-material';
+import HomeIcon from '@mui/icons-material/Home';
+import WalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PersonIcon from '@mui/icons-material/Person';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useAuth } from '../context/AuthContext';
 import NavMenu from '../components/navigation/NavMenu';
 import NotificationDropdown from '../components/notifications/NotificationDropdown';
-
+import cartService from '../services/cartService';
 const drawerWidth = 240;
 
 interface MainLayoutProps {
@@ -40,9 +48,30 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+  const [cartItemCount, setCartItemCount] = useState(cartService.getTotalItems());
+
+  // Listen for cart updates
+  React.useEffect(() => {
+    const handleCartUpdate = (event: CustomEvent) => {
+      setCartItemCount(event.detail.totalItems);
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate as EventListener);
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate as EventListener);
+    };
+  }, []);
+
+  // Detect Capacitor Android build or Android UA so we can force mobile "app-like" layout
+  const isCapacitor = !!(window as any).Capacitor;
+  const capPlatform = (window as any).Capacitor?.getPlatform?.() || (window as any).Capacitor?.platform;
+  const uaIsAndroid = /Android/i.test(navigator.userAgent || '');
+  const isAndroidApp = isCapacitor && (String(capPlatform).toLowerCase() === 'android') || (!isCapacitor && uaIsAndroid);
+  const forceMobile = isAndroidApp || isMobile;
   
-  // On mobile: drawer closed by default, on desktop: drawer open by default
-  const [open, setOpen] = useState(!isMobile);
+  // On mobile or Android app: drawer closed by default, on desktop: drawer open by default
+  const [open, setOpen] = useState(!forceMobile);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleDrawerToggle = () => {
@@ -80,7 +109,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           // Mobile: full width AppBar, Desktop: adjust for drawer
-          ...(isMobile
+          ...(forceMobile
             ? {
                 width: '100%',
                 ml: 0,
@@ -96,7 +125,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               }),
         }}
       >
-        <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: { xs: 56, md: 64 }, px: { xs: 2, md: 3 } }}>
+          <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: { xs: 56, md: 64 }, px: { xs: 2, md: 3 } }}>
           <IconButton
             color="inherit"
             aria-label="toggle drawer"
@@ -122,14 +151,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             YaqeenPay
           </Typography>
           {/* Hide welcome text on mobile to save space */}
-          {!isMobile && (
+          {!forceMobile && (
             <Typography variant="body1" color="inherit" sx={{ mr: 2 }}>
               Welcome back, {user?.firstName || 'User'}!
             </Typography>
           )}
           <NotificationDropdown />
           <IconButton
-            size={isMobile ? 'medium' : 'large'}
+            size={forceMobile ? 'medium' : 'large'}
             edge="end"
             aria-label="account of current user"
             aria-controls="profile-menu"
@@ -179,20 +208,20 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </Toolbar>
       </AppBar>
       <Drawer
-        variant={isMobile ? 'temporary' : 'permanent'}
+        variant={forceMobile ? 'temporary' : 'permanent'}
         open={open}
         onClose={handleDrawerToggle}
         ModalProps={{
           keepMounted: true, // Better open performance on mobile
         }}
         sx={{
-          width: isMobile ? drawerWidth : (open ? drawerWidth : 64),
+          width: forceMobile ? drawerWidth : (open ? drawerWidth : 64),
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
-            width: isMobile ? drawerWidth : (open ? drawerWidth : 64),
+            width: forceMobile ? drawerWidth : (open ? drawerWidth : 64),
             overflowX: 'hidden',
             boxSizing: 'border-box',
-            ...(isMobile
+            ...(forceMobile
               ? {
                   // Mobile: full height overlay
                   height: '100%',
@@ -208,8 +237,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto', mt: 2 }}>
-          <NavMenu collapsed={!open && !isMobile} />
+          <Box sx={{ overflow: 'auto', mt: 2 }}>
+          <NavMenu collapsed={!open && !forceMobile} />
         </Box>
       </Drawer>
       <Box
@@ -232,11 +261,74 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             // Ensure content doesn't get too wide on larger screens
             maxWidth: { xs: '100%', xl: '1400px' },
             mx: 'auto', // Center content on very large screens
+            // Add bottom padding to prevent content from being hidden behind the navigation
+            pb: forceMobile ? '88px' : 0, // Increased padding to account for lifted nav
           }}
         >
           {children ?? <Outlet />}
         </Box>
       </Box>
+      {forceMobile && (
+        <Box sx={{ 
+          position: 'fixed', 
+          bottom: 12, // Lift up from bottom
+          left: 16,
+          right: 16,
+          zIndex: (theme) => theme.zIndex.appBar,
+        }}>
+          <BottomNavigation
+            showLabels
+            value={
+              location.pathname === '/' ? '/marketplace' :
+              location.pathname.startsWith('/marketplace') ? '/marketplace' :
+              location.pathname === '/wallet' ? '/wallet' :
+              location.pathname === '/cart' ? '/cart' :
+              location.pathname === '/orders' ? '/orders' :
+              location.pathname === '/profile' ? '/profile' :
+              location.pathname === '/dashboard' ? '/dashboard' :
+              '/marketplace'
+            }
+            onChange={(_e, value) => {
+              // navigate to selected route
+              navigate(value as string);
+            }}
+            sx={{
+              borderRadius: 3, // Rounded corners on all sides
+              boxShadow: 8, // More prominent shadow
+              height: 64, // Keep the taller height
+              backgroundColor: 'background.paper',
+              '& .MuiBottomNavigationAction-root': {
+                padding: '6px 0',
+                minWidth: 0,
+                flex: 1,
+              },
+              '& .Mui-selected': {
+                fontSize: '0.875rem',
+              },
+            }}
+          >
+            <BottomNavigationAction 
+              label="Home" 
+              icon={<HomeIcon />} 
+              value="/marketplace"
+              onClick={() => navigate('/marketplace')} 
+            />
+            <BottomNavigationAction 
+              label="Cart"
+              icon={
+                <Badge badgeContent={cartItemCount} color="primary" max={99}>
+                  <ShoppingCartIcon />
+                </Badge>
+              }
+              value="/cart"
+              onClick={() => navigate('/cart')}
+            />
+            <BottomNavigationAction label="Orders" icon={<ListAltIcon />} value="/orders" />
+            <BottomNavigationAction label="Wallet" icon={<WalletIcon />} value="/wallet" />
+            <BottomNavigationAction label="Profile" icon={<PersonIcon />} value="/profile" />
+          </BottomNavigation>
+        </Box>
+      )}
     </Box>
   );
 };

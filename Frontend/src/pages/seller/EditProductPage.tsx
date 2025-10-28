@@ -29,32 +29,15 @@ import categoryService, { type Category } from '../../services/categoryService';
 
 // Category interface is now imported from categoryService
 
-interface ProductImage {
+import type { ProductDetail, ProductImage } from '../../types/product';
+import type { CreateProductDTO } from '../../services/productService';
+
+// Extended image type that guarantees imageUrl is present
+interface EditableImage extends ProductImage {
   imageUrl: string;
-  altText?: string;
-  isPrimary: boolean;
-  sortOrder: number;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  discountPrice?: number;
-  sku: string;
-  stockQuantity: number;
-  status: string; // Changed to accept any string status from API
-  categoryId: string;
-  category: {
-    id: string;
-    name: string;
-  };
-  images: ProductImage[];
-  attributes: Record<string, string>; // Changed to match ProductResponse
-}
-
+// Form data interface matching the API expectations
 interface EditProductFormData {
   name: string;
   description: string;
@@ -71,7 +54,7 @@ const EditProductPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   
   // State for product data
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
   const [formData, setFormData] = useState<EditProductFormData>({
     name: '',
     description: '',
@@ -109,23 +92,39 @@ const EditProductPage: React.FC = () => {
         setLoading(true);
         
         // Load product details
-        const productData = await productService.getProductById(productId);
+        const productData = await productService.getProduct(productId);
+        
+        if (!productData) {
+          throw new Error('Product not found');
+        }
+
+        // Set product data
         setProduct(productData);
         
         // Populate form data
         setFormData({
-          name: productData.name,
-          description: productData.description,
-          price: productData.price.toString(),
-          discountPrice: productData.discountPrice?.toString() || '',
-          stockQuantity: productData.stockQuantity.toString(),
-          categoryId: productData.categoryId,
-          status: productData.status as 'Draft' | 'Active' | 'Inactive',
-          currency: productData.currency
+          name: productData.name || '',
+          description: productData.description || '',
+          price: String(productData.price || ''),
+          discountPrice: productData.discountPrice ? String(productData.discountPrice) : '',
+          stockQuantity: String(productData.stockQuantity || ''),
+          categoryId: productData.categoryId || '',
+          status: (productData.status as 'Draft' | 'Active' | 'Inactive') || 'Draft',
+          currency: productData.currency || 'PKR'
         });
         
-        // Set existing images
-        setExistingImages(productData.images || []);
+        // Convert product images to EditableImage type
+        const editableImages: EditableImage[] = (productData.images || [])
+          .filter((img): img is EditableImage => {
+            const imageUrl = img.imageUrl || img.ImageUrl;
+            return typeof imageUrl === 'string' && typeof img.isPrimary === 'boolean';
+          })
+          .map(img => ({
+            ...img,
+            imageUrl: img.imageUrl || img.ImageUrl || ''
+          }));
+          
+        setExistingImages(editableImages);
         
         // Load all categories
         const allCategories = await categoryService.getCategories();
@@ -205,18 +204,18 @@ const EditProductPage: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      // Prepare update data
-      const updateData = {
+      // Prepare update data with string values for API
+      const updateData: CreateProductDTO = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice) : undefined,
-        stockQuantity: parseInt(formData.stockQuantity),
+        price: formData.price,
+        discountPrice: formData.discountPrice || undefined,
+        stockQuantity: formData.stockQuantity,
         categoryId: formData.categoryId,
         status: formData.status,
         currency: formData.currency,
         imagesToDelete,
-        newImages: newImages.map((file, index) => ({
+        images: newImages.map((file, index) => ({
           file,
           isPrimary: existingImages.length === 0 && index === 0 // Set first new image as primary if no existing images
         }))
@@ -426,7 +425,7 @@ const EditProductPage: React.FC = () => {
                               size="small"
                               color="error"
                               sx={{ position: 'absolute', top: 4, right: 4 }}
-                              onClick={() => handleRemoveExistingImage(image.imageUrl)}
+                              onClick={() => image.imageUrl && handleRemoveExistingImage(image.imageUrl)}
                               disabled={saving}
                             >
                               <DeleteIcon fontSize="small" />

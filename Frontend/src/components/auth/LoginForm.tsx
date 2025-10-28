@@ -1,5 +1,4 @@
-// src/components/auth/LoginForm.tsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -26,6 +25,7 @@ import { loginSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../services/authService';
 import StorageService from '../../services/storageService';
+import TechTorioLogo from '../common/TechTorioLogo';
 import type { z } from 'zod';
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -55,14 +55,17 @@ const LoginForm: React.FC = () => {
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
-  const isChrome = useMemo(() => {
-    const ua = navigator.userAgent.toLowerCase();
-    const isChromium = ua.includes('chrome') || ua.includes('crios') || ua.includes('chromium');
-    const isEdge = ua.includes('edg/');
-    const isOpera = ua.includes('opr/') || ua.includes('opera');
-    return isChromium && !isEdge && !isOpera;
-  }, []);
-  const showGoogleSignIn = Boolean(clientId) && isChrome;
+  
+  // Debug logging for mobile
+  useEffect(() => {
+    console.log('[LoginForm] Environment Check:');
+    console.log('  API URL:', import.meta.env.VITE_API_URL);
+    console.log('  Google Client ID:', clientId ? 'Present' : 'Missing');
+    console.log('  Is Capacitor:', !!(window as any).Capacitor);
+  }, [clientId]);
+  
+  // Show Google Sign-In if we have a client ID (works in mobile apps and browsers)
+  const showGoogleSignIn = Boolean(clientId);
 
   // Get pre-filled email and message from navigation state (post-OTP verification)
   const locationState = location.state as { email?: string; message?: string } | undefined;
@@ -86,6 +89,10 @@ const LoginForm: React.FC = () => {
     try {
       setIsSubmitting(true);
       setCaptchaError('');
+      
+      console.log('[LoginForm] Attempting login...');
+      console.log('  API URL:', import.meta.env.VITE_API_URL);
+      console.log('  Email:', data.email);
       
       // Validate CAPTCHA token if reCAPTCHA is enabled
       if (recaptchaSiteKey && !captchaToken) {
@@ -128,6 +135,14 @@ const LoginForm: React.FC = () => {
         recaptchaRef.current.reset();
         setCaptchaToken(null);
       }
+      
+      // Enhanced error logging
+      console.error('[LoginForm] Login error:', {
+        message: err?.message,
+        response: err?.response?.data,
+        status: err?.response?.status,
+        requiresVerification: err?.requiresDeviceVerification
+      });
       
       // Check if device verification is required
       if (err?.requiresDeviceVerification) {
@@ -329,6 +344,11 @@ const LoginForm: React.FC = () => {
   return (
     <>
     <Paper elevation={3} sx={{ p: 4, maxWidth: 400, width: '100%', mx: 'auto' }}>
+      {/* TechTorio Logo */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+        <TechTorioLogo size="large" showText={true} />
+      </Box>
+      
       <Typography variant="h5" component="h1" gutterBottom align="center">
         Login to YaqeenPay
       </Typography>

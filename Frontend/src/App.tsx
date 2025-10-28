@@ -5,6 +5,7 @@ import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ErrorProvider } from './context/ErrorContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { AppInitializer } from './components/AppInitializer';
 
 // Layouts
@@ -57,6 +58,7 @@ const OrderMonitoring = lazy(() => import('./pages/admin/OrderMonitoring'));
 const AdminWithdrawals = lazy(() => import('./pages/admin/AdminWithdrawals'));
 const AdminProfilePage = lazy(() => import('./pages/admin/AdminProfilePage'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const EmailManagement = lazy(() => import('./pages/admin/EmailManagement'));
 
 // Error Pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -94,7 +96,8 @@ const App: React.FC = () => {
         <AppInitializer>
           <AuthProvider>
             <NotificationProvider>
-              <BrowserRouter basename={routerBase}>
+              <WishlistProvider>
+                <BrowserRouter basename={routerBase}>
           <Routes>
             {/* Landing page without layout */}
             <Route path="/" element={<LandingPage />} />
@@ -213,6 +216,11 @@ const App: React.FC = () => {
                     <AdminSettings />
                   </React.Suspense>
                 } />
+                <Route path="/admin/email" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Email Management..." />}>
+                    <EmailManagement />
+                  </React.Suspense>
+                } />
               </Route>
             </Route>
 
@@ -224,6 +232,7 @@ const App: React.FC = () => {
           <NotificationSentToaster />
           <PwaInstallPrompt position="bottom" />
           </BrowserRouter>
+        </WishlistProvider>
         </NotificationProvider>
       </AuthProvider>
       </AppInitializer>
@@ -241,6 +250,12 @@ function getRouterBase(): string {
   }
 
   const trimmed = raw.trim().replace(/\/+$/, '');
+  
+  // For Capacitor mobile apps, use root path
+  if (trimmed === '.' || trimmed === './') {
+    return '/';
+  }
+  
   const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   return withLeading || '/';
 }

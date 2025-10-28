@@ -5,16 +5,28 @@ const config: CapacitorConfig = {
   appName: 'YaqeenPay',
   webDir: 'dist',
   server: {
-    // Use HTTP scheme for development (avoids SSL certificate issues)
-    androidScheme: 'http',
-    // Allow cleartext for development if needed
+    // For mobile apps, use production configuration
     cleartext: true,
-    // For development: allow network access
-    allowNavigation: ['*']
+    androidScheme: 'https',
+    // Allow navigation to backend and external services
+    allowNavigation: [
+      'techtorio.online',
+      'https://techtorio.online',
+      'http://techtorio.online',
+      'https://*.google.com',
+      'https://*.googleapis.com',
+      'https://accounts.google.com'
+    ]
   },
   android: {
-    // Allow mixed content if needed
-    allowMixedContent: true
+    // Allow mixed content for HTTP API calls if needed
+    allowMixedContent: true,
+    // Build configuration
+    buildOptions: {
+      keystorePath: undefined,
+      keystoreAlias: undefined,
+      releaseType: 'APK'
+    }
   },
   plugins: {
     StatusBar: {
@@ -29,3 +41,5 @@ const config: CapacitorConfig = {
     }
   }
 };
+
+export default config;

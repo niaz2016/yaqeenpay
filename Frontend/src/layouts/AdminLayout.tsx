@@ -29,10 +29,12 @@ import {
   Dashboard as DashboardIcon,
   AccountBalance as WithdrawalsIcon,
   AccountCircle,
-  Logout
+  Logout,
+  Menu as MenuIcon
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import TechTorioLogo from '../components/common/TechTorioLogo';
 
 const drawerWidth = 240;
 
@@ -126,6 +128,18 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         }}
       >
         <Toolbar>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 2, display: { md: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Box sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
+            <TechTorioLogo size="small" showText={false} sx={{ '& circle': { fill: '#fff' }, '& rect': { fill: '#1976d2' }, '& circle:last-child': { fill: '#ffa726' } }} />
+          </Box>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             YaqeenPay Admin Dashboard
           </Typography>

@@ -176,69 +176,121 @@ const AdminDashboard: React.FC = () => {
   ];
 
   return (
-    <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={3}>
-      {/* Sidebar with Debugger Info */}
-
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Main content */}
-      <Box flexGrow={1}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box>
+        {/* Header with Refresh Button */}
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={{ xs: 2, sm: 3 }}>
+          <Typography variant="h5" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 600 }}>
+            Dashboard
+          </Typography>
           <Tooltip title="Refresh Statistics">
-            <IconButton onClick={fetchStats} color="primary">
+            <IconButton onClick={fetchStats} color="primary" size="medium">
               <RefreshIcon />
             </IconButton>
           </Tooltip>
         </Box>
 
         {/* Quick Stats Grid */}
-        <Box mb={2} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 3 }}>
-          {/* Replace simple button with a card-like action for consistency */}
-          <Card sx={{ mb: 2, cursor: 'pointer' }} onClick={() => setTopUpDialogOpen(true)}>
-            <CardContent>
+        <Box mb={{ xs: 2, sm: 3 }} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }, gap: { xs: 2, sm: 2.5, md: 3 } }}>
+          {/* Pending Top-Ups Card */}
+          <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 }, transition: 'all 0.2s' }} onClick={() => setTopUpDialogOpen(true)}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">Pending Top-Ups</Typography>
-                  <Typography variant="h5" color="primary.main">
+                <Box flex={1}>
+                  <Typography variant="subtitle2" color="textSecondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    Pending Top-Ups
+                  </Typography>
+                  <Typography variant="h4" color="primary.main" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' }, fontWeight: 600, mt: 0.5 }}>
                     {stats.pendingTopUps ?? 0}
                   </Typography>
                 </Box>
-                <Box sx={{ color: 'primary.main', fontSize: 36 }}>
-                  <VerifiedUserIcon />
+                <Box sx={{ color: 'primary.main', fontSize: { xs: 32, sm: 40 } }}>
+                  <VerifiedUserIcon fontSize="inherit" />
                 </Box>
               </Box>
             </CardContent>
           </Card>
 
-          {/* Withdrawals card: shows history link and pending count */}
-          <Card sx={{ mb: 2, cursor: 'pointer' }} onClick={() => handleCardClick('/admin/withdrawals')}>
-            <CardContent>
+          {/* Withdrawals Card */}
+          <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 }, transition: 'all 0.2s' }} onClick={() => handleCardClick('/admin/withdrawals')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
               <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle2" color="textSecondary">Withdrawals</Typography>
-                  <Typography variant="h5" color="secondary.main">
+                <Box flex={1}>
+                  <Typography variant="subtitle2" color="textSecondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    Withdrawals
+                  </Typography>
+                  <Typography variant="h4" color="secondary.main" sx={{ fontSize: { xs: '1.75rem', sm: '2.125rem' }, fontWeight: 600, mt: 0.5 }}>
                     {stats.totalWithdrawals ?? 0}
                   </Typography>
-                  <Typography variant="body2" color="textSecondary">
+                  <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, mt: 0.5 }}>
                     Pending: {stats.pendingWithdrawals ?? 0}
                   </Typography>
                 </Box>
-                <Box sx={{ color: 'secondary.main', fontSize: 36 }}>
-                  <ShoppingCartIcon />
+                <Box sx={{ color: 'secondary.main', fontSize: { xs: 32, sm: 40 } }}>
+                  <ShoppingCartIcon fontSize="inherit" />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Email Management Card */}
+          <Card sx={{ cursor: 'pointer', bgcolor: '#e3f2fd', '&:hover': { boxShadow: 4 }, transition: 'all 0.2s' }} onClick={() => handleCardClick('/admin/email')}>
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box flex={1}>
+                  <Typography variant="subtitle2" color="primary.main" fontWeight={600} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+                    Email Management
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' }, mt: 0.5 }}>
+                    Create email accounts
+                  </Typography>
+                </Box>
+                <Box sx={{ fontSize: { xs: 32, sm: 40 } }}>
+                  ✉️
                 </Box>
               </Box>
             </CardContent>
           </Card>
         </Box>
-        <Dialog open={topUpDialogOpen} onClose={() => setTopUpDialogOpen(false)} maxWidth="lg" fullWidth>
-          <DialogTitle>Wallet Top-Up Approvals</DialogTitle>
-          <DialogContent>
+
+        {/* Top-Up Dialog */}
+        <Dialog 
+          open={topUpDialogOpen} 
+          onClose={() => setTopUpDialogOpen(false)} 
+          maxWidth="lg" 
+          fullWidth
+          fullScreen={window.innerWidth < 600}
+          PaperProps={{
+            sx: {
+              m: { xs: 0, sm: 2 },
+              maxHeight: { xs: '100%', sm: '90vh' }
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            pb: 2,
+            fontSize: { xs: '1.125rem', sm: '1.25rem' }
+          }}>
+            Wallet Top-Up Approvals
+            <IconButton onClick={() => setTopUpDialogOpen(false)} size="small">
+              <span style={{ fontSize: '1.5rem' }}>×</span>
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
             <AdminTopUpReview />
           </DialogContent>
         </Dialog>
+
+        {/* Main Stats Cards */}
         <Box
           display="grid"
-          gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }}
-          gap={3}
-          sx={{ mb: 4 }}
+          gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' }}
+          gap={{ xs: 2, sm: 2.5, md: 3 }}
+          sx={{ mb: { xs: 3, sm: 4 } }}
         >
           {statCards.map((card, index) => (
             <Card
@@ -258,8 +310,8 @@ const AdminDashboard: React.FC = () => {
                 <Box
                   sx={{
                     position: 'absolute',
-                    top: 8,
-                    right: 8,
+                    top: { xs: 6, sm: 8 },
+                    right: { xs: 6, sm: 8 },
                   }}
                 >
                   <Chip
@@ -267,23 +319,24 @@ const AdminDashboard: React.FC = () => {
                     color="error"
                     size="small"
                     variant="filled"
+                    sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                   />
                 </Box>
               )}
-              <CardContent>
+              <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
-                  <Box>
-                    <Typography color="textSecondary" gutterBottom variant="h6">
+                  <Box flex={1}>
+                    <Typography color="textSecondary" gutterBottom variant="h6" sx={{ fontSize: { xs: '0.875rem', sm: '1rem', md: '1.125rem' } }}>
                       {card.title}
                     </Typography>
-                    <Typography variant="h3" component="div" color={`${card.color}.main`}>
+                    <Typography variant="h3" component="div" color={`${card.color}.main`} sx={{ fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }, fontWeight: 600 }}>
                       {card.value.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box
                     sx={{
                       color: `${card.color}.main`,
-                      fontSize: 40
+                      fontSize: { xs: 32, sm: 40, md: 48 }
                     }}
                   >
                     {card.icon}
@@ -298,30 +351,31 @@ const AdminDashboard: React.FC = () => {
         <Box
           display="grid"
           gridTemplateColumns={{ xs: '1fr', md: 'repeat(2, 1fr)' }}
-          gap={3}
+          gap={{ xs: 2, sm: 2.5, md: 3 }}
+          sx={{ mb: { xs: 3, sm: 4 } }}
         >
           <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <TrendingUpIcon color="success" sx={{ mr: 1 }} />
-                <Typography variant="h6">
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box display="flex" alignItems="center" mb={{ xs: 1.5, sm: 2 }}>
+                <TrendingUpIcon color="success" sx={{ mr: 1, fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}>
                   Transaction Volume
                 </Typography>
               </Box>
-              <Typography variant="h4" color="success.main" gutterBottom>
+              <Typography variant="h4" color="success.main" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }, fontWeight: 600 }}>
                 {formatCurrency(stats.totalTransactionVolume)}
               </Typography>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Total processed volume
               </Typography>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={2}>
-                <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
-                <Typography variant="h6">
+            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+              <Box display="flex" alignItems="center" mb={{ xs: 1.5, sm: 2 }}>
+                <TrendingUpIcon color="primary" sx={{ mr: 1, fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}>
                   Monthly Growth
                 </Typography>
               </Box>
@@ -329,38 +383,43 @@ const AdminDashboard: React.FC = () => {
                 variant="h4"
                 color={stats.monthlyGrowthRate >= 0 ? 'success.main' : 'error.main'}
                 gutterBottom
+                sx={{ fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }, fontWeight: 600 }}
               >
                 {stats.monthlyGrowthRate >= 0 ? '+' : ''}{formatPercentage(stats.monthlyGrowthRate)}
               </Typography>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" color="textSecondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                 Compared to last month
               </Typography>
             </CardContent>
           </Card>
-        </Box>      {/* Quick Actions Alert */}
+        </Box>
+        
+        {/* Quick Actions Alert */}
         {(stats.pendingKycDocuments > 0 || stats.pendingSellers > 0 || stats.openDisputes > 0) && (
-          <Box mt={3}>
-            <Alert severity="info">
-              <Typography variant="subtitle1" gutterBottom>
+          <Box mt={{ xs: 2, sm: 3 }}>
+            <Alert severity="info" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 600 }}>
                 Actions Required:
               </Typography>
-              <Box display="flex" gap={1} flexWrap="wrap">
+              <Box display="flex" gap={{ xs: 0.75, sm: 1 }} flexWrap="wrap">
                 {stats.pendingKycDocuments > 0 && (
                   <Chip
-                    label={`${stats.pendingKycDocuments} KYC documents to review`}
+                    label={`${stats.pendingKycDocuments} KYC ${window.innerWidth < 600 ? 'docs' : 'documents'} to review`}
                     color="warning"
                     size="small"
                     onClick={() => navigate('/admin/kyc')}
                     clickable
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                   />
                 )}
                 {stats.pendingSellers > 0 && (
                   <Chip
-                    label={`${stats.pendingSellers} seller applications to review`}
+                    label={`${stats.pendingSellers} seller ${window.innerWidth < 600 ? 'apps' : 'applications'} to review`}
                     color="warning"
                     size="small"
                     onClick={() => navigate('/admin/sellers')}
                     clickable
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                   />
                 )}
                 {stats.openDisputes > 0 && (
@@ -370,6 +429,7 @@ const AdminDashboard: React.FC = () => {
                     size="small"
                     onClick={() => navigate('/admin/disputes')}
                     clickable
+                    sx={{ fontSize: { xs: '0.7rem', sm: '0.8125rem' } }}
                   />
                 )}
               </Box>

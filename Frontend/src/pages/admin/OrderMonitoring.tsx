@@ -19,7 +19,9 @@ import {
   LinearProgress,
   Stack,
   Button,
-  Avatar
+  Avatar,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Warning as WarningIcon,
@@ -58,6 +60,9 @@ const OrderMonitoring: React.FC = () => {
   useEffect(() => {
     fetchOrders();
   }, [filters]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const getStatusChip = (status: string, isPriority: boolean = false) => {
     const statusMap: { [key: string]: { color: any, label: string } } = {
@@ -165,82 +170,112 @@ const OrderMonitoring: React.FC = () => {
               Orders ({orders.length})
             </Typography>
           </CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Order #</TableCell>
-                  <TableCell>Buyer</TableCell>
-                  <TableCell>Seller</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Days in Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          {isMobile ? (
+            <Box sx={{ p: 2 }}>
+              <Stack spacing={2}>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {order.orderNumber}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar sx={{ width: 24, height: 24 }}>
+                  <Card key={order.id} variant="outlined">
+                    <CardContent>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar sx={{ width: 48, height: 48 }}>
                           <PersonIcon />
                         </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontSize="0.875rem">
-                            {order.buyer.firstName} {order.buyer.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {order.buyer.email}
-                          </Typography>
+                        <Box sx={{ flex: 1 }}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="subtitle1" fontWeight="medium">{order.orderNumber}</Typography>
+                            <Typography variant="subtitle2" color="text.secondary">{formatCurrency(order.amount)}</Typography>
+                          </Stack>
+                          <Typography variant="body2" color="text.secondary">Buyer: {order.buyer?.firstName || 'Unknown'} {order.buyer?.lastName || ''}</Typography>
+                          <Typography variant="body2" color="text.secondary">Seller: {order.seller?.firstName || 'Unknown'} {order.seller?.lastName || ''}</Typography>
+                          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                            {getStatusChip(order.status, order.isPriority)}
+                            <Typography variant="caption" color="text.secondary">{formatDate(order.createdAt)}</Typography>
+                          </Stack>
                         </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar sx={{ width: 24, height: 24 }}>
-                          <StoreIcon />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontSize="0.875rem">
-                            {order.seller.firstName} {order.seller.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {order.seller.email}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" fontWeight="medium">
-                        {formatCurrency(order.amount)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      {getStatusChip(order.status, order.isPriority)}
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(order.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Typography 
-                        variant="body2"
-                        color={order.daysInCurrentStatus > 7 ? 'error' : 'textPrimary'}
-                        fontWeight={order.daysInCurrentStatus > 7 ? 'medium' : 'normal'}
-                      >
-                        {order.daysInCurrentStatus} days
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
+                      </Stack>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </Stack>
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Order #</TableCell>
+                    <TableCell>Buyer</TableCell>
+                    <TableCell>Seller</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Created</TableCell>
+                    <TableCell>Days in Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {order.orderNumber}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar sx={{ width: 24, height: 24 }}>
+                            <PersonIcon />
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontSize="0.875rem">
+                              {order.buyer?.firstName || 'Unknown'} {order.buyer?.lastName || ''}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {order.buyer?.email || ''}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar sx={{ width: 24, height: 24 }}>
+                            <StoreIcon />
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontSize="0.875rem">
+                              {order.seller?.firstName || 'Unknown'} {order.seller?.lastName || ''}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {order.seller?.email || ''}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {formatCurrency(order.amount)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusChip(order.status, order.isPriority)}
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(order.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <Typography 
+                          variant="body2"
+                          color={order.daysInCurrentStatus > 7 ? 'error' : 'textPrimary'}
+                          fontWeight={order.daysInCurrentStatus > 7 ? 'medium' : 'normal'}
+                        >
+                          {order.daysInCurrentStatus} days
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
 
           {orders.length === 0 && (
             <Box p={3} textAlign="center">

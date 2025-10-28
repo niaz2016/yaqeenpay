@@ -808,6 +808,9 @@ const DashboardPage: React.FC = () => {
                               </Box>
                             </Box>
                           }
+                          // Prevent MUI from rendering default <p> tags that may nest other block elements
+                          primaryTypographyProps={{ component: 'div' }}
+                          secondaryTypographyProps={{ component: 'div' }}
                         />
                       </ListItem>
                       {index < dashboardData.recentOrders.length - 1 && <Divider />}

@@ -1,4 +1,32 @@
 import apiService from './api';
+import type { ProductDetail } from '../types/product';
+
+// Response wrapper interface
+interface BaseApiResponse {
+  success: boolean;
+  message?: string;
+}
+
+interface ApiResponseWrapper<T> extends BaseApiResponse {
+  data: T;
+}
+
+// Product response types
+export type ProductDetailResponse = ApiResponseWrapper<ProductDetail>;
+export type ProductListResponse = ApiResponseWrapper<ProductDetail[]>;
+export type UploadResponse = ApiResponseWrapper<{ url: string }>;
+
+// Paginated response type
+interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+// API response types
+export type PaginatedProductResponse = ApiResponseWrapper<PaginatedResponse<ProductDetail>>;
 
 export interface ProductImage {
   file: File;
@@ -10,7 +38,10 @@ export interface ProductAttribute {
   value: string;
 }
 
-export interface CreateProductRequest {
+// (CreateProductRequest defined later with richer options)
+
+export interface CreateProductDTO {
+  id?: string;  // Include ID for updates
   name: string;
   description: string;
   price: string;
@@ -19,351 +50,195 @@ export interface CreateProductRequest {
   categoryId: string;
   status: 'Draft' | 'Active' | 'Inactive';
   currency: string;
-  attributes?: ProductAttribute[];
-  images: ProductImage[];
+  attributes?: { name: string; value: string }[];
+  images?: ProductImage[];
+  imagesToDelete?: string[];
 }
 
-export interface ProductResponse {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  discountPrice?: number;
-  sku: string;
-  stockQuantity: number;
-  status: string;
-  categoryId: string;
-  sellerId: string;
-  createdAt: string;
-  category: {
-    id: string;
-    name: string;
-  };
-  images: Array<{
-    imageUrl: string;
-    altText: string;
-    isPrimary: boolean;
-    sortOrder: number;
-  }>;
-  attributes: Record<string, string>;
-}
+// Frontend-friendly create request that supports uploading newImages (files)
+export type CreateProductRequest = Omit<CreateProductDTO, 'images'> & {
+  newImages?: ProductImage[];
+  images?: ProductImage[]; // existing images (for updates)
+  imagesToDelete?: string[];
+  sku?: string;
+};
 
 class ProductService {
-  // Upload a single image and return the URL
-  async uploadImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-
+  async getProduct(id: string): Promise<ProductDetail> {
     try {
-      // Use the existing profile upload endpoint for now
-      // TODO: Create a dedicated product image upload endpoint
-      const response = await apiService.post<{ url: string }>('/profile/upload-image', formData);
-      
-      if (!response.url || response.url.trim() === '') {
-        throw new Error('Upload endpoint returned empty URL');
-      }
-      
-      return response.url;
+      // apiService.get unwraps ApiResponse and returns the inner data (or the raw response.data when no wrapper).
+      const response = await apiService.get<ProductDetail>(`/products/${id}`);
+      if (!response) throw new Error('Product not found');
+      return response;
     } catch (error) {
-      throw new Error('Failed to upload image');
-    }
-  }
-
-  // Upload multiple images and return their URLs
-  async uploadImages(images: ProductImage[]): Promise<Array<{ imageUrl: string; isPrimary: boolean }>> {
-    try {
-      const uploadPromises = images.map(async (image) => {
-        const imageUrl = await this.uploadImage(image.file);
-        return {
-          imageUrl,
-          isPrimary: image.isPrimary
-        };
-      });
-
-      return await Promise.all(uploadPromises);
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      throw new Error('Failed to upload one or more images');
-    }
-  }
-
-  // Create a product
-  async createProduct(productData: CreateProductRequest): Promise<ProductResponse> {
-    try {
-      // First, upload all images if any
-      let imageUrls: Array<{ imageUrl: string; isPrimary: boolean }> = [];
-      
-      if (productData.images && productData.images.length > 0) {
-        imageUrls = await this.uploadImages(productData.images);
-      }
-
-      // Prepare the CreateProductCommand - this matches the backend's expected structure
-      const createProductCommand = {
-        categoryId: productData.categoryId, // This should be a GUID string
-        name: productData.name,
-        description: productData.description,
-        shortDescription: undefined,
-        price: parseFloat(productData.price),
-        currency: productData.currency || 'PKR',
-        discountPrice: productData.discountPrice ? parseFloat(productData.discountPrice) : undefined,
-        sku: `SKU-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`, // Generate unique SKU
-        stockQuantity: parseInt(productData.stockQuantity),
-        minOrderQuantity: 1,
-        maxOrderQuantity: 999999,
-        weight: 0,
-        weightUnit: 'kg',
-        dimensions: undefined,
-        brand: undefined,
-        model: undefined,
-        color: undefined,
-        size: undefined,
-        material: undefined,
-        allowBackorders: false,
-        tags: [],
-        attributes: productData.attributes ? 
-          productData.attributes.reduce((acc, attr) => {
-            acc[attr.name] = attr.value;
-            return acc;
-          }, {} as Record<string, string>) : {},
-        images: imageUrls.map((img, index) => {
-          return {
-            ImageUrl: img.imageUrl,
-            AltText: `${productData.name} image ${index + 1}`,
-            SortOrder: index,
-            IsPrimary: img.isPrimary
-          };
-        })
-      };
-      const response = await apiService.post<{ id: string }>('/products', createProductCommand);
-      
-      return {
-        id: response.id,
-        name: productData.name,
-        description: productData.description,
-        price: parseFloat(productData.price),
-        currency: productData.currency,
-        discountPrice: productData.discountPrice ? parseFloat(productData.discountPrice) : undefined,
-        sku: '', // Will be generated by backend
-        stockQuantity: parseInt(productData.stockQuantity),
-        status: productData.status,
-        categoryId: productData.categoryId,
-        sellerId: '', // Will be filled by backend
-        createdAt: new Date().toISOString(),
-        category: {
-          id: productData.categoryId,
-          name: '' // Will be filled by backend
-        },
-        images: [], // Will be populated after creation
-        attributes: {} // Default empty attributes
-      };
-    } catch (error) {
-      console.error('Error creating product:', error);
+      console.error('Failed to fetch product:', error);
       throw error;
     }
   }
 
-  // Get products for marketplace
+  async getRelatedProducts(productId: string, limit: number = 4): Promise<ProductDetail[]> {
+    try {
+      // apiService.get will return the unwrapped data (array of products) when endpoint returns ApiResponse
+      const products = await apiService.get<ProductDetail[]>(`/products/${productId}/related`, {
+        params: { limit }
+      });
+      return products || [];
+    } catch (error) {
+      console.warn('Failed to fetch related products:', error);
+      return [];
+    }
+  }
+
+  async uploadImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    // apiService.post unwraps ApiResponse wrappers and returns inner data when possible.
+    const result = await apiService.post<any>('/profile/upload-image', formData);
+    // Support multiple possible shapes returned by the upload endpoint
+    // - { url: '...' }
+    // - { data: { url: '...' } }
+    // - { success: true, data: { url: '...' } }
+    const url = result?.url || result?.data?.url || (result?.data && result.data?.data?.url) || null;
+    if (!url) throw new Error('Upload succeeded but server did not return file URL');
+    return url;
+  }
+
+  async uploadImages(images: ProductImage[]): Promise<Array<{ imageUrl: string; isPrimary: boolean }>> {
+    const uploadPromises = images.map(async (image) => {
+      const imageUrl = await this.uploadImage(image.file);
+      return { imageUrl, isPrimary: image.isPrimary };
+    });
+    return await Promise.all(uploadPromises);
+  }
+
   async getProducts(params?: {
     page?: number;
     pageSize?: number;
     search?: string;
     categoryId?: string;
-  }): Promise<any> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
-      if (params?.search) queryParams.append('search', params.search);
-      if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
+  }): Promise<PaginatedProductResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.categoryId) queryParams.append('categoryId', params.categoryId);
 
-      const url = `/products${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      const response = await apiService.get(url);
-      
-      // Handle both PascalCase (C#) and camelCase (JavaScript) property names  
-      const responseData = response as any;
-      const items = responseData.items || responseData.Items || [];
-      const totalCount = responseData.totalCount || responseData.TotalCount || 0;
-      
-      // Return normalized structure with lowercase property names for frontend consistency
-      const normalizedResponse = {
-        items: items,
-        totalCount: totalCount,
-        pageNumber: responseData.pageNumber || responseData.PageNumber || 1,
-        pageSize: responseData.pageSize || responseData.PageSize || items.length,
-        totalPages: responseData.totalPages || responseData.TotalPages || Math.ceil(totalCount / (responseData.pageSize || responseData.PageSize || 12))
-      };
-      return normalizedResponse;
-    } catch (error: any) {
-      throw error;
-    }
+    const url = `/products${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return await apiService.get(url);
   }
 
-  // Get seller's products
   async getSellerProducts(params?: {
     page?: number;
     pageSize?: number;
     search?: string;
-  }): Promise<any> {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      if (params?.page) queryParams.append('page', params.page.toString());
-      if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
-      if (params?.search) queryParams.append('search', params.search);
+  }): Promise<PaginatedProductResponse> {
+    const queryParams = new URLSearchParams();
+    
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    if (params?.search) queryParams.append('search', params.search);
 
-      const url = `/products/seller${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-      return await apiService.get(url);
-    } catch (error) {
-      console.error('Error fetching seller products:', error);
-      throw error;
-    }
+    const url = `/products/seller${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return await apiService.get(url);
   }
 
-  // Get product by ID
-  async getProductById(productId: string): Promise<ProductResponse> {
-    try {
-      const response = await apiService.get(`/products/${productId}`);
-      
-      // Handle both PascalCase (C#) and camelCase (JavaScript) property names
-      const data = response as any;
-      return {
-        id: data.id || data.Id,
-        name: data.name || data.Name,
-        description: data.description || data.Description,
-        price: data.price || data.Price,
-        currency: data.currency || data.Currency || 'PKR',
-        discountPrice: data.discountPrice || data.DiscountPrice,
-        sku: data.sku || data.Sku || data.SKU || '',
-        stockQuantity: data.stockQuantity || data.StockQuantity,
-        status: data.status || data.Status,
-        categoryId: data.categoryId || data.CategoryId,
-        sellerId: data.sellerId || data.SellerId,
-        createdAt: data.createdAt || data.CreatedAt,
-        category: {
-          id: (data.category || data.Category)?.id || (data.category || data.Category)?.Id || '',
-          name: (data.category || data.Category)?.name || (data.category || data.Category)?.Name || ''
-        },
-        images: (data.images || data.Images || []).map((img: any) => ({
-          imageUrl: img.imageUrl || img.ImageUrl || '',
-          altText: img.altText || img.AltText || '',
-          isPrimary: img.isPrimary || img.IsPrimary || false,
-          sortOrder: img.sortOrder || img.SortOrder || 0
-        })),
-        attributes: data.attributes || data.Attributes || {}
-      };
-    } catch (error) {
-      console.error('Error fetching product details:', error);
-      throw new Error('Failed to fetch product details');
-    }
+  async createProduct(data: CreateProductRequest): Promise<any> {
+    // Prefer images passed in `images` (already in service format), otherwise use `newImages` (File uploads)
+    const imagesToUpload = (data.images && data.images.length) ? data.images : (data.newImages || []);
+
+    const uploadedImages = imagesToUpload.length ? await this.uploadImages(imagesToUpload) : [];
+
+    // Build attributes object expected by backend (Dictionary<string,string>)
+    const attributesObj = data.attributes?.reduce((acc, attr) => ({
+      ...acc,
+      [attr.name]: attr.value
+    }), {} as Record<string, string>) || {};
+
+    // Ensure SKU exists - backend requires SKU
+    const sku = (data as any).sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    const payload: any = {
+      ...data,
+      sku,
+      price: parseFloat(data.price),
+      stockQuantity: parseInt(data.stockQuantity as any, 10),
+      attributes: attributesObj,
+      images: uploadedImages.map((img, index) => ({
+        imageUrl: img.imageUrl,
+        altText: undefined,
+        sortOrder: index,
+        isPrimary: img.isPrimary
+      }))
+    };
+
+    // Remove frontend-only props that backend doesn't expect
+    delete payload.newImages;
+
+    const response = await apiService.post<any>('/products', payload);
+    return response;
   }
 
-  // Update existing product
-  async updateProduct(productId: string, updateData: {
-    name: string;
-    description: string;
-    price: number;
-    discountPrice?: number;
-    stockQuantity: number;
-    categoryId: string;
-    status: 'Draft' | 'Active' | 'Inactive';
-    currency: string;
-    imagesToDelete?: string[];
-    newImages?: Array<{ file: File; isPrimary: boolean }>;
-  }): Promise<ProductResponse> {
-    try {
-      // Upload any new images first
-      let uploadedImages: Array<{ imageUrl: string; isPrimary: boolean }> = [];
-      if (updateData.newImages && updateData.newImages.length > 0) {
-        uploadedImages = await this.uploadImages(updateData.newImages);
-      }
-
-      // Prepare update payload expected by backend
-      const updateCommand: any = {
-        name: updateData.name,
-        description: updateData.description,
-        price: updateData.price,
-        currency: updateData.currency,
-        discountPrice: updateData.discountPrice,
-        stockQuantity: updateData.stockQuantity,
-        categoryId: updateData.categoryId,
-        status: updateData.status,
-      };
-
-      // Include images to delete if provided
-      if (updateData.imagesToDelete && updateData.imagesToDelete.length > 0) {
-        updateCommand.imagesToDelete = updateData.imagesToDelete;
-      }
-
-      // Include newly uploaded images in backend format if any
-      if (uploadedImages.length > 0) {
-        updateCommand.newImages = uploadedImages.map((img, index) => ({
-          ImageUrl: img.imageUrl,
-          AltText: `${updateData.name} image ${index + 1}`,
-          SortOrder: index,
-          IsPrimary: img.isPrimary
-        }));
-      }
-
-      // Send update request to API
-      await apiService.put(`/products/${productId}`, updateCommand);
-
-      // Return the freshly fetched product
-      return await this.getProductById(productId);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      throw error;
-    }
+  async getProductById(productId: string): Promise<ProductDetail> {
+    const data = await apiService.get<ProductDetail>(`/products/${productId}`);
+    if (!data) throw new Error('Product not found');
+    return data;
   }
 
-  // Reduce stock quantity when payment is made
+  async updateProduct(productId: string, data: Partial<CreateProductDTO>): Promise<ProductDetail> {
+    // Handle image uploads if present
+    let imageUrls: Array<{ imageUrl: string; isPrimary: boolean }> = [];
+    if (data.images?.length) {
+      imageUrls = await this.uploadImages(data.images);
+    }
+
+    // Prepare the update payload
+    const updatePayload = {
+      ...data,
+      id: productId, // Include the product ID in the payload
+      price: data.price ? parseFloat(data.price) : undefined,
+      stockQuantity: data.stockQuantity ? parseInt(data.stockQuantity, 10) : undefined,
+      attributes: data.attributes?.reduce((acc, attr) => ({ 
+        ...acc, [attr.name]: attr.value 
+      }), {} as Record<string, string>),
+      images: imageUrls.length > 0 ? imageUrls.map((img, index) => ({
+        imageUrl: img.imageUrl,
+        altText: `${data.name || 'Product'} image ${index + 1}`,
+        sortOrder: index,
+        isPrimary: img.isPrimary
+      })) : undefined
+    };
+
+    const responseData = await apiService.put<ProductDetail>(`/products/${productId}`, updatePayload);
+    if (!responseData) throw new Error('Failed to update product');
+    return responseData;
+  }
+
+  async deleteProduct(productId: string): Promise<void> {
+    await apiService.delete(`/products/${productId}`);
+  }
+
   async reduceStock(productId: string, quantity: number): Promise<void> {
-    try {
-      const response = await apiService.post<{ success: boolean; message: string; newStockQuantity: number }>(
-        `/products/${productId}/reduce-stock`, 
-        { quantity }
-      );
-      
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to reduce stock');
-      }
-    } catch (error) {
-      console.error('Error reducing product stock:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to reduce product stock');
+    const response = await apiService.post<{ success: boolean; message: string }>(
+      `/products/${productId}/reduce-stock`,
+      { quantity }
+    );
+
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to reduce stock');
     }
   }
 
-  // Bulk reduce stock for multiple products (for orders with multiple items)
-  async bulkReduceStock(items: Array<{ productId: string; quantity: number }>): Promise<void> {
-    try {
-      const response = await apiService.post<{ success: boolean; message: string; results: Array<{ productId: string; success: boolean; newStockQuantity?: number; error?: string }> }>(
-        '/products/bulk-reduce-stock', 
-        { items }
-      );
-      
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to reduce stock for some items');
-      }
+  async bulkReduceStock(products: Array<{ productId: string; quantity: number }>): Promise<void> {
+    const response = await apiService.post<{ success: boolean; message: string }>(
+      '/products/bulk-reduce-stock',
+      { products }
+    );
 
-      // Check if any individual items failed
-      const failedItems = response.results?.filter(result => !result.success) || [];
-      if (failedItems.length > 0) {
-        const errorDetails = failedItems.map(item => `${item.productId}: ${item.error}`).join(', ');
-        throw new Error(`Stock reduction failed for: ${errorDetails}`);
-      }
-    } catch (error) {
-      console.error('Error in bulk stock reduction:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to reduce stock for multiple products');
+    if (!response.success) {
+      throw new Error(response.message || 'Failed to reduce stock in bulk');
     }
   }
 }
 
-const productService = new ProductService();
-export default productService;
+export default new ProductService();

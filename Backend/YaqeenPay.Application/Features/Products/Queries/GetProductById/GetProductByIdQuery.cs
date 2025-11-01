@@ -95,6 +95,17 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
             AllowBackorders = product.AllowBackorders
         };
 
+        // Populate variants
+        productDto.Variants = product.Variants?.Select(v => new GetSellerProducts.ProductVariantDto
+        {
+            Id = v.Id,
+            Size = v.Size,
+            Color = v.Color,
+            Price = v.Price,
+            StockQuantity = v.StockQuantity,
+            Sku = v.Sku
+        }).ToList() ?? new List<GetSellerProducts.ProductVariantDto>();
+
         return ApiResponse<GetSellerProducts.ProductDto>.SuccessResponse(productDto, "Product retrieved successfully.");
     }
 }

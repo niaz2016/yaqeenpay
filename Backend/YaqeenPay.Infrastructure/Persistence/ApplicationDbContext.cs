@@ -48,6 +48,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Product Management
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
@@ -55,6 +56,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     // Rating System
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<RatingStats> RatingStats => Set<RatingStats>();
+    // Product Reviews
+    public DbSet<YaqeenPay.Domain.Entities.ProductReview> ProductReviews => Set<YaqeenPay.Domain.Entities.ProductReview>();
 
     // Subdomain Management
     public DbSet<Subdomain> Subdomains => Set<Subdomain>();

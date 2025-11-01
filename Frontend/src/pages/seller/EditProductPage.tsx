@@ -24,13 +24,13 @@ import {
   Delete as DeleteIcon,
   Save as SaveIcon
 } from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
 import productService from '../../services/productService';
 import categoryService, { type Category } from '../../services/categoryService';
 
 // Category interface is now imported from categoryService
 
 import type { ProductDetail, ProductImage } from '../../types/product';
-import type { CreateProductDTO } from '../../services/productService';
 
 // Extended image type that guarantees imageUrl is present
 interface EditableImage extends ProductImage {
@@ -47,6 +47,16 @@ interface EditProductFormData {
   categoryId: string;
   status: 'Draft' | 'Active' | 'Inactive';
   currency: string;
+  sku?: string;
+  minOrderQuantity?: string;
+  maxOrderQuantity?: string;
+  weight?: string;
+  weightUnit?: string;
+  dimensions?: string;
+  brand?: string;
+  model?: string;
+  material?: string;
+  tags?: string; // comma separated
 }
 
 const EditProductPage: React.FC = () => {
@@ -63,16 +73,35 @@ const EditProductPage: React.FC = () => {
     stockQuantity: '',
     categoryId: '',
     status: 'Draft',
-    currency: 'PKR'
+    currency: 'PKR',
+    sku: '',
+    minOrderQuantity: '1',
+    maxOrderQuantity: '999999',
+    weight: '',
+    weightUnit: 'kg',
+    dimensions: '',
+    brand: '',
+    model: '',
+    
+    tags: ''
   });
   
   // State for images
   const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  // Variants state
+  const [variants, setVariants] = useState<Array<{ size?: string; color?: string; price?: string; stockQuantity?: string; sku?: string }>>([
+    { size: '', color: '', price: '', stockQuantity: '' }
+  ]);
   
   // State for categories
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+
+  // Attributes (name/value pairs)
+  const [attributes, setAttributes] = useState<Array<{ name: string; value: string }>>([
+    { name: '', value: '' }
+  ]);
   
   // UI state
   const [loading, setLoading] = useState(true);
@@ -110,7 +139,17 @@ const EditProductPage: React.FC = () => {
           stockQuantity: String(productData.stockQuantity || ''),
           categoryId: productData.categoryId || '',
           status: (productData.status as 'Draft' | 'Active' | 'Inactive') || 'Draft',
-          currency: productData.currency || 'PKR'
+          currency: productData.currency || 'PKR',
+          sku: productData.sku || '',
+          minOrderQuantity: productData.minOrderQuantity ? String(productData.minOrderQuantity) : '1',
+          maxOrderQuantity: productData.maxOrderQuantity ? String(productData.maxOrderQuantity) : '999999',
+          weight: productData.weight ? String(productData.weight) : '',
+          weightUnit: productData.weightUnit || 'kg',
+          dimensions: productData.dimensions || '',
+          brand: productData.brand || '',
+          model: productData.model || '',
+          
+          tags: productData.tags && Array.isArray(productData.tags) ? productData.tags.join(', ') : ''
         });
         
         // Convert product images to EditableImage type
@@ -125,10 +164,26 @@ const EditProductPage: React.FC = () => {
           }));
           
         setExistingImages(editableImages);
+        // Load variants if present
+        if (productData.variants && Array.isArray(productData.variants) && productData.variants.length > 0) {
+          setVariants(productData.variants.map(v => ({
+            size: v.size || '',
+            color: v.color || '',
+            price: v.price !== undefined && v.price !== null ? String(v.price) : '',
+            stockQuantity: v.stockQuantity !== undefined && v.stockQuantity !== null ? String(v.stockQuantity) : '',
+            sku: v.sku || ''
+          })));
+        }
         
         // Load all categories
         const allCategories = await categoryService.getCategories();
                 setAvailableCategories(allCategories);
+
+        // Load attributes from product attributes dictionary
+        if (productData.attributes && typeof productData.attributes === 'object') {
+          const attrs = Object.entries(productData.attributes).map(([name, value]) => ({ name, value }));
+          if (attrs.length > 0) setAttributes(attrs);
+        }
         
       } catch (err) {
         console.error('Error loading product:', err);
@@ -155,6 +210,21 @@ const EditProductPage: React.FC = () => {
       const selectedFiles = Array.from(files);
       setNewImages(prev => [...prev, ...selectedFiles]);
     }
+  };
+
+  const addVariantRow = () => setVariants(prev => [...prev, { size: '', color: '', price: '', stockQuantity: '' }]);
+
+  const removeVariantRow = (index: number) => setVariants(prev => prev.filter((_, i) => i !== index));
+
+  const updateVariantField = (index: number, field: string, value: string) => {
+    setVariants(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v));
+  };
+
+  // Attribute handlers
+  const addAttribute = () => setAttributes(prev => [...prev, { name: '', value: '' }]);
+  const removeAttribute = (index: number) => setAttributes(prev => prev.filter((_, i) => i !== index));
+  const updateAttribute = (index: number, field: 'name' | 'value', value: string) => {
+    setAttributes(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
   };
 
   const handleRemoveExistingImage = (imageUrl: string) => {
@@ -205,7 +275,7 @@ const EditProductPage: React.FC = () => {
       setError(null);
 
       // Prepare update data with string values for API
-      const updateData: CreateProductDTO = {
+      const updateData: any = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: formData.price,
@@ -214,12 +284,37 @@ const EditProductPage: React.FC = () => {
         categoryId: formData.categoryId,
         status: formData.status,
         currency: formData.currency,
+        sku: formData.sku,
+        minOrderQuantity: formData.minOrderQuantity,
+        maxOrderQuantity: formData.maxOrderQuantity,
+        weight: formData.weight,
+        weightUnit: formData.weightUnit,
+        dimensions: formData.dimensions,
+        brand: formData.brand,
+        model: formData.model,
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
         imagesToDelete,
         images: newImages.map((file, index) => ({
           file,
           isPrimary: existingImages.length === 0 && index === 0 // Set first new image as primary if no existing images
         }))
       };
+
+      // Include attributes if provided
+      const validAttributes = attributes.filter(a => a.name.trim() && a.value.trim()).map(a => ({ name: a.name.trim(), value: a.value.trim() }));
+      if (validAttributes.length > 0) updateData.attributes = validAttributes;
+
+      // Include variants if any
+      const validVariants = variants.filter(v => (v.size && v.size.trim()) || (v.color && v.color.trim()) || (v.price && v.price.trim()) || (v.stockQuantity && v.stockQuantity.trim()));
+      if (validVariants.length > 0) {
+        (updateData as any).variants = validVariants.map(v => ({
+          size: v.size || undefined,
+          color: v.color || undefined,
+          price: v.price || undefined,
+          stockQuantity: v.stockQuantity || undefined,
+          sku: v.sku || undefined
+        }));
+      }
 
       await productService.updateProduct(productId, updateData);
       
@@ -344,6 +439,29 @@ const EditProductPage: React.FC = () => {
                       disabled={saving}
                     />
                   </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 1, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <FormControl fullWidth>
+                      <InputLabel>Currency</InputLabel>
+                      <Select
+                        value={formData.currency}
+                        label="Currency"
+                        onChange={(e) => handleInputChange('currency', e.target.value)}
+                        disabled={saving}
+                      >
+                        <MenuItem value="PKR">PKR</MenuItem>
+                        <MenuItem value="USD">USD</MenuItem>
+                        <MenuItem value="EUR">EUR</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <TextField
+                      label="SKU"
+                      value={formData.sku}
+                      onChange={(e) => handleInputChange('sku' as any, e.target.value)}
+                      fullWidth
+                      disabled={saving}
+                    />
+                  </Box>
                   
                   <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                     <TextField
@@ -372,6 +490,122 @@ const EditProductPage: React.FC = () => {
                       </Select>
                     </FormControl>
                   </Box>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <TextField
+                      label="Min Order Quantity"
+                      type="number"
+                      value={formData.minOrderQuantity}
+                      onChange={(e) => handleInputChange('minOrderQuantity' as any, e.target.value)}
+                      fullWidth
+                      inputProps={{ min: 1 }}
+                      disabled={saving}
+                    />
+
+                    <TextField
+                      label="Max Order Quantity"
+                      type="number"
+                      value={formData.maxOrderQuantity}
+                      onChange={(e) => handleInputChange('maxOrderQuantity' as any, e.target.value)}
+                      fullWidth
+                      inputProps={{ min: 1 }}
+                      disabled={saving}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <TextField
+                      label="Weight"
+                      type="number"
+                      value={formData.weight}
+                      onChange={(e) => handleInputChange('weight' as any, e.target.value)}
+                      fullWidth
+                      inputProps={{ min: 0, step: 0.01 }}
+                      disabled={saving}
+                    />
+
+                    <FormControl fullWidth>
+                      <InputLabel>Weight Unit</InputLabel>
+                      <Select
+                        value={formData.weightUnit}
+                        label="Weight Unit"
+                        onChange={(e) => handleInputChange('weightUnit' as any, e.target.value)}
+                        disabled={saving}
+                      >
+                        <MenuItem value="kg">kg</MenuItem>
+                        <MenuItem value="g">g</MenuItem>
+                        <MenuItem value="lb">lb</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  <TextField
+                    label="Dimensions (LxWxH)"
+                    value={formData.dimensions}
+                    onChange={(e) => handleInputChange('dimensions' as any, e.target.value)}
+                    fullWidth
+                    disabled={saving}
+                    sx={{ mt: 2 }}
+                  />
+
+                  <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <TextField
+                      label="Brand"
+                      value={formData.brand}
+                      onChange={(e) => handleInputChange('brand' as any, e.target.value)}
+                      fullWidth
+                      disabled={saving}
+                    />
+
+                    <TextField
+                      label="Model"
+                      value={formData.model}
+                      onChange={(e) => handleInputChange('model' as any, e.target.value)}
+                      fullWidth
+                      disabled={saving}
+                    />
+                  </Box>
+
+                  <TextField
+                    label="Tags (comma separated)"
+                    value={formData.tags}
+                    onChange={(e) => handleInputChange('tags' as any, e.target.value)}
+                    fullWidth
+                    disabled={saving}
+                    sx={{ mt: 2 }}
+                  />
+
+                  {/* Attributes */}
+                  <Card sx={{ mt: 2, p: 1 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="subtitle1">Attributes</Typography>
+                        <Button size="small" startIcon={<AddIcon />} onClick={addAttribute} disabled={saving}>Add Attribute</Button>
+                      </Box>
+                      {attributes.map((attr, idx) => (
+                        <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+                          <TextField
+                            label="Name"
+                            value={attr.name}
+                            onChange={(e) => updateAttribute(idx, 'name', e.target.value)}
+                            size="small"
+                            fullWidth
+                            disabled={saving}
+                          />
+                          <TextField
+                            label="Value"
+                            value={attr.value}
+                            onChange={(e) => updateAttribute(idx, 'value', e.target.value)}
+                            size="small"
+                            fullWidth
+                            disabled={saving}
+                          />
+                          <IconButton onClick={() => removeAttribute(idx)} disabled={saving} color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      ))}
+                    </CardContent>
+                  </Card>
                   
                   <FormControl fullWidth disabled={saving}>
                     <InputLabel>Status</InputLabel>
@@ -386,6 +620,63 @@ const EditProductPage: React.FC = () => {
                     </Select>
                   </FormControl>
                 </Box>
+              </CardContent>
+            </Card>
+
+            {/* Variants Card */}
+            <Card sx={{ mt: 2 }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="h6">Variants</Typography>
+                  <Button size="small" onClick={addVariantRow} disabled={saving}>Add Variant</Button>
+                </Box>
+
+                {variants.map((variant, idx) => (
+                  <Box key={idx} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <TextField
+                      label="Size"
+                      value={variant.size || ''}
+                      onChange={(e) => updateVariantField(idx, 'size', e.target.value)}
+                      size="small"
+                      disabled={saving}
+                    />
+                    <TextField
+                      label="Color"
+                      value={variant.color || ''}
+                      onChange={(e) => updateVariantField(idx, 'color', e.target.value)}
+                      size="small"
+                      disabled={saving}
+                    />
+                    <TextField
+                      label="Price"
+                      type="number"
+                      value={variant.price || ''}
+                      onChange={(e) => updateVariantField(idx, 'price', e.target.value)}
+                      size="small"
+                      inputProps={{ step: 0.01, min: 0 }}
+                      disabled={saving}
+                    />
+                    <TextField
+                      label="Stock"
+                      type="number"
+                      value={variant.stockQuantity || ''}
+                      onChange={(e) => updateVariantField(idx, 'stockQuantity', e.target.value)}
+                      size="small"
+                      inputProps={{ min: 0 }}
+                      disabled={saving}
+                    />
+                    <TextField
+                      label="SKU"
+                      value={variant.sku || ''}
+                      onChange={(e) => updateVariantField(idx, 'sku', e.target.value)}
+                      size="small"
+                      disabled={saving}
+                    />
+                    <IconButton onClick={() => removeVariantRow(idx)} disabled={saving} color="error">
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
               </CardContent>
             </Card>
           </Box>

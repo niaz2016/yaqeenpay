@@ -36,9 +36,12 @@ public interface IApplicationDbContext
     // Product Management
     DbSet<Category> Categories { get; }
     DbSet<Product> Products { get; }
+    DbSet<ProductVariant> ProductVariants { get; }
     DbSet<ProductImage> ProductImages { get; }
     DbSet<CartItem> CartItems { get; }
     DbSet<OrderItem> OrderItems { get; }
+    // Product Reviews
+    DbSet<YaqeenPay.Domain.Entities.ProductReview> ProductReviews { get; }
 
     // Subdomain Management
     DbSet<Subdomain> Subdomains { get; }

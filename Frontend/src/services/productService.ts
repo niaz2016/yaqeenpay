@@ -53,14 +53,29 @@ export interface CreateProductDTO {
   attributes?: { name: string; value: string }[];
   images?: ProductImage[];
   imagesToDelete?: string[];
+  variants?: Array<{
+    size?: string;
+    color?: string;
+    price?: string;
+    stockQuantity?: string;
+    sku?: string;
+    [key: string]: any;
+  }>;
 }
 
 // Frontend-friendly create request that supports uploading newImages (files)
-export type CreateProductRequest = Omit<CreateProductDTO, 'images'> & {
+export type CreateProductRequest = Omit<CreateProductDTO, 'images' | 'variants'> & {
   newImages?: ProductImage[];
   images?: ProductImage[]; // existing images (for updates)
   imagesToDelete?: string[];
   sku?: string;
+  variants?: Array<{
+    size?: string;
+    color?: string;
+    price?: number;
+    stockQuantity?: number;
+    [key: string]: any;
+  }>;
 };
 
 class ProductService {
@@ -193,7 +208,7 @@ class ProductService {
     }
 
     // Prepare the update payload
-    const updatePayload = {
+    const updatePayload: any = {
       ...data,
       id: productId, // Include the product ID in the payload
       price: data.price ? parseFloat(data.price) : undefined,
@@ -208,6 +223,17 @@ class ProductService {
         isPrimary: img.isPrimary
       })) : undefined
     };
+
+    // Include variants when provided by the frontend
+    if ((data as any).variants && Array.isArray((data as any).variants)) {
+      updatePayload.variants = (data as any).variants.map((v: any) => ({
+        size: v.size,
+        color: v.color,
+        price: v.price ? parseFloat(v.price as any) : undefined,
+        stockQuantity: v.stockQuantity ? parseInt(v.stockQuantity as any, 10) : undefined,
+        sku: v.sku
+      }));
+    }
 
     const responseData = await apiService.put<ProductDetail>(`/products/${productId}`, updatePayload);
     if (!responseData) throw new Error('Failed to update product');

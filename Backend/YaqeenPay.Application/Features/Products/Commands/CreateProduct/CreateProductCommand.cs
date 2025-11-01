@@ -34,6 +34,8 @@ public record CreateProductCommand : IRequest<ApiResponse<Guid>>
     public List<string> Tags { get; set; } = new List<string>();
     public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
     public List<CreateProductImageRequest> Images { get; set; } = new List<CreateProductImageRequest>();
+    // Optional product variants supplied by the frontend
+    public List<CreateProductVariantRequest> Variants { get; set; } = new List<CreateProductVariantRequest>();
 }
 
 public record CreateProductImageRequest
@@ -42,6 +44,15 @@ public record CreateProductImageRequest
     public string? AltText { get; set; }
     public int SortOrder { get; set; } = 0;
     public bool IsPrimary { get; set; } = false;
+}
+
+public record CreateProductVariantRequest
+{
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public decimal? Price { get; set; }
+    public int? StockQuantity { get; set; }
+    public string? Sku { get; set; }
 }
 
 public class CreateProductCommandValidator : AbstractValidator<CreateProductCommand>
@@ -169,6 +180,25 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             }
 
             _context.ProductImages.Add(productImage);
+        }
+
+        // Add variants if provided
+        if (request.Variants != null && request.Variants.Count > 0)
+        {
+            foreach (var v in request.Variants)
+            {
+                var variant = new ProductVariant
+                {
+                    // ProductId will be fixed up by EF Core when product is saved via relationship
+                    Size = v.Size,
+                    Color = v.Color,
+                    Price = v.Price ?? null,
+                    StockQuantity = v.StockQuantity ?? null,
+                    Sku = v.Sku
+                };
+
+                product.Variants.Add(variant);
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

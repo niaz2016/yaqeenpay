@@ -48,6 +48,12 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(p => p.Dimensions)
             .HasMaxLength(200);
+        
+        // Product variants relationship
+        builder.HasMany(p => p.Variants)
+            .WithOne()
+            .HasForeignKey(v => v.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Configure value objects
         builder.OwnsOne(p => p.Price, price =>

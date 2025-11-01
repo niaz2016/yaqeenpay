@@ -60,7 +60,7 @@ const ProductImageModal: React.FC<ProductImageModalProps> = memo(({
         const pinch = new Hammer.Pinch();
         mc.add([pinch]);
 
-        mc.on('pinchstart', (ev: any) => {
+        mc.on('pinchstart', () => {
           startZoom = zoom;
         });
 

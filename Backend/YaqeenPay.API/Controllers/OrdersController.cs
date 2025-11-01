@@ -399,6 +399,21 @@ public class OrdersController : ApiControllerBase
         return Ok(await Mediator.Send(command));
     }
 
+    // Check if current user is eligible to review a product (has a delivered order containing the product)
+    [HttpGet("eligible-to-review")]
+    public async Task<IActionResult> EligibleToReview([FromQuery] Guid productId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+    // Use mediator query to check eligibility (delivered/completed orders containing the product)
+    var result = await Mediator.Send(new YaqeenPay.Application.Features.Orders.Queries.CheckProductReviewEligibility.CheckProductReviewEligibilityQuery { ProductId = productId, UserId = userId });
+        return Ok(new { eligible = result });
+    }
+
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> Cancel(Guid id)
     {

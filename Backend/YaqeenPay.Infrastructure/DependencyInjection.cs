@@ -280,12 +280,13 @@ public static class DependencyInjection
         services.AddHostedService<YaqeenPay.Infrastructure.Services.TopupLockCleanupService>();
         
         // Register repositories
-        services.AddScoped<IWalletRepository, WalletRepository>();
+    services.AddScoped<IWalletRepository, WalletRepository>();
         services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
         services.AddScoped<ITopUpRepository, TopUpRepository>();
         services.AddScoped<IAdminSystemSettingsRepository, AdminSystemSettingsRepository>();
         services.AddScoped<IAdminSettingsAuditRepository, AdminSettingsAuditRepository>();
         services.AddScoped<IRatingRepository, RatingRepository>();
+    // Product reviews repository will use EF directly for now - register if/when a custom repo is added
 
         // Register OutboxService for notifications
         services.AddScoped<IOutboxService, OutboxService>();

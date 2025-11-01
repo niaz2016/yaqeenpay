@@ -150,7 +150,7 @@ namespace YaqeenPay.API.Controllers
                 {
                     return Unauthorized(new { message = "User not authenticated" });
                 }
-                var canRate = await _ratingRepository.CanUserRateAsync(orderId, reviewerId, revieweeId);
+                    var canRate = await _ratingRepository.CanUserRateAsync(orderId, reviewerId, revieweeId);
                 var deadline = await _ratingRepository.GetRatingDeadlineAsync(orderId);
                 var existingRating = await _ratingRepository.GetByOrderAndReviewerAsync(orderId, reviewerId);
                 var permission = new RatingPermissionDto

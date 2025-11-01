@@ -33,14 +33,18 @@ const LazyImage: React.FC<LazyImageProps> = ({
     };
   }, [src]);
 
+  // Interpret aspectRatio as width / height. Compute padding-top as (height/width)*100 = (1 / aspectRatio) * 100
+  const paddingTopPercent = aspectRatio > 0 ? (1 / aspectRatio) * 100 : 100;
+
   return (
     <Box
       sx={{
         position: 'relative',
         width: '100%',
-        paddingTop: `${100 * aspectRatio}%`,
+        paddingTop: `${paddingTopPercent}%`,
         backgroundColor: '#f5f5f5',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxSizing: 'border-box'
       }}
     >
       {!loaded && !error && (
@@ -62,6 +66,7 @@ const LazyImage: React.FC<LazyImageProps> = ({
             width: '100%',
             height: '100%',
             objectFit: 'contain',
+            objectPosition: 'center center',
             filter: 'blur(10px)',
             transform: 'scale(1.1)',
           }}
@@ -78,6 +83,7 @@ const LazyImage: React.FC<LazyImageProps> = ({
           width: '100%',
           height: '100%',
           objectFit: 'contain',
+          objectPosition: 'center center',
           opacity: loaded ? 1 : 0,
           transition: 'opacity 0.3s ease-in-out',
         }}

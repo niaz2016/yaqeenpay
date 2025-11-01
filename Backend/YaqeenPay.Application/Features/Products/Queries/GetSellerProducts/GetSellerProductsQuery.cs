@@ -55,6 +55,8 @@ public record ProductDto
     
     // Images
     public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
+    // Variants
+    public List<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
     
     // Seller info
     public SellerDto? Seller { get; set; }
@@ -200,4 +202,14 @@ public class GetSellerProductsQueryHandler : IRequestHandler<GetSellerProductsQu
 
         return ApiResponse<PagedList<ProductDto>>.SuccessResponse(pagedResult);
     }
+}
+
+public record ProductVariantDto
+{
+    public Guid Id { get; set; }
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public decimal? Price { get; set; }
+    public int? StockQuantity { get; set; }
+    public string? Sku { get; set; }
 }

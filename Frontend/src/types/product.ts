@@ -46,6 +46,15 @@ export interface ProductDetail {
   averageRating?: number;
   reviewCount?: number;
   tags?: string[];
+  variants?: Array<{
+    id?: string;
+    sku?: string;
+    size?: string;
+    color?: string;
+    price?: number;
+    stockQuantity?: number;
+    [key: string]: any;
+  }>;
 }
 
 export interface ProductReview {

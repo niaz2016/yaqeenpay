@@ -64,6 +64,24 @@ const NewProductPage: React.FC = () => {
   const [attributes, setAttributes] = useState<ProductAttribute[]>([
     { name: '', value: '' }
   ]);
+  // Product variants state
+  const [variants, setVariants] = useState([
+    { size: '', color: '', price: '', stockQuantity: '' }
+  ]);
+  // Variant handlers
+  const addVariant = () => {
+    setVariants(prev => [...prev, { size: '', color: '', price: '', stockQuantity: '' }]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateVariant = (index: number, field: string, value: string) => {
+    setVariants(prev => prev.map((variant, i) =>
+      i === index ? { ...variant, [field]: value } : variant
+    ));
+  };
 
   // Load categories on component mount
   useEffect(() => {
@@ -201,6 +219,7 @@ const NewProductPage: React.FC = () => {
         }));
 
       // Prepare product data
+      const validVariants = variants.filter(v => v.size || v.color || v.price || v.stockQuantity);
       const productData: CreateProductRequest = {
         name: formData.name,
         description: formData.description,
@@ -211,7 +230,13 @@ const NewProductPage: React.FC = () => {
         status: formData.status,
         currency: formData.currency,
         attributes: validAttributes,
-        newImages: productImages
+        newImages: productImages,
+        variants: validVariants.map(v => ({
+          size: v.size,
+          color: v.color,
+          price: v.price ? parseFloat(v.price) : undefined,
+          stockQuantity: v.stockQuantity ? parseInt(v.stockQuantity) : undefined
+        }))
       };
       await productService.createProduct(productData);
       
@@ -382,26 +407,77 @@ const NewProductPage: React.FC = () => {
               </Box>
             </Paper>
 
+            {/* Product Variants */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                Product Variants
+              </Typography>
+              {variants.map((variant, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                  <TextField
+                    label="Size"
+                    value={variant.size}
+                    onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                    placeholder="e.g., Large, Medium"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="Color"
+                    value={variant.color}
+                    onChange={(e) => updateVariant(index, 'color', e.target.value)}
+                    placeholder="e.g., Red, Blue"
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="Price"
+                    type="number"
+                    value={variant.price}
+                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                  <TextField
+                    label="Stock"
+                    type="number"
+                    value={variant.stockQuantity}
+                    onChange={(e) => updateVariant(index, 'stockQuantity', e.target.value)}
+                    sx={{ flex: 1 }}
+                  />
+                  {variants.length > 1 && (
+                    <IconButton onClick={() => removeVariant(index)} color="error">
+                      <RemoveIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+              <Button
+                startIcon={<AddIcon />}
+                onClick={addVariant}
+                variant="outlined"
+                size="small"
+              >
+                Add Variant
+              </Button>
+            </Paper>
+
             {/* Product Attributes */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Product Attributes (Optional)
               </Typography>
-              
               {attributes.map((attribute, index) => (
                 <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
                   <TextField
                     label="Attribute Name"
                     value={attribute.name}
                     onChange={(e) => updateAttribute(index, 'name', e.target.value)}
-                    placeholder="e.g., Color, Size, Material"
+                    placeholder="e.g., Material, Brand"
                     sx={{ flex: 1 }}
                   />
                   <TextField
                     label="Value"
                     value={attribute.value}
                     onChange={(e) => updateAttribute(index, 'value', e.target.value)}
-                    placeholder="e.g., Red, Large, Cotton"
+                    placeholder="e.g., Cotton, Samsung"
                     sx={{ flex: 1 }}
                   />
                   {attributes.length > 1 && (
@@ -411,7 +487,6 @@ const NewProductPage: React.FC = () => {
                   )}
                 </Box>
               ))}
-              
               <Button
                 startIcon={<AddIcon />}
                 onClick={addAttribute}

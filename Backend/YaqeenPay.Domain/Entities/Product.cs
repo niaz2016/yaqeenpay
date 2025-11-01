@@ -3,6 +3,16 @@ using YaqeenPay.Domain.ValueObjects;
 using YaqeenPay.Domain.Enums;
 
 namespace YaqeenPay.Domain.Entities;
+public class ProductVariant
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public decimal? Price { get; set; }
+    public int? StockQuantity { get; set; }
+    public string? Sku { get; set; }
+}
 
 public class Product : AuditableEntity
 {
@@ -41,6 +51,7 @@ public class Product : AuditableEntity
     public virtual ICollection<ProductImage> ProductImages { get; private set; } = new List<ProductImage>();
     public virtual ICollection<CartItem> CartItems { get; private set; } = new List<CartItem>();
     public virtual ICollection<OrderItem> OrderItems { get; private set; } = new List<OrderItem>();
+    public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
 
     private Product() { } // For EF Core
 

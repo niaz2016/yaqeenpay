@@ -36,6 +36,17 @@ public record UpdateProductCommand : IRequest<ApiResponse<Unit>>
     public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
     public List<string> ImagesToDelete { get; set; } = new List<string>();
     public List<CreateProductImageRequest> NewImages { get; set; } = new List<CreateProductImageRequest>();
+    // Variants supplied by frontend to replace existing variants
+    public List<CreateProductVariantRequest> Variants { get; set; } = new List<CreateProductVariantRequest>();
+}
+
+public record CreateProductVariantRequest
+{
+    public string? Size { get; set; }
+    public string? Color { get; set; }
+    public decimal? Price { get; set; }
+    public int? StockQuantity { get; set; }
+    public string? Sku { get; set; }
 }
 
 public class CreateProductImageRequest
@@ -186,6 +197,36 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
                 }
 
                 _context.ProductImages.Add(productImage);
+            }
+        }
+
+        // Replace product variants if provided
+        if (request.Variants != null)
+        {
+            // Remove existing variants for this product
+            var existingVariants = await _context.ProductVariants
+                .Where(v => v.ProductId == product.Id)
+                .ToListAsync(cancellationToken);
+
+            if (existingVariants.Any())
+            {
+                _context.ProductVariants.RemoveRange(existingVariants);
+            }
+
+            // Add new variants
+            foreach (var v in request.Variants)
+            {
+                var variant = new ProductVariant
+                {
+                    ProductId = product.Id,
+                    Size = v.Size,
+                    Color = v.Color,
+                    Price = v.Price ?? null,
+                    StockQuantity = v.StockQuantity ?? null,
+                    Sku = v.Sku
+                };
+
+                _context.ProductVariants.Add(variant);
             }
         }
 

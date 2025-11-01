@@ -331,310 +331,287 @@ const MarketplacePage: React.FC = () => {
     return (
         <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, position: 'relative' }}>
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', margin: '1' }}>
                     <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                         Marketplace
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Discover amazing products from verified sellers
-                    </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                    {isSeller && (
-                        <>
-                            <Button
-                                variant="outlined"
-                                onClick={() => navigate('/seller/marketplace')}
-                            >
-                                Manage My Products
-                            </Button>
-                        </>
-                    )}
-                </Box>
-            </Box>
-
-    {/* Filters */ }
-    < Card sx={{ mb: 3 }}>
-        <CardContent sx={{ pt: 3 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-                <TextField
-                    placeholder="Search products..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <SearchIcon />
-                            </InputAdornment>
-                        ),
-                    }}
-                    helperText={
-                        search.length > 0 && search.length < SEARCH_MIN_CHARS
-                            ? `Enter at least ${SEARCH_MIN_CHARS} characters to search`
-                            : ''
-                    }
-                    sx={{ flex: 1 }}
-                />
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
-
-                    {/* MUI Select */}
-                    <FormControl sx={{ minWidth: 200 }}>
-                        <InputLabel id="marketplace-category-label">Category</InputLabel>
-                        <Select
-                            labelId="marketplace-category-label"
-                            value={selectedCategory}
-                            onChange={(e) => {
-                                setSelectedCategory(e.target.value);
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                        <TextField
+                            placeholder="Search products..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
                             }}
-                            label="Category"
-                            disabled={categoriesLoading}
-                            MenuProps={{
-                                PaperProps: {
-                                    style: {
-                                        maxHeight: 300,
-                                        zIndex: 1500,
-                                    },
-                                },
-                                anchorOrigin: {
-                                    vertical: 'bottom',
-                                    horizontal: 'left',
-                                },
-                                transformOrigin: {
-                                    vertical: 'top',
-                                    horizontal: 'left',
-                                },
-                            }}
-                        >
-                            <MenuItem value="">All Categories</MenuItem>
-                            {categoriesLoading ? (
-                                <MenuItem disabled>Loading categories...</MenuItem>
-                            ) : (
-                                [
-                                    /* Only render backend categories */
-                                    ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
-                                        <MenuItem key={category.id} value={category.id}>
-                                            {category.name}
-                                        </MenuItem>
-                                    )),
+                            helperText={
+                                search.length > 0 && search.length < SEARCH_MIN_CHARS
+                                    ? `Enter at least ${SEARCH_MIN_CHARS} characters to search`
+                                    : ''
+                            }
+                            sx={{ flex: 1 }}
+                        />
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
 
-                                    /* Show message if no categories loaded */
-                                    ...(categories.length === 0 ? [(
-                                        <MenuItem key="no-categories" disabled>
-                                            <Typography variant="body2" color="error">
-                                                No categories available
-                                            </Typography>
-                                        </MenuItem>
-                                    )] : [])
-                                ]
-                            )}
-                        </Select>
-                    </FormControl>
-                </Box>
-            </Box>
-        </CardContent>
-    </Card >
-
-    {/* Error Alert */ }
-    {
-        error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-                {error}
-            </Alert>
-        )
-    }
-
-    {/* Products Grid */ }
-    {
-        (() => {
-            return null;
-        })()
-    }
-    {
-        products.length === 0 ? (
-            <Card>
-                <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                    <StoreIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h5" sx={{ mb: 1 }}>
-                        {search || selectedCategory ? "No products found" : "No products available"}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                        {search || selectedCategory
-                            ? "Try adjusting your search criteria or browse all categories."
-                            : "Be the first to discover products when sellers start listing them!"}
-                    </Typography>
-                </CardContent>
-            </Card>
-        ) : (
-            <>
-                {/* Product Count Display */}
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                        Showing {((page - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(page * PRODUCTS_PER_PAGE, totalCount)} of {totalCount} products
-                        {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {PRODUCTS_PER_PAGE} per page
-                    </Typography>
-                </Box>
-
-                <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: {
-                        xs: 'repeat(2, 1fr)',
-                        sm: 'repeat(2, 1fr)',
-                        md: 'repeat(3, 1fr)',
-                        lg: 'repeat(4, 1fr)'
-                    },
-                    gap: { xs: 1, sm: 2, md: 3 }
-                }}>
-                    {Array.isArray(products) && products.map(product => (
-                        <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            <CardMedia
-                                component="img"
-                                height={isMobile ? 120 : 200}
-                                image={getPrimaryImage(product.images)}
-                                alt={product.name}
-                                loading="lazy"
-                                sx={{
-                                    objectFit: 'cover',
-                                    cursor: 'pointer',
-                                    backgroundColor: '#f5f5f5'
-                                }}
-                                onClick={() => navigate(`/products/${product.id}`)}
-                                onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    // Use same local placeholder as getPrimaryImage function
-                                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
-                                }}
-                            />
-                            <CardContent sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-                                <Typography
-                                    variant="h6"
-                                    component="h3"
-                                    sx={{ 
-                                        fontWeight: 'bold', 
-                                        mb: 1, 
-                                        cursor: 'pointer',
-                                        fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+                            {/* MUI Select */}
+                            <FormControl sx={{ minWidth: 200 }}>
+                                <InputLabel id="marketplace-category-label">Category</InputLabel>
+                                <Select
+                                    labelId="marketplace-category-label"
+                                    value={selectedCategory}
+                                    onChange={(e) => {
+                                        setSelectedCategory(e.target.value);
                                     }}
-                                    onClick={() => navigate(`/products/${product.id}`)}
+                                    label="Category"
+                                    disabled={categoriesLoading}
+                                    MenuProps={{
+                                        PaperProps: {
+                                            style: {
+                                                maxHeight: 300,
+                                                zIndex: 1500,
+                                            },
+                                        },
+                                        anchorOrigin: {
+                                            vertical: 'bottom',
+                                            horizontal: 'left',
+                                        },
+                                        transformOrigin: {
+                                            vertical: 'top',
+                                            horizontal: 'left',
+                                        },
+                                    }}
                                 >
-                                    {product.name}
-                                </Typography>
+                                    <MenuItem value="">All Categories</MenuItem>
+                                    {categoriesLoading ? (
+                                        <MenuItem disabled>Loading categories...</MenuItem>
+                                    ) : (
+                                        [
+                                            /* Only render backend categories */
+                                            ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
+                                                <MenuItem key={category.id} value={category.id}>
+                                                    {category.name}
+                                                </MenuItem>
+                                            )),
 
-                                {product.seller && (
-                                    <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            By: {product.seller.businessName}
-                                        </Typography>
-                                        {sellerRatings[product.seller.id]?.totalRatings > 0 && 
-                                            <RatingBadge stats={sellerRatings[product.seller.id]} size="small" />
-                                        }
-                                    </Stack>
-                                )}
-
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                    {categoryService.getCategoryName(product.category?.id || product.category?.name || '', categories)}
-                                </Typography>
-
-                                <Box sx={{ mb: 2 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        {product.isOnSale ? (
-                                            <>
-                                                <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
-                                                    {formatPrice(product.effectivePrice, product.currency)}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
-                                                >
-                                                    {formatPrice(product.price, product.currency)}
-                                                </Typography>
-
-                                            </>
-                                        ) : (
-                                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                                                {formatPrice(product.price, product.currency)}
-                                            </Typography>
-                                        )}
-                                    </Box>
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 1, mt: 'auto', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
-                                    {!isSeller && (
-                                        <>
-                                            <Button
-                                                variant="contained"
-                                                size={isMobile ? 'large' : 'small'}
-                                                startIcon={<CartIcon />}
-                                                onClick={() => handleAddToCart(product)}
-                                                disabled={product.stockQuantity === 0}
-                                                fullWidth={isMobile}
-                                            >
-                                                Add to Cart
-                                            </Button>
-                                            {product.isOnSale && (
-                                                <Chip
-                                                    label="Sale"
-                                                    color="error"
-                                                    size={isMobile ? 'medium' : 'small'}
-                                                    sx={isMobile ? { alignSelf: 'flex-start', mt: 1 } : undefined}
-                                                />
-                                            )}
-                                        </>
+                                            /* Show message if no categories loaded */
+                                            ...(categories.length === 0 ? [(
+                                                <MenuItem key="no-categories" disabled>
+                                                    <Typography variant="body2" color="error">
+                                                        No categories available
+                                                    </Typography>
+                                                </MenuItem>
+                                            )] : [])
+                                        ]
                                     )}
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </Box>
                 </Box>
-            </>
-        )
-    }
 
-    {/* Pagination */ }
-    {
-        totalPages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                <Pagination
-                    count={totalPages}
-                    page={page}
-                    onChange={handlePageChange}
-                    color="primary"
-                    size="large"
-                />
-            </Box>
-        )
-    }
+            {/* Error Alert */}
+            {
+                error && (
+                    <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                        {error}
+                    </Alert>
+                )
+            }
 
-    {/* Floating Cart Button */ }
-    {
-        !isSeller && cartCount > 0 && (
-            <Fab
-                color="primary"
-                sx={{ position: 'fixed', bottom: 20, right: 20 }}
-                onClick={() => navigate('/cart')}
-            >
-                <Badge badgeContent={cartCount} color="error">
-                    <CartIcon />
-                </Badge>
-            </Fab>
-        )
-    }
+            {/* Products Grid */}
+            {
+                (() => {
+                    return null;
+                })()
+            }
+            {
+                products.length === 0 ? (
+                    <Card>
+                        <CardContent sx={{ textAlign: 'center', py: 8 }}>
+                            <StoreIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="h5" sx={{ mb: 1 }}>
+                                {search || selectedCategory ? "No products found" : "No products available"}
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                {search || selectedCategory
+                                    ? "Try adjusting your search criteria or browse all categories."
+                                    : "Be the first to discover products when sellers start listing them!"}
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        {/* Product Count Display */}
+                        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Showing {((page - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(page * PRODUCTS_PER_PAGE, totalCount)} of {totalCount} products
+                                {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {PRODUCTS_PER_PAGE} per page
+                            </Typography>
+                        </Box>
 
-    {/* Floating Add Product Button for Sellers */ }
-    {
-        isSeller && (
-            <Fab
-                color="secondary"
-                sx={{ position: 'fixed', bottom: 20, right: 20 }}
-                onClick={() => navigate('/seller/products/new')}
-                aria-label="Add new product"
-            >
-                <AddIcon />
-            </Fab>
-        )
-    }
+                        <Box sx={{
+                            display: 'grid',
+                            gridTemplateColumns: {
+                                xs: 'repeat(2, 1fr)',
+                                sm: 'repeat(2, 1fr)',
+                                md: 'repeat(3, 1fr)',
+                                lg: 'repeat(4, 1fr)'
+                            },
+                            gap: { xs: 1, sm: 2, md: 3 }
+                        }}>
+                            {Array.isArray(products) && products.map(product => (
+                                <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <CardMedia
+                                        component="img"
+                                        height={isMobile ? 120 : 200}
+                                        image={getPrimaryImage(product.images)}
+                                        alt={product.name}
+                                        loading="lazy"
+                                        sx={{
+                                            objectFit: 'cover',
+                                            cursor: 'pointer',
+                                            backgroundColor: '#f5f5f5'
+                                        }}
+                                        onClick={() => navigate(`/products/${product.id}`)}
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            // Use same local placeholder as getPrimaryImage function
+                                            target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik0xMjAgODBDMTIwIDkxLjA0NTcgMTI5Ljk1NCA5OCAxNDIgOThDMTU0LjA0NiA5OCAxNjQgOTEuMDQ1NyAxNjQgODBDMTY0IDY4Ljk1NDMgMTU0LjA0NiA2MiAxNDIgNjJDMTI5Ljk1NCA2MiAxMjAgNjguOTU0MyAxMjAgODBaIiBmaWxsPSIjOUU5RTlFIi8+CjxwYXRoIGQ9Ik0xMDAgMTQwTDE4NCAxNDBMMTY0IDExNkwxNDIgMTMwTDEyMCAxMTZMMTAwIDE0MFoiIGZpbGw9IiM5RTlFOUUiLz4KPHR5cGUgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM2NjY2NjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjE1MCIgeT0iMTcwIj5ObyBJbWFnZTwvdHlwZT4KPC9zdmc+';
+                                        }}
+                                    />
+                                    <CardContent sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
+                                        <Typography
+                                            variant="h6"
+                                            component="h3"
+                                            sx={{
+                                                fontWeight: 'bold',
+                                                mb: 1,
+                                                cursor: 'pointer',
+                                                fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
+                                            }}
+                                            onClick={() => navigate(`/products/${product.id}`)}
+                                        >
+                                            {product.name}
+                                        </Typography>
+
+                                        {product.seller && (
+                                            <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    By: {product.seller.businessName}
+                                                </Typography>
+                                                {sellerRatings[product.seller.id]?.totalRatings > 0 &&
+                                                    <RatingBadge stats={sellerRatings[product.seller.id]} size="small" />
+                                                }
+                                            </Stack>
+                                        )}
+
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                            {categoryService.getCategoryName(product.category?.id || product.category?.name || '', categories)}
+                                        </Typography>
+
+                                        <Box sx={{ mb: 2 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                {product.isOnSale ? (
+                                                    <>
+                                                        <Typography variant="h6" color="success.main" sx={{ fontWeight: 'bold' }}>
+                                                            {formatPrice(product.effectivePrice, product.currency)}
+                                                        </Typography>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
+                                                        >
+                                                            {formatPrice(product.price, product.currency)}
+                                                        </Typography>
+
+                                                    </>
+                                                ) : (
+                                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                                        {formatPrice(product.price, product.currency)}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                        <Box sx={{ display: 'flex', gap: 1, mt: 'auto', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
+                                            {!isSeller && (
+                                                <>
+                                                    <Button
+                                                        variant="contained"
+                                                        size={isMobile ? 'large' : 'small'}
+                                                        startIcon={<CartIcon />}
+                                                        onClick={() => handleAddToCart(product)}
+                                                        disabled={product.stockQuantity === 0}
+                                                        fullWidth={isMobile}
+                                                    >
+                                                        Add to Cart
+                                                    </Button>
+                                                    {product.isOnSale && (
+                                                        <Chip
+                                                            label="Sale"
+                                                            color="error"
+                                                            size={isMobile ? 'medium' : 'small'}
+                                                            sx={isMobile ? { alignSelf: 'flex-start', mt: 1 } : undefined}
+                                                        />
+                                                    )}
+                                                </>
+                                            )}
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </Box>
+                    </>
+                )
+            }
+
+            {/* Pagination */}
+            {
+                totalPages > 1 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                        <Pagination
+                            count={totalPages}
+                            page={page}
+                            onChange={handlePageChange}
+                            color="primary"
+                            size="large"
+                        />
+                    </Box>
+                )
+            }
+
+            {/* Floating Cart Button */}
+            {
+                !isSeller && cartCount > 0 && (
+                    <Fab
+                        color="primary"
+                        sx={{ position: 'fixed', bottom: 20, right: 20 }}
+                        onClick={() => navigate('/cart')}
+                    >
+                        <Badge badgeContent={cartCount} color="error">
+                            <CartIcon />
+                        </Badge>
+                    </Fab>
+                )
+            }
+
+            {/* Floating Add Product Button for Sellers */}
+            {
+                isSeller && (
+                    <Fab
+                        color="secondary"
+                        sx={{ position: 'fixed', bottom: 20, right: 20 }}
+                        onClick={() => navigate('/seller/products/new')}
+                        aria-label="Add new product"
+                    >
+                        <AddIcon />
+                    </Fab>
+                )
+            }
         </Box >
     );
 };

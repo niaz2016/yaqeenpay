@@ -14,24 +14,31 @@ import {
   Alert,
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
-import { resetPasswordSchema } from '../../utils/validationSchemas';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
 import authService from '../../services/authService';
-import type { z } from 'zod';
+
+const resetPasswordSchema = z.object({
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ['confirmPassword'],
+});
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 const ResetPasswordForm: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Get email from location state if available
-  const email = location.state?.email || '';
+  // Get token from URL query parameters
+  const token = searchParams.get('token');
 
   const {
     control,
@@ -40,7 +47,6 @@ const ResetPasswordForm: React.FC = () => {
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      code: '',
       newPassword: '',
       confirmPassword: '',
     },
@@ -50,24 +56,24 @@ const ResetPasswordForm: React.FC = () => {
     try {
       setIsSubmitting(true);
       setError(null);
+
+      if (!token) {
+        setError('Invalid reset link. Please request a new password reset.');
+        return;
+      }
       
-      const result = await authService.resetPassword({
-        email,
-        code: data.code,
+      await authService.resetPassword({
+        token: token,
         newPassword: data.newPassword,
         confirmPassword: data.confirmPassword,
       });
       
-      if (result.success) {
-        setSuccess('Password reset successful! You can now login with your new password.');
-        
-        // Redirect to login page after a delay
-        setTimeout(() => {
-          navigate('/auth/login');
-        }, 2000);
-      } else {
-        setError('Failed to reset password. Please check your code and try again.');
-      }
+      setSuccess('Password reset successful! You can now login with your new password.');
+      
+      // Redirect to login page after a delay
+      setTimeout(() => {
+        navigate('/auth/login');
+      }, 2000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -94,7 +100,7 @@ const ResetPasswordForm: React.FC = () => {
       </Typography>
 
       <Typography variant="body2" sx={{ mb: 3, textAlign: 'center' }}>
-        Enter the verification code sent to your email and create a new password.
+        Enter your new password below.
       </Typography>
 
       {error && (
@@ -110,24 +116,6 @@ const ResetPasswordForm: React.FC = () => {
       )}
 
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Controller
-          name="code"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              margin="normal"
-              required
-              fullWidth
-              id="code"
-              label="Verification Code"
-              autoFocus
-              error={!!errors.code}
-              helperText={errors.code?.message}
-            />
-          )}
-        />
-
         <Controller
           name="newPassword"
           control={control}

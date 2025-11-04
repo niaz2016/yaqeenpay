@@ -80,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Interfaces.IAdminConfigurationService, Services.AdminConfigurationService>();
         services.AddScoped<IDeviceService, DeviceService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<Application.Common.Interfaces.IEmailService, Services.EmailService>();
 
         // Identity services
         services.AddIdentity<ApplicationUser, ApplicationRole>()

@@ -1,0 +1,7 @@
+POST http://localhost:8081/api/webhooks/bank-sms
+Content-Type: application/json
+X-Webhook-Secret: test123
+
+{
+  "sms": "MUHAMMAD NIAZ, PKR 1000.00 received from Test User A/C via Raast on 03/11/2025 15:15:00, TXN ID TEST123456789. UAN:021111111425."
+}

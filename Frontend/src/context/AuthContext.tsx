@@ -8,7 +8,7 @@ import { locationService } from '../services/locationService';
 interface AuthContextType extends AuthState {
   login: (email: string, password: string, captchaToken?: string) => Promise<User>;
   loginWithGoogle: (idToken: string) => Promise<User>;
-  register: (formData: any) => Promise<void>;
+  register: (formData: any) => Promise<string>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -206,10 +206,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Register function
-  const register = async (formData: any) => {
+  const register = async (formData: any): Promise<string> => {
     try {
-      await authService.register(formData);
-      // Note: Usually registration requires verification before login
+      const userId = await authService.register(formData);
+      // Return userId for email verification
+      return userId;
     } catch (error) {
       throw error;
     }

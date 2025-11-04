@@ -388,6 +388,14 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ maxHeight =
     deleteNotification,
   } = useNotifications();
 
+  // Debug logging
+  console.log('[NotificationDropdown] Render:', { 
+    statsUnread: stats.unread, 
+    statsTotal: stats.total,
+    showButton: stats.unread > 0,
+    notificationsCount: notifications.length 
+  });
+
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };

@@ -19,6 +19,7 @@ public class UserProfileDto
     public string? PostalCode { get; set; }
     public bool IsEmailVerified { get; set; }
     public bool IsPhoneVerified { get; set; }
+    public bool HasPassword { get; set; }
     public KycStatus KycStatus { get; set; }
     public int ProfileCompleteness { get; set; }
     public List<string> Roles { get; set; } = new();

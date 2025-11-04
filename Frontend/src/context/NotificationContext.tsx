@@ -97,28 +97,25 @@ function notificationReducer(state: NotificationState, action: NotificationActio
     
     case 'SET_NOTIFICATIONS':
       // Sort notifications by creation date (newest first)
+      // Use the backend response as source of truth - don't merge with stale local state
       const sortedNotifications = [...action.payload.notifications]
-        // First, merge with existing notifications to preserve read status
-        .map(notification => {
-          const existing = state.notifications.find(n => n.id === notification.id);
-          // If notification exists and was previously marked as read, preserve that status
-          if (existing && existing.status === 'read') {
-            return {
-              ...notification,
-              status: 'read' as const,
-              readAt: existing.readAt
-            };
-          }
-          return notification;
-        })
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-      // Now recalculate stats based on actual notification statuses
-      const currentUnreadCount = sortedNotifications.filter(n => n.status === 'unread').length;
+      // Recalculate stats based on actual notification statuses from backend
+      const currentUnreadCount = sortedNotifications.filter(n => 
+        n.status && n.status.toString().toLowerCase() === 'unread'
+      ).length;
       const updatedStats = {
         ...action.payload.stats,
         unread: currentUnreadCount
       };
+
+      console.log('[NotificationContext] SET_NOTIFICATIONS:', {
+        totalNotifications: sortedNotifications.length,
+        unreadFromBackend: action.payload.stats.unread,
+        unreadCalculated: currentUnreadCount,
+        notifications: sortedNotifications.map(n => ({ id: n.id, status: n.status, readAt: n.readAt }))
+      });
 
       return {
         ...state,
@@ -140,7 +137,9 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         stats: {
           ...state.stats,
           total: state.stats.total + 1,
-          unread: action.payload.status === 'unread' ? state.stats.unread + 1 : state.stats.unread,
+          unread: action.payload.status && action.payload.status.toString().toLowerCase() === 'unread' 
+            ? state.stats.unread + 1 
+            : state.stats.unread,
           byType: {
             ...state.stats.byType,
             [action.payload.type]: state.stats.byType[action.payload.type] + 1,
@@ -169,7 +168,9 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         stats: deletedNotification ? {
           ...state.stats,
           total: state.stats.total - 1,
-          unread: deletedNotification.status === 'unread' ? state.stats.unread - 1 : state.stats.unread,
+          unread: deletedNotification.status && deletedNotification.status.toString().toLowerCase() === 'unread' 
+            ? state.stats.unread - 1 
+            : state.stats.unread,
           byType: {
             ...state.stats.byType,
             [deletedNotification.type]: Math.max(0, state.stats.byType[deletedNotification.type] - 1),
@@ -184,7 +185,9 @@ function notificationReducer(state: NotificationState, action: NotificationActio
     case 'DELETE_MULTIPLE':
       const remainingNotifications = state.notifications.filter(n => !action.payload.includes(n.id));
       const deletedItems = state.notifications.filter(n => action.payload.includes(n.id));
-      const unreadDeleted = deletedItems.filter(n => n.status === 'unread').length;
+      const unreadDeleted = deletedItems.filter(n => 
+        n.status && n.status.toString().toLowerCase() === 'unread'
+      ).length;
       
       return {
         ...state,
@@ -202,9 +205,10 @@ function notificationReducer(state: NotificationState, action: NotificationActio
           ? { ...notification, status: 'read' as const, readAt: new Date().toISOString() }
           : notification
       );
-      const unreadCount = action.payload.filter(id => 
-        state.notifications.find(n => n.id === id)?.status === 'unread'
-      ).length;
+      const unreadCount = action.payload.filter(id => {
+        const notif = state.notifications.find(n => n.id === id);
+        return notif && notif.status && notif.status.toString().toLowerCase() === 'unread';
+      }).length;
       
       return {
         ...state,
@@ -219,7 +223,9 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       const allReadNotifications = state.notifications.map(notification => ({
         ...notification,
         status: 'read' as const,
-        readAt: notification.status === 'unread' ? new Date().toISOString() : notification.readAt,
+        readAt: notification.status && notification.status.toString().toLowerCase() === 'unread' 
+          ? new Date().toISOString() 
+          : notification.readAt,
       }));
       
       return {
@@ -345,23 +351,52 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const markAsRead = useCallback(async (notificationIds: string[]) => {
     try {
+      console.log('[NotificationContext] markAsRead START:', {
+        notificationIds,
+        currentUnread: state.stats.unread,
+        currentNotifications: state.notifications.length
+      });
+      
       await notificationService.markAsRead(notificationIds);
-      dispatch({ type: 'MARK_AS_READ', payload: notificationIds });
+      console.log('[NotificationContext] markAsRead API SUCCESS, now refetching...');
+      
+      // Refetch notifications to get authoritative state from backend
+      // Use a larger limit to ensure we get all notifications
+      await fetchNotifications({ page: 1, limit: 100 });
+      
+      console.log('[NotificationContext] markAsRead REFETCH COMPLETE:', {
+        newUnread: state.stats.unread,
+        newNotifications: state.notifications.length
+      });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark notifications as read' });
       console.error('Error marking notifications as read:', error);
     }
-  }, []);
+  }, [fetchNotifications, state.stats.unread, state.notifications.length]);
 
   const markAllAsRead = useCallback(async () => {
     try {
+      console.log('[NotificationContext] markAllAsRead START:', {
+        currentUnread: state.stats.unread,
+        currentNotifications: state.notifications.length
+      });
+      
       await notificationService.markAllAsRead();
-      dispatch({ type: 'MARK_ALL_AS_READ' });
+      console.log('[NotificationContext] markAllAsRead API SUCCESS, now refetching...');
+      
+      // Refetch notifications to get authoritative state from backend
+      // Use a larger limit to ensure we get all notifications that were just marked as read
+      await fetchNotifications({ page: 1, limit: 100 });
+      
+      console.log('[NotificationContext] markAllAsRead REFETCH COMPLETE:', {
+        newUnread: state.stats.unread,
+        newNotifications: state.notifications.length
+      });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark all notifications as read' });
       console.error('Error marking all notifications as read:', error);
     }
-  }, []);
+  }, [fetchNotifications, state.stats.unread, state.notifications.length]);
 
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {

@@ -80,11 +80,36 @@ export class PermissionService {
     }
 
     try {
-      const result = await PermissionManager.requestAllPermissions();
-      return result.permissions;
+      // Prefer requesting only critical permissions based on env flags
+      await this.requestCriticalPermissions();
+      return await this.checkAllPermissions();
     } catch (error) {
       console.error('Error requesting permissions:', error);
       return this.getDefaultPermissions(false);
+    }
+  }
+
+  /**
+   * Request only the critical permissions based on env flags.
+   * INTERNET/ACCESS_NETWORK_STATE are normal permissions and don't need runtime prompts.
+   */
+  async requestCriticalPermissions(): Promise<void> {
+    if (!this.isNative) return;
+    const critical = this.getCriticalPermissions();
+    const runtimePerms = critical.filter((p) => [
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.READ_SMS',
+      'android.permission.CAMERA',
+      'android.permission.POST_NOTIFICATIONS',
+    ].includes(p));
+
+    for (const perm of runtimePerms) {
+      try {
+        await this.requestPermission(perm);
+      } catch (e) {
+        console.warn('Permission request failed for', perm, e);
+      }
     }
   }
 
@@ -122,18 +147,29 @@ export class PermissionService {
   }
 
   /**
-   * Get critical permissions that must be granted for app to function
+   * Get critical permissions required, based on env flags.
+   * For login-only in APK, we require location only.
    */
   getCriticalPermissions(): string[] {
-    return [
+    const smsEnabled = (import.meta.env.VITE_ENABLE_SMS_READING as string) === 'true';
+    const cameraEnabled = (import.meta.env.VITE_ENABLE_CAMERA as string) === 'true';
+    const notificationsEnabled = (import.meta.env.VITE_ENABLE_NOTIFICATIONS as string) === 'true';
+    const locationEnabled = (import.meta.env.VITE_ENABLE_LOCATION_TRACKING as string) !== 'false';
+
+    const perms: string[] = [
+      // Always allow network access but don't prompt (no runtime prompt on Android for these)
       'android.permission.INTERNET',
-      'android.permission.ACCESS_NETWORK_STATE',
-      'android.permission.READ_SMS',
-      'android.permission.ACCESS_FINE_LOCATION',
-      'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.CAMERA',
-      'android.permission.POST_NOTIFICATIONS'
+      'android.permission.ACCESS_NETWORK_STATE'
     ];
+
+    if (locationEnabled) {
+      perms.push('android.permission.ACCESS_FINE_LOCATION');
+      perms.push('android.permission.ACCESS_COARSE_LOCATION');
+    }
+    if (smsEnabled) perms.push('android.permission.READ_SMS');
+    if (cameraEnabled) perms.push('android.permission.CAMERA');
+    if (notificationsEnabled) perms.push('android.permission.POST_NOTIFICATIONS');
+    return perms;
   }
 
   /**
@@ -156,10 +192,17 @@ export class PermissionService {
    */
   async hasCriticalPermissions(): Promise<boolean> {
     const permissions = await this.checkAllPermissions();
-    return permissions.sms.granted && 
-           permissions.location.granted && 
-           permissions.camera.granted &&
-           permissions.notifications.granted;
+    const smsEnabled = (import.meta.env.VITE_ENABLE_SMS_READING as string) === 'true';
+    const cameraEnabled = (import.meta.env.VITE_ENABLE_CAMERA as string) === 'true';
+    const notificationsEnabled = (import.meta.env.VITE_ENABLE_NOTIFICATIONS as string) === 'true';
+    const locationEnabled = (import.meta.env.VITE_ENABLE_LOCATION_TRACKING as string) !== 'false';
+
+    // Only require what's enabled; by default, for APK we only require location
+    if (locationEnabled && !permissions.location.granted) return false;
+    if (smsEnabled && !permissions.sms.granted) return false;
+    if (cameraEnabled && !permissions.camera.granted) return false;
+    if (notificationsEnabled && !permissions.notifications.granted) return false;
+    return true;
   }
 
   /**

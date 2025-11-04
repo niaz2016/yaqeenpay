@@ -15,6 +15,7 @@ export interface ProfileDetails {
   postalCode?: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
+  hasPassword: boolean;
   profileCompleted: boolean;
   completionPercentage: number;
   profileCompleteness?: number; // backend name
@@ -38,7 +39,7 @@ export interface ProfileUpdateRequest {
 }
 
 export interface ChangePasswordRequest {
-  currentPassword: string;
+  currentPassword?: string; // Optional for OAuth users setting password for first time
   newPassword: string;
   confirmPassword: string;
 }

@@ -35,6 +35,20 @@ builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompress
     options.Level = System.IO.Compression.CompressionLevel.Fastest;
 });
 
+// Configure Kestrel to allow larger request bodies (for file uploads)
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 52_428_800; // 50MB
+});
+
+// Configure FormOptions for multipart form data (file uploads)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 52_428_800; // 50MB
+    options.MultipartHeadersLengthLimit = 16384;
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -92,49 +106,31 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        // Get allowed origins from configuration
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-            ?? new[] { "http://localhost", "https://localhost" };
-        
-        // Add development origins and mobile app origins
-        var origins = new List<string>(allowedOrigins);
-        
-        // Mobile app origins (Capacitor)
-        origins.AddRange(new[] 
-        { 
-            "capacitor://localhost",
-            "ionic://localhost",
-            "http://localhost",
-            "http://127.0.0.1",
-            "https://127.0.0.1"
-        });
-        
-        // Allow any origin in development (for mobile debugging)
+        // In Development: allow everything for ease of testing
         if (builder.Environment.IsDevelopment())
         {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+            return;
         }
-        else
-        {
-            policy.WithOrigins(origins.ToArray())
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials()
-                  .SetIsOriginAllowed(origin =>
-                  {
-                      // Allow Capacitor and file protocol origins for mobile apps
-                      if (string.IsNullOrEmpty(origin)) return true;
-                      if (origin.StartsWith("capacitor://")) return true;
-                      if (origin.StartsWith("ionic://")) return true;
-                      if (origin.StartsWith("http://localhost")) return true;
-                      if (origin.StartsWith("file://")) return true;
-                      return origins.Contains(origin);
-                  });
-        }
+
+        // In Production: echo back any Origin (including capacitor://localhost) safely
+        // so preflight succeeds and the browser sees proper CORS headers.
+        policy
+            .SetIsOriginAllowed(_ => true) // reflect request origin
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+
+        // If you REQUIRE cookies, uncomment the next line and ensure responses do not use '*'
+        // policy.AllowCredentials();
     });
 });
+
+// Configure Email Settings
+builder.Services.Configure<YaqeenPay.Application.Common.Models.EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
 
 // Add data migration service
 builder.Services.AddTransient<DataMigrationService>();
@@ -168,6 +164,33 @@ app.UseAuthorization();
 
 // Serve static files (wwwroot) so uploaded files under wwwroot/uploads are accessible
 app.UseStaticFiles();
+
+// Serve KYC documents from Documents folder
+var documentsPath = builder.Configuration["DocumentStorage:BasePath"] 
+    ?? Path.Combine(Directory.GetCurrentDirectory(), "Documents");
+
+if (!Directory.Exists(documentsPath))
+{
+    Directory.CreateDirectory(documentsPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(documentsPath),
+    RequestPath = "/documents",
+    OnPrepareResponse = ctx =>
+    {
+        // Add security headers for document access
+        ctx.Context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+        
+        // Allow documents to be viewed in browser
+        var fileExtension = Path.GetExtension(ctx.File.Name).ToLowerInvariant();
+        if (fileExtension == ".pdf")
+        {
+            ctx.Context.Response.Headers.Append("Content-Disposition", "inline");
+        }
+    }
+});
 
 app.MapControllers();
 

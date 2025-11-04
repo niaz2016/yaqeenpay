@@ -167,7 +167,7 @@ class AuthService {
     }
   }
 
-  async register(credentials: RegisterCredentials): Promise<void> {
+  async register(credentials: RegisterCredentials): Promise<string> {
     // Backend requires 'UserName'; map from email if not provided
     const payload = {
       email: credentials.email,
@@ -180,8 +180,10 @@ class AuthService {
       role: credentials.role || 'buyer',
       ...(credentials.businessInfo && { businessInfo: credentials.businessInfo })
     };
-    await apiService.post<{ message: string }>('/auth/register', payload);
-    // Registration typically requires email/phone verification before login
+    // apiService.post already unwraps the ApiResponse<T>, so we get the guid directly
+    const userId = await apiService.post<string>('/auth/register', payload);
+    // Return userId from response for email verification
+    return userId;
   }
 
   async verifyOtp(verification: OtpVerification): Promise<{ success: boolean }> {
@@ -382,6 +384,12 @@ class AuthService {
     return apiService.post<{ success: boolean }>('/auth/change-password', {
       oldPassword,
       newPassword,
+    });
+  }
+
+  async resendVerificationEmailByEmail(email: string): Promise<{ success: boolean; message: string }> {
+    return apiService.post<{ success: boolean; message: string }>('/auth/resend-verification-email-by-email', {
+      email,
     });
   }
 

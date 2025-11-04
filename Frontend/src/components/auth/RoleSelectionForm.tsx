@@ -28,7 +28,7 @@ const RoleSelectionForm: React.FC<RoleSelectionFormProps> = ({
   onBack 
 }) => {
   return (
-    <Paper elevation={3} sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
+    <Paper elevation={3} sx={{ p: 1, maxWidth: '100vh', mx: 'auto' }}>
       <Box sx={{ textAlign: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Join YaqeenPay

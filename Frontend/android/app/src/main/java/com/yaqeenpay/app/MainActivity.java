@@ -14,13 +14,10 @@ public class MainActivity extends BridgeActivity {
     
     private static final int PERMISSION_REQUEST_CODE = 1000;
     
-    // Critical permissions that should be requested on startup
+    // Request ONLY location at startup. Other permissions are optional and requested on-demand in-app.
     private static final String[] CRITICAL_PERMISSIONS = {
-        Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
-        Manifest.permission.READ_SMS,
-        Manifest.permission.POST_NOTIFICATIONS
+        Manifest.permission.ACCESS_COARSE_LOCATION
     };
     
     @Override

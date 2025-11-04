@@ -301,7 +301,12 @@ class ApiService {
         if (response.data.success) {
           return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
-          throw new Error(response.data.message || 'API error');
+          // Include detailed errors from the response
+          let errorMessage = response.data.message || 'API error';
+          if (response.data.errors && Array.isArray(response.data.errors) && response.data.errors.length > 0) {
+            errorMessage = response.data.errors.join('\n');
+          }
+          throw new Error(errorMessage);
         }
       }
       
@@ -331,7 +336,12 @@ class ApiService {
         if (response.data.success) {
           return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
-          throw new Error(response.data.message || 'API error');
+          // Include detailed errors from the response
+          let errorMessage = response.data.message || 'API error';
+          if (response.data.errors && Array.isArray(response.data.errors) && response.data.errors.length > 0) {
+            errorMessage = response.data.errors.join('\n');
+          }
+          throw new Error(errorMessage);
         }
       }
       
@@ -352,7 +362,12 @@ class ApiService {
         if (response.data.success) {
           return (response.data.data !== undefined && response.data.data !== null) ? response.data.data : response.data;
         } else {
-          throw new Error(response.data.message || 'API error');
+          // Include detailed errors from the response
+          let errorMessage = response.data.message || 'API error';
+          if (response.data.errors && Array.isArray(response.data.errors) && response.data.errors.length > 0) {
+            errorMessage = response.data.errors.join('\n');
+          }
+          throw new Error(errorMessage);
         }
       }
       

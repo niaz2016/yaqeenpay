@@ -21,6 +21,8 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { Capacitor } from '@capacitor/core';
+import { mobileGoogleSignIn } from '../../services/mobileOAuth';
 import { loginSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import authService from '../../services/authService';
@@ -51,6 +53,10 @@ const LoginForm: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true); // Default to checked
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaError, setCaptchaError] = useState('');
+  const [showEmailVerificationError, setShowEmailVerificationError] = useState(false);
+  const [emailForVerification, setEmailForVerification] = useState('');
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [resendVerificationSuccess, setResendVerificationSuccess] = useState('');
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
@@ -65,7 +71,9 @@ const LoginForm: React.FC = () => {
   }, [clientId]);
   
   // Show Google Sign-In if we have a client ID (works in mobile apps and browsers)
-  const showGoogleSignIn = Boolean(clientId);
+  // IMPORTANT: Only treat true native (Capacitor runtime) as native; window.Capacitor can exist on web builds
+  const isNative = Capacitor.isNativePlatform();
+  const showGoogleSignIn = Boolean(clientId) && !isNative; // Use web button only on web
 
   // Get pre-filled email and message from navigation state (post-OTP verification)
   const locationState = location.state as { email?: string; message?: string } | undefined;
@@ -143,6 +151,14 @@ const LoginForm: React.FC = () => {
         status: err?.response?.status,
         requiresVerification: err?.requiresDeviceVerification
       });
+      
+      // Check if this is an email verification error
+      if (err?.message?.includes('verify your email')) {
+        setShowEmailVerificationError(true);
+        setEmailForVerification(data.email);
+      } else {
+        setShowEmailVerificationError(false);
+      }
       
       // Check if device verification is required
       if (err?.requiresDeviceVerification) {
@@ -280,6 +296,33 @@ const LoginForm: React.FC = () => {
     }
   }, [showGoogleSignIn]);
 
+  const handleGoogleMobile = async () => {
+    if (!clientId) {
+      setGoogleError('Google client ID missing');
+      return;
+    }
+    try {
+      setGoogleError('');
+      setGoogleLoading(true);
+      const credential = await mobileGoogleSignIn(clientId);
+      const user = await loginWithGoogle(credential);
+      const userRoles = user?.roles || [];
+      const isBuyerRole = !userRoles.some((role: string) =>
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
+      if (isBuyerRole) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (err: any) {
+      console.error('Google mobile sign-in failed:', err);
+      setGoogleError(err?.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleResendOtp = async () => {
     if (!deviceVerificationData || countdown > 0) return;
     
@@ -295,6 +338,28 @@ const LoginForm: React.FC = () => {
       setOtpError(''); // Clear any previous errors
     } catch (err: any) {
       setOtpError(err.message || 'Failed to resend OTP');
+    }
+  };
+
+  const handleResendVerificationEmail = async () => {
+    if (!emailForVerification) return;
+    
+    try {
+      setIsResendingVerification(true);
+      setResendVerificationSuccess('');
+      
+      await authService.resendVerificationEmailByEmail(emailForVerification);
+      
+      setResendVerificationSuccess('Verification email has been resent. Please check your inbox.');
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setResendVerificationSuccess('');
+      }, 5000);
+    } catch (err: any) {
+      console.error('Failed to resend verification email:', err);
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -359,9 +424,35 @@ const LoginForm: React.FC = () => {
         </Alert>
       )}
       
+      {resendVerificationSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {resendVerificationSuccess}
+        </Alert>
+      )}
+      
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
+          {showEmailVerificationError && (
+            <Box sx={{ mt: 1 }}>
+              <Button
+                size="small"
+                variant="text"
+                onClick={handleResendVerificationEmail}
+                disabled={isResendingVerification}
+                sx={{ 
+                  color: 'error.dark',
+                  textDecoration: 'underline',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    backgroundColor: 'transparent'
+                  }
+                }}
+              >
+                {isResendingVerification ? 'Sending...' : 'Resend verification email'}
+              </Button>
+            </Box>
+          )}
         </Alert>
       )}
       
@@ -494,6 +585,23 @@ const LoginForm: React.FC = () => {
                 Connecting to Google...
               </Typography>
             )}
+          </Box>
+        )}
+        {!showGoogleSignIn && Boolean(clientId) && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 1 }}>
+              Or continue with
+            </Typography>
+            {googleError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {googleError}
+              </Alert>
+            )}
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Button variant="outlined" onClick={handleGoogleMobile} disabled={googleLoading}>
+                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+              </Button>
+            </Box>
           </Box>
         )}
         

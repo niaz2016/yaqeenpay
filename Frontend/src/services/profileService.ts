@@ -26,6 +26,7 @@ class ProfileService {
       postalCode: raw.postalCode,
       isEmailVerified: (raw.isEmailVerified ?? raw.emailConfirmed) ?? false,
       isPhoneVerified: (raw.isPhoneVerified ?? raw.phoneNumberConfirmed ?? raw.phoneConfirmed) ?? false,
+      hasPassword: raw.hasPassword ?? true,
       profileCompleted: (raw.profileCompleted ?? false),
       completionPercentage: (raw.completionPercentage ?? raw.profileCompleteness ?? 0),
       profileCompleteness: raw.profileCompleteness,

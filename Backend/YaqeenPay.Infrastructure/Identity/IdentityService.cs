@@ -43,6 +43,17 @@ public class IdentityService : IIdentityService
             return IdentityResult.Failed(new IdentityError { Description = "User not found" });
         return await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
     }
+
+    public async Task<IdentityResult> SetPasswordAsync(Guid userId, string newPassword)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            return IdentityResult.Failed(new IdentityError { Description = "User not found" });
+        
+        // AddPasswordAsync is used for users who don't have a password yet (OAuth users)
+        return await _userManager.AddPasswordAsync(user, newPassword);
+    }
+
     public async Task<string> GetUserNameAsync(Guid userId)
     {
         var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -142,6 +153,57 @@ public class IdentityService : IIdentityService
         }
 
         return (Result.Success(), user);
+    }
+
+    public async Task<string> GenerateEmailVerificationTokenAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            throw new InvalidOperationException("User not found");
+        }
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        return token;
+    }
+
+    public async Task<Result> VerifyEmailTokenAsync(Guid userId, string token)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return Result.Failure(new[] { "User not found" });
+        }
+
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        
+        if (result.Succeeded)
+        {
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+        }
+
+        return result.ToApplicationResult();
+    }
+
+    public async Task<Result> ConfirmEmailAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+        {
+            return Result.Failure(new[] { "User not found" });
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return Result.Success(); // Already confirmed
+        }
+
+        user.EmailConfirmed = true;
+        user.EmailVerifiedAt = DateTime.UtcNow;
+        
+        var result = await _userManager.UpdateAsync(user);
+        return result.ToApplicationResult();
     }
 }
 public static class IdentityResultExtensions

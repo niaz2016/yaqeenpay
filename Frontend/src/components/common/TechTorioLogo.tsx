@@ -20,8 +20,9 @@ const TechTorioLogo: React.FC<TechTorioLogoProps> = ({
   sx 
 }) => {
   const { height, fontSize } = sizeMap[size];
-  const basePath = import.meta.env.VITE_BASE_PATH || '/';
-  const logoPath = basePath === '/' ? '/techtorio-logo.svg' : `${basePath}techtorio-logo.svg`;
+  // Use Vite's BASE_URL which always ends with '/'
+  const base = (import.meta.env.BASE_URL || '/');
+  const logoPath = `${base}techtorio-logo.svg`;
   
   return (
     <Box

@@ -140,8 +140,11 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                     return false;
                 }
 
-                // Update user wallet balance
-                var wallet = await _context.Wallets.FirstOrDefaultAsync(x => x.UserId == topupLock.UserId);
+                // Update user wallet balance - Include Transactions for proper EF tracking
+                var wallet = await _context.Wallets
+                    .Include(w => w.Transactions)
+                    .FirstOrDefaultAsync(x => x.UserId == topupLock.UserId);
+                    
                 if (wallet == null)
                 {
                     // Create wallet if doesn't exist

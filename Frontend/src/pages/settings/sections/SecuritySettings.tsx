@@ -62,6 +62,7 @@ const SecuritySettings: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [hasPassword, setHasPassword] = useState<boolean>(true); // Track if user has password
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -77,6 +78,19 @@ const SecuritySettings: React.FC = () => {
       setSecuritySettings(settings.security);
     }
   }, [settings]);
+
+  // Fetch profile to check if user has password
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await profileService.getProfile();
+        setHasPassword(profile.hasPassword);
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (field: keyof SecuritySettingsType, value: any) => {
     setSecuritySettings(prev => ({
@@ -107,6 +121,12 @@ const SecuritySettings: React.FC = () => {
   };
 
   const handleChangePassword = async () => {
+    // For users with existing password, current password is required
+    if (hasPassword && !passwordForm.currentPassword) {
+      setError('Current password is required');
+      return;
+    }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setError('New passwords do not match');
       return;
@@ -122,19 +142,20 @@ const SecuritySettings: React.FC = () => {
       setError('');
 
       const result = await profileService.changePassword({
-        currentPassword: passwordForm.currentPassword,
+        currentPassword: hasPassword ? passwordForm.currentPassword : undefined,
         newPassword: passwordForm.newPassword,
         confirmPassword: passwordForm.confirmPassword,
       });
 
       if (result.success) {
         setSuccess(true);
-        setSuccessMessage('Password changed successfully!');
+        setSuccessMessage(hasPassword ? 'Password changed successfully!' : 'Password set successfully!');
         setShowChangePassword(false);
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         setShowCurrentPassword(false);
         setShowNewPassword(false);
         setShowConfirmPassword(false);
+        setHasPassword(true); // User now has a password
         
         // Update last password change timestamp in security settings
         const updatedSettings = {
@@ -149,13 +170,13 @@ const SecuritySettings: React.FC = () => {
           setSuccessMessage('');
         }, 5000);
       } else {
-        setError(result.message || 'Failed to change password. Please try again.');
+        setError(result.message || `Failed to ${hasPassword ? 'change' : 'set'} password. Please try again.`);
       }
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Failed to change password. Please try again.');
+        setError(`Failed to ${hasPassword ? 'change' : 'set'} password. Please try again.`);
       }
     } finally {
       setChangingPassword(false);
@@ -231,7 +252,7 @@ const SecuritySettings: React.FC = () => {
       )}
 
       {/* Security Score */}
-      <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+      <Paper elevation={1} sx={{ py: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <ShieldIcon color="primary" />
           <Typography variant="h6">
@@ -399,32 +420,39 @@ const SecuritySettings: React.FC = () => {
         maxWidth="sm" 
         fullWidth
       >
-        <DialogTitle>Change Password</DialogTitle>
+        <DialogTitle>{hasPassword ? 'Change Password' : 'Set Password'}</DialogTitle>
         <DialogContent>
+          {!hasPassword && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              You registered using Google OAuth and don't have a password yet. Set a password to enable traditional login.
+            </Alert>
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
-            <TextField
-              fullWidth
-              type={showCurrentPassword ? 'text' : 'password'}
-              label="Current Password"
-              value={passwordForm.currentPassword}
-              onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-              disabled={changingPassword}
-              InputProps={{
-                endAdornment: (
-                  <IconButton
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    edge="end"
-                    disabled={changingPassword}
-                  >
-                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                ),
-              }}
-            />
+            {hasPassword && (
+              <TextField
+                fullWidth
+                type={showCurrentPassword ? 'text' : 'password'}
+                label="Current Password"
+                value={passwordForm.currentPassword}
+                onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                disabled={changingPassword}
+                InputProps={{
+                  endAdornment: (
+                    <IconButton
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      edge="end"
+                      disabled={changingPassword}
+                    >
+                      {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  ),
+                }}
+              />
+            )}
             <TextField
               fullWidth
               type={showNewPassword ? 'text' : 'password'}
-              label="New Password"
+              label={hasPassword ? "New Password" : "Password"}
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
               disabled={changingPassword}
@@ -445,7 +473,7 @@ const SecuritySettings: React.FC = () => {
             <TextField
               fullWidth
               type={showConfirmPassword ? 'text' : 'password'}
-              label="Confirm New Password"
+              label={hasPassword ? "Confirm New Password" : "Confirm Password"}
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
               disabled={changingPassword}
@@ -485,7 +513,7 @@ const SecuritySettings: React.FC = () => {
             variant="contained"
             disabled={
               changingPassword ||
-              !passwordForm.currentPassword ||
+              (hasPassword && !passwordForm.currentPassword) ||
               !passwordForm.newPassword ||
               !passwordForm.confirmPassword ||
               passwordForm.newPassword.length < 8 ||
@@ -493,7 +521,7 @@ const SecuritySettings: React.FC = () => {
             }
             startIcon={changingPassword ? <CircularProgress size={20} /> : null}
           >
-            {changingPassword ? 'Changing...' : 'Change Password'}
+            {changingPassword ? `${hasPassword ? 'Changing' : 'Setting'}...` : `${hasPassword ? 'Change' : 'Set'} Password`}
           </Button>
         </DialogActions>
       </Dialog>

@@ -146,7 +146,7 @@ const SettingsPage: React.FC = () => {
 
   const drawer = (
     <Box sx={{ height: '100%' }}>
-      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ p: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Settings
         </Typography>

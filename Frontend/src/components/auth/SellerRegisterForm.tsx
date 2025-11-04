@@ -23,7 +23,7 @@ import { Visibility, VisibilityOff, ArrowBack, Store } from '@mui/icons-material
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { useAuth } from '../../context/AuthContext';
-import profileService from '../../services/profileService';
+import EmailOtpVerification from './EmailOtpVerification';
 
 // Extended schema for seller registration
 const sellerRegisterSchema = z.object({
@@ -73,6 +73,11 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
+  
+  // Email verification state
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   const steps = ['Personal Information', 'Business Details', 'Terms & Agreements'];
 
@@ -139,32 +144,48 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
         }
       };
 
-      await register(registrationData);
+      const userId = await register(registrationData);
 
-      // Request SMS OTP to phone via profile verification endpoint
-      try {
-        await profileService.requestPhoneVerification(data.phoneNumber);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (/too many attempts/i.test(msg)) {
-          sessionStorage.setItem('otp_rate_limited', '1');
-        }
-        console.warn('Failed to request SMS OTP', e);
+      // Store userId and email for verification
+      if (userId) {
+        setUserId(userId);
+        setUserEmail(data.email);
+        setShowEmailVerification(true);
+      } else {
+        setError('Registration failed. Please try again.');
       }
-
-      // Save pending login creds to auto-login after OTP
-      sessionStorage.setItem('pending_login_email', data.email);
-      // Password not stored for security reasons
-      sessionStorage.setItem('pending_login_channel', 'phone');
-      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
-
-      navigate('/auth/verify-phone', { state: { phoneNumber: data.phoneNumber, channel: 'phone' } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleVerificationSuccess = () => {
+    // Clear session storage from old phone verification flow
+    sessionStorage.removeItem('pending_login_email');
+    sessionStorage.removeItem('pending_login_channel');
+    sessionStorage.removeItem('pending_login_target');
+    sessionStorage.removeItem('otp_rate_limited');
+    
+    // Navigate to login with success message
+    navigate('/auth/login', { 
+      state: { 
+        message: 'Email verified successfully! You can now log in to your account.' 
+      } 
+    });
+  };
+
+  // If showing email verification, render that instead
+  if (showEmailVerification && userId && userEmail) {
+    return (
+      <EmailOtpVerification
+        userId={userId}
+        email={userEmail}
+        onVerificationSuccess={handleVerificationSuccess}
+      />
+    );
+  }
 
   const renderPersonalInfo = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

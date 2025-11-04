@@ -27,10 +27,42 @@ export interface NotificationHistory {
   data?: Record<string, any>;
 }
 
+// Maps legacy/granular client event types to the backend's enum categories
+// Backend enum: Order, Payment, Kyc, System, Security, Promotion, Wallet, Seller
+function mapToApiNotificationType(input: string | undefined): 'Order' | 'Payment' | 'Kyc' | 'System' | 'Security' | 'Promotion' | 'Wallet' | 'Seller' {
+  if (!input) return 'System';
+  const t = String(input).toLowerCase();
+  // Wallet domain
+  if (t === 'wallet' || t.startsWith('withdrawal') || t.includes('topup') || t.includes('top-up')) return 'Wallet';
+  // Payment domain
+  if (t.startsWith('payment') || t.includes('escrow')) return 'Payment';
+  // Order domain
+  if (t.startsWith('order')) return 'Order';
+  // KYC domain
+  if (t.startsWith('kyc')) return 'Kyc';
+  // Security/auth domain
+  if (t.includes('login') || t.includes('security') || t.includes('device')) return 'Security';
+  // Seller domain
+  if (t.startsWith('seller')) return 'Seller';
+  // Promotion/marketing
+  if (t.startsWith('promo') || t.startsWith('offer')) return 'Promotion';
+  // Default
+  return 'System';
+}
+
 class NotificationService {
   async sendNotification(notification: NotificationPayload): Promise<void> {
     try {
-      await apiService.post('/notifications/send', notification);
+      // Convert legacy payload type to backend enum category
+      const apiPayload = {
+        recipientId: notification.recipientId,
+        type: mapToApiNotificationType(notification.type),
+        title: notification.title,
+        message: notification.message,
+        data: notification.data
+      };
+
+      await apiService.post('/notifications/send', apiPayload);
       
       // Show browser notification if permission granted
       if (Notification.permission === 'granted') {
@@ -148,7 +180,7 @@ class NotificationService {
     try {
       await apiService.post('/notifications/send', {
         recipientId: userId,
-        type: 'wallet',
+        type: mapToApiNotificationType('wallet'),
         title: 'Withdrawal Request Submitted',
         message: `Your withdrawal request of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} has been submitted and is being processed.`,
         priority: 'medium',
@@ -170,7 +202,7 @@ class NotificationService {
     try {
       await apiService.post('/notifications/send', {
         recipientId: userId,
-        type: 'wallet',
+        type: mapToApiNotificationType('wallet'),
         title: 'Withdrawal Approved ✅',
         message: `Your withdrawal of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} has been approved and processed.`,
         priority: 'high',
@@ -192,7 +224,7 @@ class NotificationService {
     try {
       await apiService.post('/notifications/send', {
         recipientId: userId,
-        type: 'wallet',
+        type: mapToApiNotificationType('wallet'),
         title: 'Withdrawal Request Rejected ❌',
         message: `Your withdrawal request of ${amount ? amount.toLocaleString() : '0'} Wallet Credits via ${method} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
         priority: 'high',

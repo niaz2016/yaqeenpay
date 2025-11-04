@@ -351,43 +351,6 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
                   </Typography>
                 )}
               </Box>
-
-              {paymentClaimed && (
-                <Alert severity="info" sx={{ width: '100%' }}>
-                  Waiting for confirmation... You can leave this dialog open or press Cancel to dismiss.
-                </Alert>
-              )}
-
-              <Alert severity="info" sx={{ width: '100%' }}>
-                <Typography variant="body2">
-                  <strong>Amount: {qrResponse.suggestedAmount.toFixed(2)} Wallet Credits</strong> (embedded in QR code)<br/>
-                  Simply scan this QR code with your banking app to complete payment.<br/>
-                  Once payment is completed, your wallet will be automatically updated.
-                </Typography>
-              </Alert>
-
-              {/* Debug: Show raw QR payload */}
-              {qrResponse.qrPayload && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, width: '100%' }}>
-                  <Typography variant="caption" color="textSecondary" gutterBottom>
-                    Debug - QR Code String:
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      fontFamily: 'monospace', 
-                      wordBreak: 'break-all',
-                      fontSize: '0.75rem',
-                      color: 'text.secondary'
-                    }}
-                  >
-                    {qrResponse.qrPayload}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
-                    Length: {qrResponse.qrPayload.length} characters
-                  </Typography>
-                </Box>
-              )}
             </Stack>
           )
         )}

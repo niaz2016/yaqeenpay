@@ -26,14 +26,14 @@ RUN dotnet restore --configfile NuGet.Config -p:RestoreFallbackFolders=
 # Copy source code
 COPY . .
 
-# Build the application
-RUN dotnet build -c Release --no-restore
+# Build the application (explicitly specify solution to avoid MSB1011)
+RUN dotnet build YaqeenPay.sln -c Release --no-restore
 
 # Publish the application
 RUN dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 
 WORKDIR /app
 

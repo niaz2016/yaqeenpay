@@ -13,22 +13,31 @@ namespace YaqeenPay.Infrastructure.Persistence.Configurations
             builder.Property(w => w.UserId)
                 .IsRequired();
             
+            // Add unique index on UserId to prevent duplicate wallets
+            builder.HasIndex(w => w.UserId)
+                .IsUnique();
+            
             builder.Property(w => w.IsActive)
                 .IsRequired();
             
-            // ValueObject configuration
+            // ValueObject configuration with backing field tracking
             builder.OwnsOne(w => w.Balance, balance =>
             {
                 balance.Property(m => m.Amount)
-                    .HasColumnName("Balance")
+                    .HasColumnName("Balance_Amount")
                     .HasColumnType("decimal(18,2)")
                     .IsRequired();
                 
                 balance.Property(m => m.Currency)
-                    .HasColumnName("Currency")
+                    .HasColumnName("Balance_Currency")
                     .HasMaxLength(3)
                     .IsRequired();
             });
+            
+            builder.Navigation(w => w.Balance)
+                .IsRequired()
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasField("_balance");
 
             builder.OwnsOne(w => w.FrozenBalance, frozenBalance =>
             {
@@ -42,6 +51,11 @@ namespace YaqeenPay.Infrastructure.Persistence.Configurations
                     .HasMaxLength(3)
                     .IsRequired();
             });
+            
+            builder.Navigation(w => w.FrozenBalance)
+                .IsRequired()
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasField("_frozenBalance");
             
             // Relationships
             builder.HasOne(w => w.User)

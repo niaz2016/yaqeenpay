@@ -25,12 +25,13 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
 
     public async Task<ApiResponse<GetSellerProducts.ProductDto>> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
+        // Do not filter by IsActive here so the owner/admin can retrieve even inactive/soft-deleted products for editing
         var product = await _context.Products
             .Include(p => p.Category)
             .Include(p => p.ProductImages.OrderBy(img => img.SortOrder))
             .Include(p => p.Seller)
                 .ThenInclude(s => s.BusinessProfile)
-            .FirstOrDefaultAsync(p => p.Id == request.Id && p.IsActive, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
         if (product == null)
         {
@@ -41,8 +42,8 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
         var currentUserId = _currentUserService.UserId;
         if (currentUserId != product.SellerId && !_currentUserService.IsInRole("Admin"))
         {
-            // For non-owners, only return active products
-            if (product.Status != ProductStatus.Active)
+            // For non-owners, only return active and public (IsActive) products
+            if (product.Status != ProductStatus.Active || !product.IsActive)
             {
                 return ApiResponse<GetSellerProducts.ProductDto>.FailureResponse("Product not found.");
             }

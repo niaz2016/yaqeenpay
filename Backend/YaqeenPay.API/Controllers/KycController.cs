@@ -18,6 +18,7 @@ public class KycController : ApiControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(52_428_800)] // 50MB max for KYC documents
     public async Task<IActionResult> SubmitDocument(SubmitKycDocumentCommand command)
     {
         var result = await Mediator.Send(command);

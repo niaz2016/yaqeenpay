@@ -25,6 +25,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link for Google OAuth callback -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="yaqeenpay"
+                    android:host="auth-callback"
+                    android:path="/google" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -40,9 +51,10 @@
 
     <!-- Permissions -->
 
-    <!-- Network & Internet (Required for API calls) -->
+    <!-- Network & Internet (INTERNET required for API calls) -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Remove ACCESS_NETWORK_STATE to avoid extra permission listing -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
     
     <!-- Location Permissions (for login location detection) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -63,6 +75,10 @@
     <uses-permission android:name="android.permission.WRITE_CONTACTS" tools:node="remove" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" tools:node="remove" />
     <uses-permission android:name="android.permission.CALL_PHONE" tools:node="remove" />
+    <!-- Be defensive: explicitly remove common auto-added permissions if any plugin/library contributes them -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
     
     <!-- Features -->
     <uses-feature android:name="android.hardware.location" android:required="false" />

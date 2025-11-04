@@ -6,9 +6,20 @@ namespace YaqeenPay.Domain.Entities
 {
     public class Wallet : AuditableEntity
     {
+        private Money _balance = null!;
+        private Money _frozenBalance = null!;
+        
         public Guid UserId { get; private set; }
-        public Money Balance { get; private set; } = null!;
-        public Money FrozenBalance { get; private set; } = null!;
+        public Money Balance 
+        { 
+            get => _balance;
+            private set => _balance = value;
+        }
+        public Money FrozenBalance 
+        { 
+            get => _frozenBalance;
+            private set => _frozenBalance = value;
+        }
         public new bool IsActive { get; private set; } = true;
         
         // Navigation properties
@@ -52,7 +63,8 @@ namespace YaqeenPay.Domain.Entities
             if (amount.Currency != Balance.Currency)
                 throw new ArgumentException($"Currency mismatch. Wallet currency: {Balance.Currency}, Transaction currency: {amount.Currency}");
 
-            Balance += amount;
+            // Update balance via backing field to ensure EF Core tracks the change
+            _balance = new Money(Balance.Amount + amount.Amount, Balance.Currency);
             
             // Record transaction
             var transaction = new WalletTransaction(
@@ -78,7 +90,8 @@ namespace YaqeenPay.Domain.Entities
             if (Balance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient funds. Available: {Balance.Amount}, Required: {amount.Amount}");
 
-            Balance -= amount;
+            // Update balance via backing field to ensure EF Core tracks the change
+            _balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
             
             // Record transaction
             var transaction = new WalletTransaction(
@@ -116,7 +129,8 @@ namespace YaqeenPay.Domain.Entities
             if (!HasSufficientFunds(amount))
                 throw new InvalidOperationException($"Insufficient available funds. Available: {GetAvailableBalance().Amount}, Required: {amount.Amount}");
 
-            FrozenBalance += amount;
+            // Update frozen balance via backing field to ensure EF Core tracks the change
+            _frozenBalance = new Money(FrozenBalance.Amount + amount.Amount, FrozenBalance.Currency);
             
             // Record transaction for freeze
             var transaction = new WalletTransaction(
@@ -144,7 +158,8 @@ namespace YaqeenPay.Domain.Entities
             if (FrozenBalance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient frozen funds. Frozen: {FrozenBalance.Amount}, Unfreeze amount: {amount.Amount}");
 
-            FrozenBalance -= amount;
+            // Update frozen balance via backing field to ensure EF Core tracks the change
+            _frozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
             
             // Record transaction for unfreeze
             var transaction = new WalletTransaction(
@@ -171,9 +186,9 @@ namespace YaqeenPay.Domain.Entities
             if (FrozenBalance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient frozen funds. Frozen: {FrozenBalance.Amount}, Transfer amount: {amount.Amount}");
 
-            // Reduce both frozen balance and total balance
-            FrozenBalance -= amount;
-            Balance -= amount;
+            // Reduce both frozen balance and total balance via backing fields to ensure EF Core tracks these changes
+            _frozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
+            _balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
             
             // Record transaction for frozen to debit transfer
             var transaction = new WalletTransaction(

@@ -11,7 +11,7 @@ import {
   Link,
   Alert,
 } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { forgotPasswordSchema } from '../../utils/validationSchemas';
 import authService from '../../services/authService';
 import type { z } from 'zod';
@@ -19,7 +19,6 @@ import type { z } from 'zod';
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPasswordForm: React.FC = () => {
-  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -40,18 +39,9 @@ const ForgotPasswordForm: React.FC = () => {
       setIsSubmitting(true);
       setError(null);
       
-      const result = await authService.forgotPassword(data.email);
+      await authService.forgotPassword(data.email);
       
-      setSuccess(result.message || 'Reset instructions sent to your email.');
-      
-      // Redirect to reset password page after a delay
-      setTimeout(() => {
-        navigate('/auth/reset-password', { 
-          state: { 
-            email: data.email 
-          } 
-        });
-      }, 2000);
+      setSuccess('If an account exists with that email, you will receive a password reset link. Please check your email inbox and spam folder.');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

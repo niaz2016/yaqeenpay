@@ -7,12 +7,57 @@ Write-Host ""
 # Check prerequisites
 Write-Host "Checking prerequisites..." -ForegroundColor Yellow
 
+function Ensure-Java {
+    param()
+    try {
+        $javaVersion = & java -version 2>&1 | Select-String "version" | Select-Object -First 1
+        if ($javaVersion) {
+            Write-Host "checkmark Java found: $javaVersion" -ForegroundColor Green
+            return $true
+        }
+    } catch {}
+
+    # Try to locate common JDK installations and set JAVA_HOME
+    Write-Host "Warning: Java not on PATH, attempting auto-detection..." -ForegroundColor Yellow
+    $javaPaths = @(
+        "C:\Program Files\Eclipse Adoptium\jdk-25*",
+        "C:\Program Files\Eclipse Adoptium\jdk-21*",
+        "C:\Program Files\Java\jdk-25*",
+        "C:\Program Files\Java\jdk-21*",
+    )
+    foreach ($path in $javaPaths) {
+        $found = Get-Item $path -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($found) {
+            $env:JAVA_HOME = $found.FullName
+            $javaBin = Join-Path $env:JAVA_HOME 'bin'
+            if (-not ($env:Path -split ';' | Where-Object { $_ -eq $javaBin })) {
+                $env:Path = "$javaBin;" + $env:Path
+            }
+            Write-Host "checkmark Using JAVA_HOME: $env:JAVA_HOME" -ForegroundColor Green
+            break
+        }
+    }
+
+    try {
+        $javaCmd = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin\java.exe' } else { 'java' }
+        if (Test-Path $javaCmd) {
+            $javaVersion = & $javaCmd -version 2>&1 | Select-String "version" | Select-Object -First 1
+            if ($javaVersion) {
+                Write-Host "checkmark Java found after setup: $javaVersion" -ForegroundColor Green
+                return $true
+            } else {
+                Write-Host "checkmark Java executable found at: $javaCmd" -ForegroundColor Green
+                return $true
+            }
+        }
+    } catch {}
+
+    return $false
+}
+
 # Check Java
-try {
-    $javaVersion = & java -version 2>&1 | Select-String "version" | Select-Object -First 1
-    Write-Host "checkmark Java found: $javaVersion" -ForegroundColor Green
-} catch {
-    Write-Host "X Java not found - Please install Java JDK 17" -ForegroundColor Red
+if (-not (Ensure-Java)) {
+    Write-Host "X Java not found - Please install Java JDK 17 (or 21)" -ForegroundColor Red
     Write-Host "Download from: https://adoptium.net/" -ForegroundColor Yellow
     exit 1
 }
@@ -22,7 +67,11 @@ if (-not $env:JAVA_HOME) {
     Write-Host "Warning: JAVA_HOME not set, attempting to find Java..." -ForegroundColor Yellow
     
     $javaPaths = @(
+        "C:\Program Files\Eclipse Adoptium\jdk-25*",
+        "C:\Program Files\Eclipse Adoptium\jdk-21*",
         "C:\Program Files\Eclipse Adoptium\jdk-17*",
+        "C:\Program Files\Java\jdk-25*",
+        "C:\Program Files\Java\jdk-21*",
         "C:\Program Files\Java\jdk-17*",
         "C:\Program Files\Java\jdk-11*"
     )
@@ -39,6 +88,11 @@ if (-not $env:JAVA_HOME) {
     if ($javaHome) {
         $env:JAVA_HOME = $javaHome
         Write-Host "checkmark Found Java at: $javaHome" -ForegroundColor Green
+        # Ensure JAVA_HOME/bin is in PATH for this session
+        $javaBin = Join-Path $javaHome 'bin'
+        if (-not ($env:Path -split ';' | Where-Object { $_ -eq $javaBin })) {
+            $env:Path = "$javaBin;" + $env:Path
+        }
     } else {
         Write-Host "X Could not find Java installation" -ForegroundColor Red
         exit 1
@@ -82,7 +136,8 @@ Write-Host "checkmark Dependencies installed" -ForegroundColor Green
 # Step 4: Build frontend with mobile config
 Write-Host ""
 Write-Host "Step 4: Building frontend for mobile..." -ForegroundColor Yellow
-npm run build
+# Use Vite mode 'mobile' to ensure .env.mobile is loaded (overrides .env.production)
+npm run build:mobile
 if ($LASTEXITCODE -ne 0) {
     Write-Host "X Frontend build failed" -ForegroundColor Red
     exit 1

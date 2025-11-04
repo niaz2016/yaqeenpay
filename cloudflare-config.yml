@@ -2,11 +2,15 @@
 # Copy this content to: C:\Users\Precision\.cloudflared\config.yml
 
 tunnel: niaz
-credentials-file: C:\Users\Precision\.cloudflared\0c9e15ed-9dfa-47d3-a7b1-5f1153757b7e.json
+credentials-file: C:\Users\Precision\.cloudflared\4b01e093-5efb-4362-907c-60ac3bbbdb88.json
 
 ingress:
   # Main YaqeenPay application
   - hostname: techtorio.online
+    service: http://localhost:8080
+  
+  # WWW subdomain (redirect to main domain)
+  - hostname: www.techtorio.online
     service: http://localhost:8080
   
   # API subdomain for mobile apps or external integrations
@@ -16,6 +20,6 @@ ingress:
   # Admin panel subdomain (optional, for separate admin access)
   - hostname: admin.techtorio.online
     service: http://localhost:8080
-  
+
   # Catch-all rule (required - must be last)
   - service: http_status:404

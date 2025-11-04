@@ -90,7 +90,9 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
     setError('');
 
     try {
-      const result = await permissionService.requestAllPermissions();
+      // Request only critical permissions as per env flags
+      await permissionService.requestCriticalPermissions();
+      const result = await permissionService.refreshPermissions();
       
       // Add a small delay and refresh permissions to ensure accurate status
       console.log('Initial permission result:', result);
@@ -103,11 +105,17 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
       setPermissions(refreshedResult);
       setStep('result');
 
-      // Check if critical permissions are granted
-      const hasCritical = refreshedResult.sms.granted && 
-                         refreshedResult.location.granted && 
-                         refreshedResult.camera.granted &&
-                         refreshedResult.notifications.granted;
+      // Check if critical permissions are granted (env-driven; default location only)
+      const smsEnabled = (import.meta.env.VITE_ENABLE_SMS_READING as string) === 'true';
+      const cameraEnabled = (import.meta.env.VITE_ENABLE_CAMERA as string) === 'true';
+      const notificationsEnabled = (import.meta.env.VITE_ENABLE_NOTIFICATIONS as string) === 'true';
+      const locationEnabled = (import.meta.env.VITE_ENABLE_LOCATION_TRACKING as string) !== 'false';
+      const hasCritical = (
+        (!smsEnabled || refreshedResult.sms.granted) &&
+        (!cameraEnabled || refreshedResult.camera.granted) &&
+        (!notificationsEnabled || refreshedResult.notifications.granted) &&
+        (!locationEnabled || refreshedResult.location.granted)
+      );
 
       console.log('Critical permissions check:', {
         sms: refreshedResult.sms.granted,
@@ -143,11 +151,20 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
     if (!permissions) return null;
 
     const permissionEntries = Object.entries(permissions);
-    const filteredPermissions = showOnlyRequired 
-      ? permissionEntries.filter(([key]) => {
-          const desc = permissionDescriptions[key];
-          return desc?.importance === 'critical';
-        })
+    const smsEnabled = (import.meta.env.VITE_ENABLE_SMS_READING as string) === 'true';
+    const cameraEnabled = (import.meta.env.VITE_ENABLE_CAMERA as string) === 'true';
+    const notificationsEnabled = (import.meta.env.VITE_ENABLE_NOTIFICATIONS as string) === 'true';
+    const locationEnabled = (import.meta.env.VITE_ENABLE_LOCATION_TRACKING as string) !== 'false';
+
+    const requiredKeys = new Set<string>([
+      ...(locationEnabled ? ['location'] : []),
+      ...(smsEnabled ? ['sms'] : []),
+      ...(cameraEnabled ? ['camera'] : []),
+      ...(notificationsEnabled ? ['notifications'] : []),
+    ]);
+
+    const filteredPermissions = showOnlyRequired
+      ? permissionEntries.filter(([key]) => requiredKeys.has(key))
       : permissionEntries;
 
     return (

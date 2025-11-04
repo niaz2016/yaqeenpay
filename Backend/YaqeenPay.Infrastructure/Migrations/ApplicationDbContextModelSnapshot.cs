@@ -750,6 +750,9 @@ namespace YaqeenPay.Infrastructure.Migrations
                     b.Property<string>("LastName")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("LastPasswordResetRequestAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -766,6 +769,12 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
+
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PasswordResetTokenExpiry")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
@@ -2280,7 +2289,8 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("Wallets");
                 });
@@ -3150,13 +3160,13 @@ namespace YaqeenPay.Infrastructure.Migrations
 
                             b1.Property<decimal>("Amount")
                                 .HasColumnType("decimal(18,2)")
-                                .HasColumnName("Balance");
+                                .HasColumnName("Balance_Amount");
 
                             b1.Property<string>("Currency")
                                 .IsRequired()
                                 .HasMaxLength(3)
                                 .HasColumnType("character varying(3)")
-                                .HasColumnName("Currency");
+                                .HasColumnName("Balance_Currency");
 
                             b1.HasKey("WalletId");
 

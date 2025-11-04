@@ -19,7 +19,6 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { registerSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
-import profileService from '../../services/profileService';
 import type { z } from 'zod';
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -65,35 +64,17 @@ const RegisterForm: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
       });
-      // Request SMS OTP to phone via profile verification endpoint
-      try {
-        await profileService.requestPhoneVerification(data.phoneNumber);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (/too many attempts/i.test(msg)) {
-          // Mark rate-limited so OTP screen can show a longer cooldown
-          sessionStorage.setItem('otp_rate_limited', '1');
-        }
-        console.warn('Failed to request SMS OTP', e);
-      }
 
-      // Save pending login email (no password for security)
-      sessionStorage.setItem('pending_login_email', data.email);
-      sessionStorage.setItem('pending_login_channel', 'phone');
-      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
-      // User will need to re-enter password after OTP verification for security
-
-  setSuccess('Registration successful! We sent an OTP to your mobile number.');
+      setSuccess('Registration successful! Please check your email for a verification link to activate your account.');
       
-      // Redirect to phone verification page
+      // Redirect to login page after showing success message
       setTimeout(() => {
-        navigate('/auth/verify-phone', { 
+        navigate('/auth/login', { 
           state: { 
-            phoneNumber: data.phoneNumber,
-            channel: 'phone',
+            message: 'Registration successful! Please check your email and click the verification link to activate your account.',
           } 
         });
-      }, 1200);
+      }, 3000);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

@@ -54,6 +54,7 @@ public class GetUserProfileQueryHandler : IRequestHandler<GetUserProfileQuery, U
             // Use verified timestamps if present, otherwise fall back to Identity's confirmation fields
             IsEmailVerified = user.IsEmailVerified || user.EmailConfirmed,
             IsPhoneVerified = user.IsPhoneVerified || user.PhoneNumberConfirmed,
+            HasPassword = !string.IsNullOrEmpty(user.PasswordHash),
             KycStatus = user.KycStatus,
             ProfileCompleteness = user.ProfileCompleteness,
             Roles = roles.ToList(),

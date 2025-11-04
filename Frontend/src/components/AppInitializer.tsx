@@ -162,7 +162,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
           open={showPermissionDialog}
           onClose={handlePermissionsSkipped}
           onPermissionsGranted={handlePermissionsGranted}
-          showOnlyRequired={false}
+          showOnlyRequired={true}
         />
       </>
     );

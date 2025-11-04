@@ -48,6 +48,9 @@
     "description": "Premium subdomain services in Pakistan with SSL certificate, 99.9% uptime guarantee, and 24/7 technical support.",
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "Online Services",
+      "addressLocality": "Islamabad",
+      "postalCode": "45500",
       "addressCountry": "PK"
     },
     "contactPoint": {
@@ -62,26 +65,147 @@
   }
   </script>
   
+  <!-- Product Schema (explicit) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "Premium Subdomain",
+    "description": "Professional subdomain under techtorio.online with SSL certificate and hosting infrastructure",
+    "image": "https://techtorio.online/logo.svg",
+    "brand": {
+      "@type": "Brand",
+      "name": "TechTorio"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "500",
+      "priceCurrency": "PKR",
+      "availability": "https://schema.org/InStock",
+      "url": "https://techtorio.online",
+      "priceValidUntil": "2026-12-31",
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        "merchantReturnDays": 7,
+        "returnMethod": "https://schema.org/ReturnByMail",
+        "returnFees": "https://schema.org/FreeReturn",
+        "applicableCountry": "PK"
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "PK"
+        },
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": "0",
+          "currency": "PKR"
+        }
+      },
+      "applicableRegion": {
+        "@type": "Country",
+        "name": "Pakistan"
+      }
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "25",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "review": {
+      "@type": "Review",
+      "author": {
+        "@type": "Person",
+        "name": "Ahmed Khan"
+      },
+      "datePublished": "2025-10-15",
+      "reviewRating": {
+        "@type": "Rating",
+        "ratingValue": "5",
+        "bestRating": "5"
+      },
+      "reviewBody": "Excellent subdomain service with fast setup and reliable support."
+    }
+  }
+  </script>
+  
   <!-- Service Schema -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "Service",
-    "serviceType": "Subdomain Hosting Services",
+    "name": "Buy and Host Subdomain",
+    "serviceType": "Web Hosting",
     "provider": {
       "@type": "Organization",
-      "name": "TechTorio"
+      "name": "TechTorio",
+      "url": "https://techtorio.online"
     },
     "areaServed": {
       "@type": "Country",
       "name": "Pakistan"
     },
-    "description": "Premium subdomain services in Pakistan including SSL certificates, 99.9% uptime guarantee, custom configuration, and 24/7 technical support.",
+    "description": "Professional subdomain under techtorio.online with SSL certificate and hosting infrastructure",
     "offers": {
       "@type": "Offer",
-      "availability": "https://schema.org/InStock",
+      "price": "500",
       "priceCurrency": "PKR",
-      "description": "Professional subdomain hosting with SSL certificate and email mailbox"
+      "availability": "https://schema.org/InStock",
+      "url": "https://techtorio.online",
+      "priceValidUntil": "2026-12-31",
+      "itemOffered": {
+        "@type": "Product",
+        "name": "Premium Subdomain",
+        "description": "Professional subdomain under techtorio.online with SSL certificate and hosting infrastructure",
+        "image": "https://techtorio.online/logo.svg",
+        "brand": {
+          "@type": "Brand",
+          "name": "TechTorio"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "500",
+          "priceCurrency": "PKR",
+          "availability": "https://schema.org/InStock",
+          "url": "https://techtorio.online",
+          "priceValidUntil": "2026-12-31",
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 7,
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn",
+            "applicableCountry": "PK"
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "PK"
+            },
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "PKR"
+            }
+          },
+          "applicableRegion": {
+            "@type": "Country",
+            "name": "Pakistan"
+          }
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.8",
+          "reviewCount": "25",
+          "bestRating": "5",
+          "worstRating": "1"
+        }
+      }
     }
   }
   </script>

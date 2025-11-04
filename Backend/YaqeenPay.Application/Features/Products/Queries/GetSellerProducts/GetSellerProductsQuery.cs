@@ -112,7 +112,7 @@ public class GetSellerProductsQueryHandler : IRequestHandler<GetSellerProductsQu
         var query = _context.Products
             .Include(p => p.Category)
             .Include(p => p.ProductImages.OrderBy(img => img.SortOrder))
-            .Where(p => p.SellerId == sellerId);
+            .Where(p => p.SellerId == sellerId && p.IsActive);
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(request.Search))

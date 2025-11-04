@@ -19,6 +19,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import VerifyOtpPage from './pages/auth/VerifyOtpPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 
 // Public Pages
 import LandingPage from './pages/landing/LandingPage';
@@ -108,7 +109,8 @@ const App: React.FC = () => {
               <Route path="/auth/register" element={<RegisterPage />} />
               <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/auth/verify-email" element={<VerifyOtpPage />} />
+              <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/auth/verify-otp" element={<VerifyOtpPage />} />
               <Route path="/auth/verify-phone" element={<VerifyOtpPage />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />

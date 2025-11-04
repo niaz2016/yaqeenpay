@@ -26,18 +26,18 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=YaqeenPay;Username=postgres;Password=L-v11wK8XyIadp4g;Port=5432;Pooling=true;MinPoolSize=5;MaxPoolSize=100;CommandTimeout=60;Timeout=60;
+      - FRONTEND_URL=https://techtorio.online
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - backend_documents:/app/Documents
     depends_on:
       - postgres
     # No host port published. Traffic flows through the frontend (Nginx) container proxying /api.
     networks:
       - yaqeenpay-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   frontend:
     build:
@@ -50,7 +50,7 @@ services:
       - yaqeenpay-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -65,7 +65,7 @@ services:
       - frontend
       - backend
     ports:
-      - "80:80"
+      - "8080:80"
     networks:
       - yaqeenpay-network
     restart: unless-stopped
@@ -76,6 +76,40 @@ services:
       retries: 3
       start_period: 40s
 
+  mailserver:
+    image: ghcr.io/docker-mailserver/docker-mailserver:latest
+    container_name: techtorio-mailserver
+    hostname: mail.techtorio.online
+    env_file: mailserver.env
+    ports:
+      # SMTP ports (email sending/receiving)
+      - "25:25"     # SMTP (incoming mail from other servers)
+      - "587:587"   # Submission (authenticated sending)
+      - "465:465"   # SMTPS (SSL/TLS)
+      # IMAP ports (email clients like Outlook, iPhone)
+      - "143:143"   # IMAP
+      - "993:993"   # IMAPS (SSL/TLS)
+      # POP3 ports (optional, for legacy clients)
+      - "110:110"   # POP3
+      - "995:995"   # POP3S (SSL/TLS)
+    volumes:
+      - mailserver_data:/var/mail
+      - mailserver_state:/var/mail-state
+      - mailserver_logs:/var/log/mail
+      - mailserver_config:/tmp/docker-mailserver
+      - ./mailserver-config/ssl:/tmp/docker-mailserver/ssl:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - yaqeenpay-network
+    restart: unless-stopped
+    stop_grace_period: 1m
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: "ss -lntp | grep -E ':25|:587|:993' || exit 1"
+      timeout: 3s
+      retries: 0
+
 networks:
   yaqeenpay-network:
     driver: bridge
@@ -83,4 +117,13 @@ networks:
 # Volumes for data persistence
 volumes:
   postgres_data:
+  backend_documents:
+    driver: local
+  mailserver_data:
+    driver: local
+  mailserver_state:
+    driver: local
+  mailserver_logs:
+    driver: local
+  mailserver_config:
     driver: local

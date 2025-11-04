@@ -155,12 +155,12 @@ public class Product : AuditableEntity
 
     public void UpdateTags(List<string> tags)
     {
-        Tags = tags ?? new List<string>();
+        Tags = tags != null ? new List<string>(tags) : new List<string>();
     }
 
     public void UpdateAttributes(Dictionary<string, string> attributes)
     {
-        Attributes = attributes ?? new Dictionary<string, string>();
+        Attributes = attributes != null ? new Dictionary<string, string>(attributes) : new Dictionary<string, string>();
     }
 
     public bool IsInStock()

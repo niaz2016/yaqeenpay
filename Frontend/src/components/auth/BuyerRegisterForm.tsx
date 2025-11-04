@@ -21,7 +21,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { registerSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import type { z } from 'zod';
-import profileService from '../../services/profileService';
+import EmailOtpVerification from './EmailOtpVerification';
 
 type BuyerRegisterFormData = z.infer<typeof registerSchema>;
 
@@ -36,7 +36,11 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  
+  // Email verification state
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
 
   const {
     control,
@@ -61,38 +65,21 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
       setIsSubmitting(true);
       setError(null);
       
-      await register({
+      const userId = await register({
         ...data,
         role: 'buyer', // Explicitly set role as buyer
         userName: data.userName || data.email,
       });
-      // Request OTP to phone via profile verification endpoint
-      try {
-        await profileService.requestPhoneVerification(data.phoneNumber);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : '';
-        if (/too many attempts/i.test(msg)) {
-          sessionStorage.setItem('otp_rate_limited', '1');
-        }
-        console.warn('Failed to request SMS OTP', e);
+
+      // Store userId and email for verification
+      if (userId) {
+        setUserId(userId);
+        setUserEmail(data.email);
+        // Don't set success message here - it will be shown in EmailOtpVerification
+        setShowEmailVerification(true);
+      } else {
+        setError('Registration failed. Please try again.');
       }
-
-      // Save pending login details for auto-login
-      sessionStorage.setItem('pending_login_email', data.email);
-      // Password not stored for security reasons
-      sessionStorage.setItem('pending_login_channel', 'phone');
-      sessionStorage.setItem('pending_login_target', data.phoneNumber || data.email);
-
-  setSuccess('Registration successful! An OTP has been sent to your mobile number.');
-
-      setTimeout(() => {
-        navigate('/auth/verify-phone', { 
-          state: { 
-            phoneNumber: data.phoneNumber,
-            channel: 'phone',
-          } 
-        });
-      }, 1200);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -103,6 +90,32 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
       setIsSubmitting(false);
     }
   };
+
+  const handleVerificationSuccess = () => {
+    // Clear session storage from old phone verification flow
+    sessionStorage.removeItem('pending_login_email');
+    sessionStorage.removeItem('pending_login_channel');
+    sessionStorage.removeItem('pending_login_target');
+    sessionStorage.removeItem('otp_rate_limited');
+    
+    // Navigate to login with success message
+    navigate('/auth/login', { 
+      state: { 
+        message: 'Email verified successfully! You can now log in to your account.' 
+      } 
+    });
+  };
+
+  // If showing email verification, render that instead
+  if (showEmailVerification && userId && userEmail) {
+    return (
+      <EmailOtpVerification
+        userId={userId}
+        email={userEmail}
+        onVerificationSuccess={handleVerificationSuccess}
+      />
+    );
+  }
 
   return (
     <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 600, mx: 'auto', width: '100%' }}>
@@ -119,12 +132,6 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
         </Alert>
       )}
 

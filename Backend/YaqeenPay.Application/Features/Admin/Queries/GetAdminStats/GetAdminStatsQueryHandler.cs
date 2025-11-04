@@ -46,16 +46,16 @@ public class GetAdminStatsQueryHandler : IRequestHandler<GetAdminStatsQuery, Adm
             .CountAsync(cancellationToken);
 
 
-        // Calculate total transaction volume from wallet transactions
-        var totalTransactionVolume = _context.WalletTransactions
+        // Calculate total transaction volume from wallet transactions  
+        var transactions = await _context.WalletTransactions
             .Where(t => t.Type == TransactionType.Payment || t.Type == TransactionType.Credit)
-            .AsEnumerable()
-            .Sum(t => t.Amount.Value);
+            .ToListAsync(cancellationToken);
+        var totalTransactionVolume = transactions.Sum(t => t.Amount.Amount);
 
         // Calculate total wallet balance across all users
-        var totalWalletBalance = _context.Wallets
-            .AsEnumerable()
-            .Sum(w => w.Balance.Value);
+        var wallets = await _context.Wallets
+            .ToListAsync(cancellationToken);
+        var totalWalletBalance = wallets.Sum(w => w.Balance.Amount);
 
         // Calculate monthly growth rate based on user registrations
         var usersThisMonth = await _context.Users

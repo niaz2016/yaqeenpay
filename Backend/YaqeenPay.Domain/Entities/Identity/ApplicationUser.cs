@@ -29,6 +29,11 @@ public class ApplicationUser : IdentityUser<Guid>
     public Enums.KycStatus KycStatus { get; set; } = Enums.KycStatus.Pending;
     public int RiskScore { get; set; } = 0;
     
+    // Password reset
+    public string? PasswordResetToken { get; set; }
+    public DateTime? PasswordResetTokenExpiry { get; set; }
+    public DateTime? LastPasswordResetRequestAt { get; set; }
+    
     // Profile completion tracking
     public int ProfileCompleteness { get; set; } = 0;
     

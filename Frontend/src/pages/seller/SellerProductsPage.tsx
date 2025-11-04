@@ -33,6 +33,7 @@ import {
   Clear as ClearIcon
 } from '@mui/icons-material';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
+import productService from '../../services/productService';
 
 interface Product {
   id: string;
@@ -155,21 +156,11 @@ const SellerProductsPage: React.FC = () => {
     if (!productToDelete) return;
 
     try {
-      const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-      const response = await fetch(`/api/products/${productToDelete}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        fetchProducts();
-        setDeleteDialogOpen(false);
-        setProductToDelete(null);
-      } else {
-        setError('Failed to delete product');
-      }
+      // Use shared API service to ensure consistent auth headers and response handling
+      await productService.deleteProduct(productToDelete);
+      fetchProducts();
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
     } catch (error) {
       setError('Error deleting product');
     }

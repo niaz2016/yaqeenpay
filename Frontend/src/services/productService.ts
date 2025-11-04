@@ -50,6 +50,16 @@ export interface CreateProductDTO {
   categoryId: string;
   status: 'Draft' | 'Active' | 'Inactive';
   currency: string;
+  // Optional details
+  minOrderQuantity?: string;
+  maxOrderQuantity?: string;
+  weight?: string;
+  weightUnit?: string;
+  dimensions?: string;
+  brand?: string;
+  model?: string;
+  material?: string;
+  tags?: string[];
   attributes?: { name: string; value: string }[];
   images?: ProductImage[];
   imagesToDelete?: string[];
@@ -79,6 +89,19 @@ export type CreateProductRequest = Omit<CreateProductDTO, 'images' | 'variants'>
 };
 
 class ProductService {
+  private statusToEnum(status?: string): number | undefined {
+    if (!status) return undefined;
+    const map: Record<string, number> = {
+      Draft: 0,
+      Active: 1,
+      Inactive: 2,
+      OutOfStock: 3,
+      Discontinued: 4,
+      PendingReview: 5,
+      Rejected: 6,
+    };
+    return map[status as keyof typeof map];
+  }
   async getProduct(id: string): Promise<ProductDetail> {
     try {
       // apiService.get unwraps ApiResponse and returns the inner data (or the raw response.data when no wrapper).
@@ -178,6 +201,17 @@ class ProductService {
       sku,
       price: parseFloat(data.price),
       stockQuantity: parseInt(data.stockQuantity as any, 10),
+      status: this.statusToEnum((data as any).status) ?? this.statusToEnum('Active'),
+      // optional numeric conversions
+      minOrderQuantity: data.minOrderQuantity ? parseInt(data.minOrderQuantity as any, 10) : undefined,
+      maxOrderQuantity: data.maxOrderQuantity ? parseInt(data.maxOrderQuantity as any, 10) : undefined,
+      weight: data.weight ? parseFloat(data.weight as any) : undefined,
+      weightUnit: data.weightUnit,
+      dimensions: (data as any).dimensions,
+      brand: (data as any).brand,
+      model: (data as any).model,
+      material: (data as any).material,
+      tags: (data as any).tags,
       attributes: attributesObj,
       images: uploadedImages.map((img, index) => ({
         imageUrl: img.imageUrl,
@@ -213,15 +247,22 @@ class ProductService {
       id: productId, // Include the product ID in the payload
       price: data.price ? parseFloat(data.price) : undefined,
       stockQuantity: data.stockQuantity ? parseInt(data.stockQuantity, 10) : undefined,
+      minOrderQuantity: data.minOrderQuantity ? parseInt(data.minOrderQuantity, 10) : undefined,
+      maxOrderQuantity: data.maxOrderQuantity ? parseInt(data.maxOrderQuantity, 10) : undefined,
+      weight: data.weight ? parseFloat(data.weight) : undefined,
+      status: this.statusToEnum((data as any).status),
       attributes: data.attributes?.reduce((acc, attr) => ({ 
         ...acc, [attr.name]: attr.value 
       }), {} as Record<string, string>),
-      images: imageUrls.length > 0 ? imageUrls.map((img, index) => ({
+      // Map to backend's expected property name for new images
+      NewImages: imageUrls.length > 0 ? imageUrls.map((img, index) => ({
         imageUrl: img.imageUrl,
         altText: `${data.name || 'Product'} image ${index + 1}`,
         sortOrder: index,
         isPrimary: img.isPrimary
-      })) : undefined
+      })) : undefined,
+      // Pass through imagesToDelete if provided
+      ImagesToDelete: (data as any).imagesToDelete
     };
 
     // Include variants when provided by the frontend

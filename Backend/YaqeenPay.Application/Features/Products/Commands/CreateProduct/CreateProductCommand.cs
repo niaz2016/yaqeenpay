@@ -31,6 +31,7 @@ public record CreateProductCommand : IRequest<ApiResponse<Guid>>
     public string? Size { get; set; }
     public string? Material { get; set; }
     public bool AllowBackorders { get; set; } = false;
+    public ProductStatus Status { get; set; } = ProductStatus.Active;
     public List<string> Tags { get; set; } = new List<string>();
     public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
     public List<CreateProductImageRequest> Images { get; set; } = new List<CreateProductImageRequest>();
@@ -159,7 +160,8 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         product.UpdateProductDetails(request.Brand, request.Model, request.Color, request.Size, request.Material);
         product.UpdateTags(request.Tags);
         product.UpdateAttributes(request.Attributes);
-        product.UpdateStatus(ProductStatus.Active);
+    // Honor requested status (Active/Draft/Inactive)
+    product.UpdateStatus(request.Status);
 
         _context.Products.Add(product);
 

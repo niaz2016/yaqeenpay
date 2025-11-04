@@ -208,14 +208,18 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                     return (false, record.ProcessingResult);
                 }
 
-                var wallet = await _db.Wallets.FirstOrDefaultAsync(x => x.UserId == topupLock.UserId);
+                // Include Transactions to ensure EF Core tracks the collection
+                var wallet = await _db.Wallets
+                    .Include(w => w.Transactions)
+                    .FirstOrDefaultAsync(x => x.UserId == topupLock.UserId);
+                    
                 if (wallet == null)
                 {
                     wallet = Wallet.Create(topupLock.UserId, topupLock.Amount.Currency);
                     _db.Wallets.Add(wallet);
                 }
 
-                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"{record.TransactionId ?? topupLock.TransactionReference}");
+                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"Bank SMS: {record.TransactionId ?? topupLock.TransactionReference}");
                 topupLock.MarkAsCompleted();
 
                 // Mark sms processed and store relations
@@ -223,7 +227,7 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 record.WalletTopupLockId = topupLock.Id;
                 record.UserId = topupLock.UserId;
                 record.WalletId = wallet.Id;
-                record.ProcessingResult = "Wallet credited";
+                record.ProcessingResult = "Wallet credited: " + record.Amount;
 
                 await _db.SaveChangesAsync(CancellationToken.None);
                 return (true, record.ProcessingResult);
@@ -344,15 +348,18 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                     };
                 }
 
-                // Step 5: Credit the wallet
-                var wallet = await _db.Wallets.FirstOrDefaultAsync(x => x.UserId == selectedUserId);
+                // Step 5: Credit the wallet - Include Transactions for proper EF tracking
+                var wallet = await _db.Wallets
+                    .Include(w => w.Transactions)
+                    .FirstOrDefaultAsync(x => x.UserId == selectedUserId);
+                    
                 if (wallet == null)
                 {
                     wallet = Wallet.Create(selectedUserId.Value, "PKR");
                     _db.Wallets.Add(wallet);
                 }
 
-                wallet.Credit(new Money(finalAmount, "PKR"), $"Bank SMS Auto-Credit: {record.TransactionId ?? "SMS-" + DateTime.UtcNow:yyyyMMddHHmmss}");
+                wallet.Credit(new Money(finalAmount, "PKR"), $"Bank SMS Auto-Credit: {record.TransactionId ?? ("SMS-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss"))}");
                 
                 _logger.LogInformation("Wallet credited: User {UserId}, Amount {Amount}, Reason: {Reason}", 
                     selectedUserId, finalAmount, matchReason);

@@ -71,8 +71,7 @@ export interface OtpVerification {
 }
 
 export interface PasswordReset {
-  email: string;
-  code: string;
+  token: string;
   newPassword: string;
   confirmPassword: string;
 }

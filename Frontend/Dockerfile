@@ -14,8 +14,9 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Allow overriding the base path when building the production bundle (default /yaqeenpay)
-ARG VITE_BASE_PATH=/yaqeenpay
+# Allow overriding the base path when building the production bundle (default /yaqeenpay/)
+# Frontend needs full path since browser resolves absolute paths from domain root
+ARG VITE_BASE_PATH=/yaqeenpay/
 ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 
 # Build the application

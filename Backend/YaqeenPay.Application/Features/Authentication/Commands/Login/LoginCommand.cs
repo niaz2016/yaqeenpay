@@ -113,14 +113,32 @@ public class LoginCommandHandler(
             return ApiResponse<AuthenticationResponse>.FailureResponse("Invalid email or password.");
         }
 
-        // 4. DEVICE VERIFICATION AND OTP (after successful authentication)
+        // 4. CHECK EMAIL VERIFICATION - User must verify email before login
         if (user == null)
         {
             return ApiResponse<AuthenticationResponse>.FailureResponse("Authentication failed");
         }
 
+        if (!user.EmailConfirmed)
+        {
+            // Return error with userId in Data field so frontend can resend verification email
+            return new ApiResponse<AuthenticationResponse>
+            {
+                Success = false,
+                Message = "Please verify your email address before logging in. Check your inbox for the verification code.",
+                Data = new AuthenticationResponse
+                {
+                    UserId = user.Id,
+                    Email = user.Email ?? string.Empty
+                }
+            };
+        }
+
+        // 5. DEVICE VERIFICATION AND OTP (after successful authentication)
+
         // Check if device verification is enabled (disabled in development by default)
         var deviceVerificationEnabled = _configuration["DeviceVerification:Enabled"] != "false";
+        var notifyOnNewDevice = _configuration["DeviceVerification:NotifyOnNewDevice"] != "false";
         
         // Check for device recognition
         var userAgent = _currentUserService.UserAgent ?? "Unknown";
@@ -218,7 +236,32 @@ public class LoginCommandHandler(
         else if (!deviceVerificationEnabled)
         {
             // If device verification is disabled, register the device automatically
-            await _deviceService.RegisterDeviceAsync(user.Id, userAgent, ipAddress, cancellationToken);
+            var newDevice = await _deviceService.RegisterDeviceAsync(user.Id, userAgent, ipAddress, cancellationToken);
+            
+            // Send notification for new device login even if verification is disabled
+            if (notifyOnNewDevice)
+            {
+                var locationInfo = !string.IsNullOrEmpty(request.DeviceLocation) 
+                    ? $" from {request.DeviceLocation}" 
+                    : "";
+                    
+                var newDeviceNotification = new YaqeenPay.Domain.Entities.Notification
+                {
+                    UserId = user.Id,
+                    Type = YaqeenPay.Domain.Enums.NotificationType.Security,
+                    Title = "New Device Login",
+                    Message = $"Your account was accessed from a new device{locationInfo}. If this wasn't you, please secure your account immediately. Device: {newDevice.Browser} on {newDevice.OperatingSystem}",
+                    Priority = YaqeenPay.Domain.Enums.NotificationPriority.Medium,
+                    Status = YaqeenPay.Domain.Enums.NotificationStatus.Unread,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = Guid.Empty,
+                    IsActive = true,
+                    Metadata = $"{{\"deviceId\":\"{newDevice.Id}\",\"location\":\"{request.DeviceLocation ?? "Unknown"}\",\"latitude\":{request.Latitude?.ToString() ?? "null"},\"longitude\":{request.Longitude?.ToString() ?? "null"},\"ipAddress\":\"{ipAddress}\"}}"
+                };
+
+                _context.Notifications.Add(newDeviceNotification);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
         }
 
         // Only send notification for new devices (already handled above)

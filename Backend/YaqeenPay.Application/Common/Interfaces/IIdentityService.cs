@@ -18,7 +18,11 @@ public interface IIdentityService
     Task<Result> DeleteUserAsync(Guid userId);
     Task<(Result Result, ApplicationUser? User)> AuthenticateAsync(string email, string password);
     Task<IdentityResult> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+    Task<IdentityResult> SetPasswordAsync(Guid userId, string newPassword);
     Task<IList<string>> GetUserRolesAsync(Guid userId);
+    Task<string> GenerateEmailVerificationTokenAsync(Guid userId);
+    Task<Result> VerifyEmailTokenAsync(Guid userId, string token);
+    Task<Result> ConfirmEmailAsync(Guid userId);
 }
 public class Result
 {

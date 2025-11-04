@@ -102,5 +102,11 @@ namespace YaqeenPay.Domain.ValueObjects
             if (left.Currency != right.Currency)
                 throw new InvalidOperationException($"Cannot operate on money with different currencies ({left.Currency} vs {right.Currency})");
         }
+
+        // Add method to check if this Money instance is different from another (useful for change tracking)
+        public bool HasChangedFrom(Money? other)
+        {
+            return !Equals(other);
+        }
     }
 }

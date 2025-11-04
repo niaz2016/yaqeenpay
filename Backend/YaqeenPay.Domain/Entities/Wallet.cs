@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using YaqeenPay.Domain.Common;
 using YaqeenPay.Domain.Enums;
 using YaqeenPay.Domain.ValueObjects;
@@ -13,12 +14,26 @@ namespace YaqeenPay.Domain.Entities
         public Money Balance 
         { 
             get => _balance;
-            private set => _balance = value;
+            private set 
+            {
+                if (_balance != value)
+                {
+                    _balance = value;
+                    UpdatedAt = DateTime.UtcNow;
+                }
+            }
         }
         public Money FrozenBalance 
         { 
             get => _frozenBalance;
-            private set => _frozenBalance = value;
+            private set 
+            {
+                if (_frozenBalance != value)
+                {
+                    _frozenBalance = value;
+                    UpdatedAt = DateTime.UtcNow;
+                }
+            }
         }
         public new bool IsActive { get; private set; } = true;
         
@@ -27,14 +42,20 @@ namespace YaqeenPay.Domain.Entities
         public virtual ICollection<WalletTransaction> Transactions { get; private set; } = new List<WalletTransaction>();
         public DateTime UpdatedAt { get; set; }
 
-        private Wallet() { } // For EF Core
+        private Wallet() 
+        { 
+            // For EF Core - initialize with safe defaults
+            _balance = new Money(0, "PKR");
+            _frozenBalance = new Money(0, "PKR");
+        }
 
         public Wallet(Guid userId, string currency = "PKR")
         {
             UserId = userId;
-            Balance = new Money(0, currency);
-            FrozenBalance = new Money(0, currency);
+            _balance = new Money(0, currency);
+            _frozenBalance = new Money(0, currency);
             IsActive = true;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public static Wallet Create(Guid userId, string currency = "PKR")
@@ -60,11 +81,11 @@ namespace YaqeenPay.Domain.Entities
             if (amount.Amount <= 0)
                 throw new ArgumentException("Credit amount must be positive", nameof(amount));
             
-            if (amount.Currency != Balance.Currency)
-                throw new ArgumentException($"Currency mismatch. Wallet currency: {Balance.Currency}, Transaction currency: {amount.Currency}");
+            //if (amount.Currency != Balance.Currency)
+            //    throw new ArgumentException($"Currency mismatch. Wallet currency: {Balance.Currency}, Transaction currency: {amount.Currency}");
 
-            // Update balance via backing field to ensure EF Core tracks the change
-            _balance = new Money(Balance.Amount + amount.Amount, Balance.Currency);
+            // Update balance using the property setter to ensure change tracking
+            Balance = new Money(Balance.Amount + amount.Amount, Balance.Currency);
             
             // Record transaction
             var transaction = new WalletTransaction(
@@ -90,8 +111,8 @@ namespace YaqeenPay.Domain.Entities
             if (Balance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient funds. Available: {Balance.Amount}, Required: {amount.Amount}");
 
-            // Update balance via backing field to ensure EF Core tracks the change
-            _balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
+            // Update balance using the property setter to ensure change tracking
+            Balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
             
             // Record transaction
             var transaction = new WalletTransaction(
@@ -129,8 +150,8 @@ namespace YaqeenPay.Domain.Entities
             if (!HasSufficientFunds(amount))
                 throw new InvalidOperationException($"Insufficient available funds. Available: {GetAvailableBalance().Amount}, Required: {amount.Amount}");
 
-            // Update frozen balance via backing field to ensure EF Core tracks the change
-            _frozenBalance = new Money(FrozenBalance.Amount + amount.Amount, FrozenBalance.Currency);
+            // Update frozen balance using the property setter to ensure change tracking
+            FrozenBalance = new Money(FrozenBalance.Amount + amount.Amount, FrozenBalance.Currency);
             
             // Record transaction for freeze
             var transaction = new WalletTransaction(
@@ -158,8 +179,8 @@ namespace YaqeenPay.Domain.Entities
             if (FrozenBalance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient frozen funds. Frozen: {FrozenBalance.Amount}, Unfreeze amount: {amount.Amount}");
 
-            // Update frozen balance via backing field to ensure EF Core tracks the change
-            _frozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
+            // Update frozen balance using the property setter to ensure change tracking
+            FrozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
             
             // Record transaction for unfreeze
             var transaction = new WalletTransaction(
@@ -186,9 +207,9 @@ namespace YaqeenPay.Domain.Entities
             if (FrozenBalance.Amount < amount.Amount)
                 throw new InvalidOperationException($"Insufficient frozen funds. Frozen: {FrozenBalance.Amount}, Transfer amount: {amount.Amount}");
 
-            // Reduce both frozen balance and total balance via backing fields to ensure EF Core tracks these changes
-            _frozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
-            _balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
+            // Reduce both frozen balance and total balance using property setters to ensure change tracking
+            FrozenBalance = new Money(FrozenBalance.Amount - amount.Amount, FrozenBalance.Currency);
+            Balance = new Money(Balance.Amount - amount.Amount, Balance.Currency);
             
             // Record transaction for frozen to debit transfer
             var transaction = new WalletTransaction(

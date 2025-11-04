@@ -42,36 +42,26 @@ export const normalizeImageUrl = (url?: string): string | undefined => {
     working = working.slice(1);
   }
 
-  // Add API base URL for relative paths
-  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-  return `${baseUrl}/uploads/${working}`;
+  // Build absolute URL using configured backend origin or API base
+  // Prefer an explicit uploads base if provided, otherwise derive origin from VITE_API_URL
+  const origin = getBackendOrigin();
+
+  // Ensure the path starts with uploads/
   if (!working.toLowerCase().startsWith('uploads/')) {
-    // If it already starts with /uploads keep it
-    if (!working.toLowerCase().startsWith('/uploads/')) {
-      working = `uploads/${working.replace(/^\/+/, '')}`;
-    } else {
-      // it starts with /uploads/ but not uploads/
-      working = working.replace(/^\//, '');
-    }
+    working = `uploads/${working.replace(/^\/+/, '')}`;
   }
 
-  // Encode each path segment except keep slashes
+  // Encode each path segment (preserve slashes)
   working = working.split('/').map(seg => encodeURIComponent(seg)).join('/');
 
-  // Prepend leading slash for server static file mapping
-  if (!working.startsWith('/')) working = '/' + working;
-
-  const origin = getBackendOrigin();
-  let finalUrl = `${origin}${working}`;
+  let finalUrl = `${origin}/${working}`;
 
   // Optional force downgrade to http if self-signed https causing failures
-  // For consistency with API port, do not auto-downgrade protocol unless override provided
   if ((import.meta.env.VITE_FORCE_IMAGE_HTTP as string) === 'true' && finalUrl.startsWith('https://')) {
     finalUrl = finalUrl.replace('https://', 'http://');
   }
 
   if (import.meta.env.DEV) {
-    // Lightweight single log per original path
     (window as any).__imgSeen = (window as any).__imgSeen || new Set();
     const key = url + ' -> ' + finalUrl;
     if (!(window as any).__imgSeen.has(key)) {

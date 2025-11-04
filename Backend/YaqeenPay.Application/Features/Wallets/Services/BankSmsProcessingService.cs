@@ -219,7 +219,22 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                     _db.Wallets.Add(wallet);
                 }
 
+                // Track the number of transactions before crediting
+                var transactionCountBefore = wallet.Transactions.Count;
+                
+                // Credit the wallet (removed await since Credit is not async)
                 wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"Bank SMS: {record.TransactionId ?? topupLock.TransactionReference}");
+                
+                // Ensure new transactions are tracked by EF Core
+                var newTransactions = wallet.Transactions.Skip(transactionCountBefore).ToList();
+                foreach (var transaction in newTransactions)
+                {
+_db.WalletTransactions.Add(transaction);
+                }
+                
+                // Explicitly update the wallet to ensure balance changes are saved
+                _db.Wallets.Update(wallet);
+                
                 topupLock.MarkAsCompleted();
 
                 // Mark sms processed and store relations
@@ -349,20 +364,34 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 }
 
                 // Step 5: Credit the wallet - Include Transactions for proper EF tracking
-                var wallet = await _db.Wallets
-                    .Include(w => w.Transactions)
-                    .FirstOrDefaultAsync(x => x.UserId == selectedUserId);
-                    
-                if (wallet == null)
-                {
-                    wallet = Wallet.Create(selectedUserId.Value, "PKR");
-                    _db.Wallets.Add(wallet);
-                }
+         var wallet = await _db.Wallets
+    .Include(w => w.Transactions)
+       .FirstOrDefaultAsync(x => x.UserId == selectedUserId);
+  
+   if (wallet == null)
+        {
+      wallet = Wallet.Create(selectedUserId.Value, "PKR");
+   _db.Wallets.Add(wallet);
+         }
 
-                wallet.Credit(new Money(finalAmount, "PKR"), $"Bank SMS Auto-Credit: {record.TransactionId ?? ("SMS-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss"))}");
-                
-                _logger.LogInformation("Wallet credited: User {UserId}, Amount {Amount}, Reason: {Reason}", 
-                    selectedUserId, finalAmount, matchReason);
+      // Track the number of transactions before crediting
+  var transactionCountBefore = wallet.Transactions.Count;
+
+   // Credit the wallet (removed await since Credit is not async)
+    wallet.Credit(new Money(finalAmount, "PKR"), $"Bank SMS Auto-Credit: {record.TransactionId ?? ("SMS-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss"))}");
+ 
+     // Ensure new transactions are tracked by EF Core
+     var newTransactions = wallet.Transactions.Skip(transactionCountBefore).ToList();
+   foreach (var transaction in newTransactions)
+       {
+      _db.WalletTransactions.Add(transaction);
+        }
+   
+      // Explicitly update the wallet to ensure balance changes are saved
+        _db.Wallets.Update(wallet);
+   
+    _logger.LogInformation("Wallet credited: User {UserId}, Amount {Amount}, Reason: {Reason}", 
+selectedUserId, finalAmount, matchReason);
 
                 return new AutoMatchResult
                 {

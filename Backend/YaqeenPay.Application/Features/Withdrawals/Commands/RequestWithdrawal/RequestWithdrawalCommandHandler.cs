@@ -62,9 +62,14 @@ namespace YaqeenPay.Application.Features.Withdrawals.Commands.RequestWithdrawal
 
             // Add to database
             _context.Withdrawals.Add(withdrawal);
-
-            // Create a withdrawal transaction to reduce wallet balance
-            wallet.Debit(amount, $"Withdrawal request {withdrawal.Reference}");
+ 
+            // Use wallet service to properly debit the wallet and ensure persistence
+            await _walletService.DebitWalletAsync(
+                wallet.Id, 
+                amount, 
+                $"Withdrawal request {withdrawal.Reference}",
+                withdrawal.Id, 
+                "Withdrawal");
 
             await _context.SaveChangesAsync(cancellationToken);
 

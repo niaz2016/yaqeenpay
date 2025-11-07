@@ -10,6 +10,7 @@ import type {
   NotificationListResponse 
 } from '../types/notification';
 import notificationService from '../services/notificationService';
+import logger from '../utils/logger';
 import { useAuth } from './AuthContext';
 
 // Initial state
@@ -110,12 +111,7 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         unread: currentUnreadCount
       };
 
-      console.log('[NotificationContext] SET_NOTIFICATIONS:', {
-        totalNotifications: sortedNotifications.length,
-        unreadFromBackend: action.payload.stats.unread,
-        unreadCalculated: currentUnreadCount,
-        notifications: sortedNotifications.map(n => ({ id: n.id, status: n.status, readAt: n.readAt }))
-      });
+      // removed development debug logs for production readiness
 
       return {
         ...state,
@@ -319,7 +315,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       dispatch({ type: 'SET_NOTIFICATIONS', payload: response });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch notifications' });
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     }
   }, []);
 
@@ -345,56 +341,39 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       } as unknown as NotificationListResponse });
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch new notifications' });
-      console.error('Error fetching new notifications:', error);
+      logger.error('Error fetching new notifications:', error);
     }
   }, [state.notifications]);
 
   const markAsRead = useCallback(async (notificationIds: string[]) => {
     try {
-      console.log('[NotificationContext] markAsRead START:', {
-        notificationIds,
-        currentUnread: state.stats.unread,
-        currentNotifications: state.notifications.length
-      });
-      
+      // debug statements removed; perform API call and refetch authoritative state
       await notificationService.markAsRead(notificationIds);
-      console.log('[NotificationContext] markAsRead API SUCCESS, now refetching...');
       
       // Refetch notifications to get authoritative state from backend
       // Use a larger limit to ensure we get all notifications
       await fetchNotifications({ page: 1, limit: 100 });
       
-      console.log('[NotificationContext] markAsRead REFETCH COMPLETE:', {
-        newUnread: state.stats.unread,
-        newNotifications: state.notifications.length
-      });
+      // refetch complete; state updated via reducer
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark notifications as read' });
-      console.error('Error marking notifications as read:', error);
+      logger.error('Error marking notifications as read:', error);
     }
   }, [fetchNotifications, state.stats.unread, state.notifications.length]);
 
   const markAllAsRead = useCallback(async () => {
     try {
-      console.log('[NotificationContext] markAllAsRead START:', {
-        currentUnread: state.stats.unread,
-        currentNotifications: state.notifications.length
-      });
-      
+      // debug statements removed; perform API call and refetch authoritative state
       await notificationService.markAllAsRead();
-      console.log('[NotificationContext] markAllAsRead API SUCCESS, now refetching...');
       
       // Refetch notifications to get authoritative state from backend
       // Use a larger limit to ensure we get all notifications that were just marked as read
       await fetchNotifications({ page: 1, limit: 100 });
       
-      console.log('[NotificationContext] markAllAsRead REFETCH COMPLETE:', {
-        newUnread: state.stats.unread,
-        newNotifications: state.notifications.length
-      });
+      // refetch complete; state updated via reducer
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark all notifications as read' });
-      console.error('Error marking all notifications as read:', error);
+      logger.error('Error marking all notifications as read:', error);
     }
   }, [fetchNotifications, state.stats.unread, state.notifications.length]);
 

@@ -42,6 +42,8 @@ public record AuthenticationResponse
     public bool RequiresDeviceVerification { get; set; }
     public Guid? PendingDeviceId { get; set; }
     public bool IsNewUser { get; set; }
+    // Indicates that this login came from a device not seen before for this user
+    public bool IsNewDevice { get; set; }
 }
 
 public class LoginCommandHandler(
@@ -140,10 +142,11 @@ public class LoginCommandHandler(
         var deviceVerificationEnabled = _configuration["DeviceVerification:Enabled"] != "false";
         var notifyOnNewDevice = _configuration["DeviceVerification:NotifyOnNewDevice"] != "false";
         
-        // Check for device recognition
-        var userAgent = _currentUserService.UserAgent ?? "Unknown";
-        var deviceFingerprint = _deviceService.GenerateDeviceFingerprint(userAgent);
-        var existingDevice = await _deviceService.GetUserDeviceAsync(user.Id, deviceFingerprint, cancellationToken);
+    // Check for device recognition
+    var userAgent = _currentUserService.UserAgent ?? "Unknown";
+    var deviceFingerprint = _deviceService.GenerateDeviceFingerprint(userAgent);
+    var existingDevice = await _deviceService.GetUserDeviceAsync(user.Id, deviceFingerprint, cancellationToken);
+    var isNewDevice = existingDevice == null;
 
         // If this is a new device and device verification is enabled, require OTP verification
         if (existingDevice == null && deviceVerificationEnabled)
@@ -220,7 +223,8 @@ public class LoginCommandHandler(
                 UserName = user.UserName!,
                 RequiresDeviceVerification = true,
                 PendingDeviceId = newDevice.Id,
-                IsNewUser = false
+                IsNewUser = false,
+                IsNewDevice = true
             }, "New device detected. Please verify with OTP sent to your phone.");
         }
 
@@ -264,8 +268,8 @@ public class LoginCommandHandler(
             }
         }
 
-        // Only send notification for new devices (already handled above)
-        // For existing devices, no notification needed
+    // Only send notification for new devices (already handled above)
+    // For existing devices, no notification needed
 
         // Save the refresh token
         user.RefreshTokens.Add(refreshToken);
@@ -283,7 +287,8 @@ public class LoginCommandHandler(
             Email = user.Email!,
             UserName = user.UserName!,
             RequiresDeviceVerification = false,
-            IsNewUser = false
+            IsNewUser = false,
+            IsNewDevice = isNewDevice
         });
     }
 

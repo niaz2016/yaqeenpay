@@ -3,6 +3,13 @@ using YaqeenPay.Domain.ValueObjects;
 using YaqeenPay.Domain.Enums;
 
 namespace YaqeenPay.Domain.Entities;
+
+public class ProductFaq
+{
+    public string Question { get; set; } = string.Empty;
+    public string Answer { get; set; } = string.Empty;
+}
+
 public class ProductVariant
 {
     public Guid Id { get; set; }
@@ -44,6 +51,7 @@ public class Product : AuditableEntity
     public DateTime? FeaturedUntil { get; private set; }
     public List<string> Tags { get; private set; } = new List<string>();
     public Dictionary<string, string> Attributes { get; private set; } = new Dictionary<string, string>();
+    public List<ProductFaq> Faqs { get; private set; } = new List<ProductFaq>();
 
     // Navigation properties
     public virtual Identity.ApplicationUser Seller { get; set; } = null!;
@@ -161,6 +169,11 @@ public class Product : AuditableEntity
     public void UpdateAttributes(Dictionary<string, string> attributes)
     {
         Attributes = attributes != null ? new Dictionary<string, string>(attributes) : new Dictionary<string, string>();
+    }
+
+    public void UpdateFaqs(List<ProductFaq> faqs)
+    {
+        Faqs = faqs != null ? new List<ProductFaq>(faqs) : new List<ProductFaq>();
     }
 
     public bool IsInStock()

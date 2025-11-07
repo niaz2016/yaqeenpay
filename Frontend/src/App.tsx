@@ -38,7 +38,7 @@ import OrderDetailsPage from './pages/orders/OrderDetailsPage';
 import UserRegistrationPage from './pages/seller/SellerRegistrationPage';
 import UserOrdersPage from './pages/seller/SellerOrdersPage';
 import UserOrderDetailsPage from './pages/seller/SellerOrderDetailsPage';
-import UserAnalyticsPage from './pages/seller/SellerAnalyticsPage';
+import SellerProductAnalyticsPage from './pages/seller/SellerProductAnalyticsPage';
 import SellerProductsPage from './pages/seller/SellerProductsPage';
 import NewProductPage from './pages/seller/NewProductPage';
 import EditProductPage from './pages/seller/EditProductPage';
@@ -60,6 +60,7 @@ const AdminWithdrawals = lazy(() => import('./pages/admin/AdminWithdrawals'));
 const AdminProfilePage = lazy(() => import('./pages/admin/AdminProfilePage'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const EmailManagement = lazy(() => import('./pages/admin/EmailManagement'));
+const AdminAnalyticsPage = lazy(() => import('./pages/admin/AdminAnalyticsPage'));
 
 // Error Pages
 import NotFoundPage from './pages/NotFoundPage';
@@ -128,7 +129,7 @@ const App: React.FC = () => {
                 }
               />
               <Route
-                path="/products/:id"
+                path="/products/:id/:slug?"
                 element={
                   <MarketplaceAccessRoute>
                     <ProductDetailPage />
@@ -167,7 +168,7 @@ const App: React.FC = () => {
                 <Route path="/seller/products/:productId/edit" element={<EditProductPage />} />
                 <Route path="/seller/orders" element={<UserOrdersPage />} />
                 <Route path="/seller/orders/:orderId" element={<UserOrderDetailsPage />} />
-                <Route path="/seller/analytics" element={<UserAnalyticsPage />} />
+                <Route path="/seller/analytics" element={<SellerProductAnalyticsPage />} />
                 <Route path="/seller/withdrawals" element={<WithdrawalsPage />} />
                 
                 {/* Error pages */}
@@ -221,6 +222,11 @@ const App: React.FC = () => {
                 <Route path="/admin/email" element={
                   <React.Suspense fallback={<SuspenseLoader message="Loading Email Management..." />}>
                     <EmailManagement />
+                  </React.Suspense>
+                } />
+                <Route path="/admin/analytics" element={
+                  <React.Suspense fallback={<SuspenseLoader message="Loading Analytics..." />}>
+                    <AdminAnalyticsPage />
                   </React.Suspense>
                 } />
               </Route>

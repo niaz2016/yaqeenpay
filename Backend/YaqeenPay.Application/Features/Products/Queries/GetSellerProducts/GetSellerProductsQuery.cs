@@ -57,6 +57,8 @@ public record ProductDto
     public List<ProductImageDto> Images { get; set; } = new List<ProductImageDto>();
     // Variants
     public List<ProductVariantDto> Variants { get; set; } = new List<ProductVariantDto>();
+    // FAQs
+    public List<ProductFaqDto> Faqs { get; set; } = new List<ProductFaqDto>();
     
     // Seller info
     public SellerDto? Seller { get; set; }
@@ -83,6 +85,12 @@ public record ProductImageDto
     public string? AltText { get; set; }
     public int SortOrder { get; set; }
     public bool IsPrimary { get; set; }
+}
+
+public record ProductFaqDto
+{
+    public string Question { get; set; } = string.Empty;
+    public string Answer { get; set; } = string.Empty;
 }
 
 public record SellerDto

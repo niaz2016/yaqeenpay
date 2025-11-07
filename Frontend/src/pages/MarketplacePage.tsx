@@ -10,10 +10,6 @@ import {
     CardMedia,
     Chip,
     TextField,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
     InputAdornment,
     Alert,
     Pagination,
@@ -29,10 +25,12 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { normalizeImageUrl, placeholderDataUri } from '../utils/image';
+import { buildProductPath } from '../utils/slug';
 
 import productService from '../services/productService';
 import categoryService, { type Category } from '../services/categoryService';
 import cartService from '../services/cartService';
+import CategorySelector from '../components/CategorySelector';
 import ratingService from '../services/ratingService';
 import RatingBadge from '../components/rating/RatingBadge';
 import type { RatingStats } from '../types/rating';
@@ -357,57 +355,12 @@ const MarketplacePage: React.FC = () => {
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 200 }}>
 
                             {/* MUI Select */}
-                            <FormControl sx={{ minWidth: 200 }}>
-                                <InputLabel id="marketplace-category-label">Category</InputLabel>
-                                <Select
-                                    labelId="marketplace-category-label"
-                                    value={selectedCategory}
-                                    onChange={(e) => {
-                                        setSelectedCategory(e.target.value);
-                                    }}
-                                    label="Category"
-                                    disabled={categoriesLoading}
-                                    MenuProps={{
-                                        PaperProps: {
-                                            style: {
-                                                maxHeight: 300,
-                                                zIndex: 1500,
-                                            },
-                                        },
-                                        anchorOrigin: {
-                                            vertical: 'bottom',
-                                            horizontal: 'left',
-                                        },
-                                        transformOrigin: {
-                                            vertical: 'top',
-                                            horizontal: 'left',
-                                        },
-                                    }}
-                                >
-                                    <MenuItem value="">All Categories</MenuItem>
-                                    {categoriesLoading ? (
-                                        <MenuItem disabled>Loading categories...</MenuItem>
-                                    ) : (
-                                        [
-                                            /* Only render backend categories */
-                                            ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
-                                                <MenuItem key={category.id} value={category.id}>
-                                                    {category.name}
-                                                </MenuItem>
-                                            )),
-
-                                            /* Show message if no categories loaded */
-                                            ...(categories.length === 0 ? [(
-                                                <MenuItem key="no-categories" disabled>
-                                                    <Typography variant="body2" color="error">
-                                                        No categories available
-                                                    </Typography>
-                                                </MenuItem>
-                                            )] : [])
-                                        ]
-                                    )}
-                                </Select>
-                            </FormControl>
+                            <CategorySelector
+                                categories={categories}
+                                value={selectedCategory}
+                                onChange={(id) => setSelectedCategory(id)}
+                                disabled={categoriesLoading}
+                            />
                         </Box>
                     </Box>
                 </Box>
@@ -478,7 +431,7 @@ const MarketplacePage: React.FC = () => {
                                             cursor: 'pointer',
                                             backgroundColor: '#f5f5f5'
                                         }}
-                                        onClick={() => navigate(`/products/${product.id}`)}
+                                        onClick={() => navigate(buildProductPath(product.id, product.name))}
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
                                             // Use same local placeholder as getPrimaryImage function
@@ -495,7 +448,7 @@ const MarketplacePage: React.FC = () => {
                                                 cursor: 'pointer',
                                                 fontSize: { xs: '0.875rem', sm: '1rem', md: '1.25rem' }
                                             }}
-                                            onClick={() => navigate(`/products/${product.id}`)}
+                                            onClick={() => navigate(buildProductPath(product.id, product.name))}
                                         >
                                             {product.name}
                                         </Typography>

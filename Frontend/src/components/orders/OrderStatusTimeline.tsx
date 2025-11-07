@@ -7,6 +7,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CancelIcon from '@mui/icons-material/Cancel';
 import type { Order, OrderStatus } from '../../types/order';
 import ordersService from '../../services/ordersService';
+import logger from '../../utils/logger';
 
 interface Props {
   order: Order;
@@ -273,18 +274,18 @@ const OrderStatusTimeline: React.FC<Props> = ({ order }) => {
             }
           setTimeline(steps);
           if (import.meta.env.DEV) {
-            console.log('Timeline loaded from API:', steps);
+            logger.debug('Timeline loaded from API:', steps);
           }
         }
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.warn('Failed to load timeline from API, using fallback:', error);
+          logger.warn('Failed to load timeline from API, using fallback:', error);
         }
         // Fallback to default timeline
         if (!ignore) {
           const fallbackTimeline = defaultTimeline(order);
           if (import.meta.env.DEV) {
-            console.log('Using fallback timeline:', fallbackTimeline);
+            logger.debug('Using fallback timeline:', fallbackTimeline);
           }
           setTimeline(fallbackTimeline);
         }

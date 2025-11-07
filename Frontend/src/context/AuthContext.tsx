@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import type { User, AuthState } from '../types/auth';
 import authService from '../services/authService';
+import StorageService from '../services/storageService';
 import { locationService } from '../services/locationService';
 
 // Define context types
@@ -13,10 +14,49 @@ interface AuthContextType extends AuthState {
   updateUser: (user: User) => void;
 }
 
+// Helper function to normalize roles
+const normalizeRoles = (rawRoles: any): string[] => {
+  if (!rawRoles) return [];
+  if (Array.isArray(rawRoles)) {
+    return rawRoles.map((r: any) => {
+      if (!r) return '';
+      if (typeof r === 'string') return r;
+      if (typeof r === 'object') return (r.name || r.role || r.type || '').toString();
+      return r.toString();
+    }).filter(Boolean);
+  }
+  if (typeof rawRoles === 'string') {
+    return rawRoles.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [];
+};
+
 // Initial auth state
+// Try to rehydrate user from localStorage for instant UI
+const getPersistedUser = (): User | null => {
+  const stored = StorageService.getItem('auth_user');
+  if (!stored) return null;
+  
+  try {
+    const parsed = JSON.parse(stored);
+    // Ensure roles are properly structured
+    if (parsed && typeof parsed === 'object') {
+      return {
+        ...parsed,
+        roles: normalizeRoles(parsed.roles)
+      } as User;
+    }
+    return null;
+  } catch (e) {
+    console.error('Failed to parse persisted user:', e);
+    return null;
+  }
+};
+
+const persistedUser = getPersistedUser();
 const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
+  isAuthenticated: !!persistedUser,
+  user: persistedUser,
   loading: true,
   error: null,
 };
@@ -110,22 +150,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authService.isAuthenticated()) {
         try {
           const fetched = await authService.getCurrentUser();
-          // Normalize roles to an array of strings for consistent downstream checks
-          const normalizeRoles = (rawRoles: any): string[] => {
-            if (!rawRoles) return [];
-            if (Array.isArray(rawRoles)) {
-              return rawRoles.map((r: any) => {
-                if (!r) return '';
-                if (typeof r === 'string') return r;
-                if (typeof r === 'object') return (r.name || r.role || r.type || '').toString();
-                return r.toString();
-              }).filter(Boolean);
-            }
-            if (typeof rawRoles === 'string') {
-              return rawRoles.split(',').map(s => s.trim()).filter(Boolean);
-            }
-            return [];
-          };
 
           const user = {
             ...fetched,
@@ -143,18 +167,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             })(),
           } as any;
 
+          // Persist user in localStorage for instant rehydration
+          StorageService.setItem('auth_user', JSON.stringify(user));
           dispatch({ type: 'LOGIN_SUCCESS', payload: user });
         } catch (error) {
           console.error('Failed to fetch user:', error);
           // If fetching user fails, log out
           authService.logout();
+          StorageService.removeItem('auth_user');
           dispatch({ type: 'LOGOUT' });
         }
       } else {
+        StorageService.removeItem('auth_user');
         dispatch({ type: 'LOGOUT' });
       }
     } catch (error) {
       console.error('Auth check failed:', error);
+      StorageService.removeItem('auth_user');
       dispatch({ type: 'LOGOUT' });
     }
   };
@@ -166,11 +195,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Try to get device location for security notification
       let deviceLocation: string | undefined;
       let coordinates: { latitude: number; longitude: number } | undefined;
-      
       try {
         const location = await locationService.getLocationForDeviceNotification();
         deviceLocation = location;
-        
         // Also get precise coordinates if available
         const locationInfo = await locationService.getCurrentLocation();
         coordinates = {
@@ -181,12 +208,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Could not get location for login:', locationError);
         // Continue login without location - not critical
       }
-
       const user = await authService.login({ email, password }, deviceLocation, coordinates, captchaToken);
+      // Persist user in localStorage
+      StorageService.setItem('auth_user', JSON.stringify(user));
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       return user;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      StorageService.removeItem('auth_user');
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw error;
     }
@@ -196,10 +225,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'LOGIN_START' });
     try {
       const user = await authService.loginWithGoogle(idToken);
+      // Persist user in localStorage
+      StorageService.setItem('auth_user', JSON.stringify(user));
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
       return user;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Google sign-in failed';
+      StorageService.removeItem('auth_user');
       dispatch({ type: 'LOGIN_FAILURE', payload: errorMessage });
       throw error;
     }
@@ -219,33 +251,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     authService.logout();
+    StorageService.removeItem('auth_user');
     dispatch({ type: 'LOGOUT' });
   };
 
   // Update user function
   const updateUser = (user: User) => {
     // Ensure roles are normalized when updating
-    const normalizeRoles = (rawRoles: any): string[] => {
-      if (!rawRoles) return [];
-      if (Array.isArray(rawRoles)) {
-        return rawRoles.map((r: any) => {
-          if (!r) return '';
-          if (typeof r === 'string') return r;
-          if (typeof r === 'object') return (r.name || r.role || r.type || '').toString();
-          return r.toString();
-        }).filter(Boolean);
-      }
-      if (typeof rawRoles === 'string') {
-        return rawRoles.split(',').map(s => s.trim()).filter(Boolean);
-      }
-      return [];
-    };
-
     const normalizedUser = {
       ...user,
       roles: normalizeRoles((user as any).roles),
     } as any;
 
+    StorageService.setItem('auth_user', JSON.stringify(normalizedUser));
     dispatch({ type: 'UPDATE_USER', payload: normalizedUser });
   };
 

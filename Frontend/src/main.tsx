@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import ErrorBoundary from './components/common/ErrorBoundary';
+import logger from './utils/logger';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -18,10 +19,10 @@ if (import.meta.env.PROD && !isCapacitor && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/service-worker.js')
       .then((reg) => {
-        console.log('Service worker registered.', reg);
+        logger.info('Service worker registered.', reg);
       })
       .catch((err) => {
-        console.warn('Service worker registration failed:', err);
+        logger.warn('Service worker registration failed:', err);
       });
   });
 }

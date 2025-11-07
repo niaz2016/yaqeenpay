@@ -2,6 +2,7 @@
 import apiService from './api';
 import notificationTrigger from './notificationTrigger';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger';
 import type {
   WalletSummary,
   WalletTransaction,
@@ -170,7 +171,7 @@ class WalletService {
           writeLS(key, txs);
         }
       } catch (e) {
-        console.warn('Mock uploadTopUpProof failed to attach proof to local tx:', e);
+        logger.warn('Mock uploadTopUpProof failed to attach proof to local tx:', e);
       }
       return;
     }
@@ -209,9 +210,9 @@ class WalletService {
       
       return result;
     } catch (e) {
-      console.error(`WalletService: Database call failed for ${url}:`, e);
+      logger.error(`WalletService: Database call failed for ${url}:`, e);
       if (this.mockMode) {
-        console.warn(`WalletService: Falling back to mock for ${url}`);
+        logger.warn(`WalletService: Falling back to mock for ${url}`);
         return await fallback();
       }
       // In database-only mode, throw the error instead of falling back
@@ -346,13 +347,13 @@ class WalletService {
             newBalance: result.amount // Will need to get actual new balance
           }, result.userId);
         } catch (error) {
-          console.warn('Failed to trigger wallet top-up notification:', error);
+          logger.warn('Failed to trigger wallet top-up notification:', error);
         }
       }
       
       return result;
     } catch (e) {
-      console.error(`WalletService: Database call failed for /wallets/top-up:`, e);
+      logger.error(`WalletService: Database call failed for /wallets/top-up:`, e);
       
       // Trigger notification for failed top-up
       try {
@@ -361,8 +362,8 @@ class WalletService {
           currency: 'PKR',
           method: request.channel
         }, 'Database connection failed');
-      } catch (error) {
-        console.warn('Failed to trigger wallet top-up failed notification:', error);
+        } catch (error) {
+        logger.warn('Failed to trigger wallet top-up failed notification:', error);
       }
       
       // In database-only mode, throw the error instead of falling back
@@ -370,8 +371,8 @@ class WalletService {
     }
   }
 
-  async getAnalytics(): Promise<WalletAnalytics> {
-    return this.tryGet<WalletAnalytics>('/wallets/analytics', async () => {
+  async getAnalytics(days: number = 30): Promise<WalletAnalytics> {
+    return this.tryGet<WalletAnalytics>(`/wallets/analytics?days=${days}`, async () => {
       // Generate a 30d mock series from transactions
   let txs = readLS<WalletTransaction[]>(getUserTransactionsKey(), []);
   txs = sanitizeTransactions(txs);
@@ -382,8 +383,41 @@ class WalletService {
       const pastTx = txs
         .filter(t => new Date(t.date) <= today)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      // compute running balances historically assuming starting at 0
-      for (let i = 29; i >= 0; i--) {
+      
+      // For 1 day (24 hours), generate hourly points instead of daily
+      if (days === 1) {
+        const startTime = new Date(today);
+        startTime.setHours(0, 0, 0, 0);
+        
+        for (let i = 0; i < 24; i++) {
+          const hourStart = new Date(startTime);
+          hourStart.setHours(i);
+          const hourEnd = new Date(hourStart);
+          hourEnd.setHours(i + 1);
+          
+          const hourTx = pastTx.filter(t => {
+            const txDate = new Date(t.date);
+            return txDate >= hourStart && txDate < hourEnd;
+          });
+          
+          let credits = 0, debits = 0;
+          for (const t of hourTx) {
+            if ((t as any).type === 'Debit') {
+              debits += t.amount;
+              running -= t.amount;
+            } else {
+              credits += t.amount;
+              running += t.amount;
+            }
+          }
+          
+          // Use ISO format with time for hourly data
+          const hourStr = hourStart.toISOString();
+          series.push({ date: hourStr, balance: running, credits, debits });
+        }
+      } else {
+        // Daily aggregation for periods > 1 day
+        for (let i = days - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(today.getDate() - i);
         const dayStr = d.toISOString().slice(0, 10);
@@ -392,11 +426,20 @@ class WalletService {
         const dayTx = pastTx.filter(t => new Date(t.date) >= dayStart && new Date(t.date) <= dayEnd);
         let credits = 0, debits = 0;
         for (const t of dayTx) {
-          if (t.amount >= 0) credits += t.amount; else debits += Math.abs(t.amount);
-          running += t.amount;
+          // Transactions use positive amounts; the 'type' indicates direction.
+          // Treat Debit transactions as negative impact on running balance.
+          if ((t as any).type === 'Debit') {
+            debits += t.amount;
+            running -= t.amount;
+          } else {
+            credits += t.amount;
+            running += t.amount;
+          }
         }
         series.push({ date: dayStr, balance: running, credits, debits });
       }
+      }
+      
       // adjust last point to match current balance to avoid drift
       if (series.length) {
         const diff = summary.balance - series[series.length - 1].balance;
@@ -437,7 +480,7 @@ class WalletService {
       const result = await apiService.post<TopUpDto>(`/wallets/top-up/${topUpId}/reference`, { transactionId: transactionId.trim() });
       return result;
     } catch (e) {
-      console.error('WalletService: Failed to submit top-up reference:', e);
+      logger.error('WalletService: Failed to submit top-up reference:', e);
       throw new Error('Failed to submit transaction ID. Please try again.');
     }
   }

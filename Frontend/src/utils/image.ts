@@ -61,14 +61,7 @@ export const normalizeImageUrl = (url?: string): string | undefined => {
     finalUrl = finalUrl.replace('https://', 'http://');
   }
 
-  if (import.meta.env.DEV) {
-    (window as any).__imgSeen = (window as any).__imgSeen || new Set();
-    const key = url + ' -> ' + finalUrl;
-    if (!(window as any).__imgSeen.has(key)) {
-      console.debug('[normalizeImageUrl]', key);
-      (window as any).__imgSeen.add(key);
-    }
-  }
+  // Development-only diagnostics removed: use central logger if needed
 
   return finalUrl;
 };

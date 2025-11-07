@@ -48,7 +48,7 @@ npm run dev
 3. Fill form with test data
 4. Submit registration
 5. **New:** See email OTP verification page (not phone verification)
-6. Check email: mmaxhillh@gmail.com
+6. Check email: support@techtorio.online
 7. Enter 6-digit OTP from email
 8. Auto-verifies and redirects to login
 9. Login with credentials

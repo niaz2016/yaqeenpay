@@ -93,7 +93,10 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
             Dimensions = product.Dimensions,
             MinOrderQuantity = product.MinOrderQuantity,
             MaxOrderQuantity = product.MaxOrderQuantity,
-            AllowBackorders = product.AllowBackorders
+            AllowBackorders = product.AllowBackorders,
+            ViewCount = product.ViewCount,
+            AverageRating = product.AverageRating,
+            ReviewCount = product.ReviewCount
         };
 
         // Populate variants
@@ -106,6 +109,13 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
             StockQuantity = v.StockQuantity,
             Sku = v.Sku
         }).ToList() ?? new List<GetSellerProducts.ProductVariantDto>();
+
+        // Populate FAQs
+        productDto.Faqs = product.Faqs?.Select(f => new GetSellerProducts.ProductFaqDto
+        {
+            Question = f.Question,
+            Answer = f.Answer
+        }).ToList() ?? new List<GetSellerProducts.ProductFaqDto>();
 
         return ApiResponse<GetSellerProducts.ProductDto>.SuccessResponse(productDto, "Product retrieved successfully.");
     }

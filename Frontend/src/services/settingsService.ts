@@ -1,4 +1,5 @@
 import api from './api';
+import logger from '../utils/logger';
 
 export interface UserSettings {
   account: AccountSettings;
@@ -142,7 +143,7 @@ class SettingsService {
       const response = await api.put(`/settings/${category}`, settings) as { data: { success: boolean } };
       return response.data.success;
     } catch (error) {
-      console.error('Failed to update settings:', error);
+      logger.error('Failed to update settings:', error);
       return false;
     }
   }
@@ -152,7 +153,7 @@ class SettingsService {
       const response = await api.post(`/settings/${category}/reset`) as { data: { success: boolean } };
       return response.data.success;
     } catch (error) {
-      console.error('Failed to reset settings:', error);
+      logger.error('Failed to reset settings:', error);
       return false;
     }
   }

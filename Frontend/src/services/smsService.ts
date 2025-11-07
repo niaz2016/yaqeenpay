@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { registerPlugin } from '@capacitor/core';
+import logger from '../utils/logger';
 
 export interface SmsMessage {
   id: string;
@@ -47,7 +48,7 @@ export class SmsService {
    */
   async hasReadPermission(): Promise<boolean> {
     if (!this.isNative) {
-      console.warn('SMS reading is only available on native platforms');
+      logger.warn('SMS reading is only available on native platforms');
       return false;
     }
 
@@ -56,7 +57,7 @@ export class SmsService {
       const result = await SmsReader.checkPermission();
       return result.granted;
     } catch (error) {
-      console.error('Error checking SMS permissions:', error);
+      logger.error('Error checking SMS permissions:', error);
       return false;
     }
   }
@@ -66,7 +67,7 @@ export class SmsService {
    */
   async requestReadPermission(): Promise<boolean> {
     if (!this.isNative) {
-      console.warn('SMS reading is only available on native platforms');
+      logger.warn('SMS reading is only available on native platforms');
       return false;
     }
 
@@ -75,7 +76,7 @@ export class SmsService {
       const result = await SmsReader.requestPermission();
       return result.granted;
     } catch (error) {
-      console.error('Error requesting SMS permissions:', error);
+      logger.error('Error requesting SMS permissions:', error);
       return false;
     }
   }
@@ -85,7 +86,7 @@ export class SmsService {
    */
   async readSmsMessages(options: SmsReadOptions = {}): Promise<SmsMessage[]> {
     if (!this.isNative) {
-      console.warn('SMS reading is only available on native platforms');
+      logger.warn('SMS reading is only available on native platforms');
       return [];
     }
 
@@ -103,7 +104,7 @@ export class SmsService {
       const result = await this.callNativeSmsReader(options);
       return result;
     } catch (error) {
-      console.error('Error reading SMS messages:', error);
+      logger.error('Error reading SMS messages:', error);
       throw error;
     }
   }
@@ -162,7 +163,7 @@ export class SmsService {
    */
   async startSmsMonitoring(callback: (message: SmsMessage) => void): Promise<void> {
     if (!this.isNative) {
-      console.warn('SMS monitoring is only available on native platforms');
+      logger.warn('SMS monitoring is only available on native platforms');
       return;
     }
 
@@ -177,7 +178,7 @@ export class SmsService {
         
         newMessages.forEach(callback);
       } catch (error) {
-        console.error('Error monitoring SMS:', error);
+        logger.error('Error monitoring SMS:', error);
       }
     }, 10000); // Check every 10 seconds
   }
@@ -203,7 +204,7 @@ export class SmsService {
         throw new Error(`Failed to send SMS to backend: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error sending SMS to backend:', error);
+      logger.error('Error sending SMS to backend:', error);
       throw error;
     }
   }
@@ -217,7 +218,7 @@ export class SmsService {
       const result = await SmsReader.readSmsMessages(options);
       return result.messages;
     } catch (error) {
-      console.error('Error calling native SMS reader:', error);
+      logger.error('Error calling native SMS reader:', error);
       return [];
     }
   }

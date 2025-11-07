@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 // @ts-ignore
 import QRCode from 'qrcode';
+import logger from '../../utils/logger';
 
 interface QrTopupResponse {
   success: boolean;
@@ -106,7 +107,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
       setCurrentBalance(data.balance);
       return data.balance;
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      logger.error('Error fetching balance:', error);
       return currentBalanceRef.current; // Return current value on error
     }
   }, []);
@@ -179,7 +180,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
           setQrResponse(r => r ? { ...r, expiresAt: mark.expiresAt } : r);
         }
       } catch (e) {
-        console.error('Failed to mark payment initiated:', e);
+        logger.error('Failed to mark payment initiated:', e);
         // Continue with polling anyway
       }
       
@@ -200,7 +201,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
         }
       } catch (e) {
         // Verification failed, continue with polling
-        console.log('Immediate verification failed, will poll for changes');
+        logger.info('Immediate verification failed, will poll for changes');
       }
       const start = Date.now();
       let pollActive = true;
@@ -242,7 +243,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
       // Start polling immediately
       setTimeout(poll, 1000); // Start after 1 second to allow payment processing
     } catch (e) {
-      console.error('Error in handleIHavePaid:', e);
+      logger.error('Error in handleIHavePaid:', e);
       setPolling(false);
       setPaymentClaimed(false);
     }
@@ -263,7 +264,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
           }
         }, (error: any) => {
           if (error) {
-            console.error('Error generating QR code:', error);
+            logger.error('Error generating QR code:', error);
           }
         });
       }

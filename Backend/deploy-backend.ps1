@@ -17,7 +17,7 @@ $BackendPath = "D:\Work Repos\AI\yaqeenpay\Backend"
 $PublishPath = "$BackendPath\publish"
 $SSHKey = "C:\Users\Precision\Downloads\firstKey.pem"
 $ServerUser = "ubuntu"
-$ServerIP = "16.170.233.86"
+$ServerIP = "techtorio.online"
 $ServerPath = "/opt/techtorio/backend/"
 
 # Step 1: Build Backend

@@ -140,6 +140,29 @@ public class AdminController : ApiControllerBase
             return BadRequest("Unable to approve/settle withdrawal");
         return Ok(new { message = "Withdrawal approved" });
     }
+    [HttpPost("withdrawals/{withdrawalId}/fail")]
+    public async Task<IActionResult> FailWithdrawal([FromRoute] string withdrawalId, [FromBody] FailWithdrawalRequestDto request)
+    {
+        if (!Guid.TryParse(withdrawalId, out var id))
+            return BadRequest("Invalid withdrawal ID");
+
+        var cmd = new YaqeenPay.Application.Features.Admin.Commands.FailWithdrawal.FailWithdrawalCommand
+        {
+            WithdrawalId = id,
+            FailureReason = request.FailureReason ?? "Withdrawal failed"
+        };
+
+        var success = await Mediator.Send(cmd);
+        if (!success)
+            return BadRequest("Unable to fail withdrawal");
+        return Ok(new { message = "Withdrawal failed and amount refunded to wallet" });
+    }
+
+    public class FailWithdrawalRequestDto
+    {
+        public string? FailureReason { get; set; }
+    }
+
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders()
         {

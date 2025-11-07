@@ -236,7 +236,7 @@ public async Task<IActionResult> ApplyForSellerRole(ApplyForSellerRoleCommand co
 2. **Check for specific error messages** (not generic 500 error)
 3. **Monitor logs for detailed errors:**
 ```bash
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
 sudo journalctl -u yaqeenpay -f
 ```
 

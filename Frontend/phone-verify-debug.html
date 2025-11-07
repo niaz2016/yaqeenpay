@@ -1,65 +1,13 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>Phone Verify Debug</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 2rem; }
-    label { display:block; margin-top: 1rem; }
-    input, textarea { width: 100%; padding: 0.5rem; }
-    button { margin-top: 1rem; padding: 0.6rem 1rem; }
-    .row { display:flex; gap:1rem; }
-    .row > div { flex:1; }
-    .log { height: 200px; }
-  </style>
-</head>
-<body>
-  <h1>Phone Verification Debug</h1>
-  <div>
-    <label>Base URL
-      <input id="baseUrl" value="https://localhost:7137" />
-    </label>
-    <label>Access Token (Bearer)
-      <textarea id="token" class="log" placeholder="Paste JWT here"></textarea>
-    </label>
-    <div class="row">
-      <div>
-        <button id="requestBtn">Request OTP</button>
-      </div>
-      <div>
-        <input id="otp" placeholder="Enter OTP" />
-        <button id="confirmBtn">Confirm OTP</button>
-      </div>
-    </div>
-    <label>Output
-      <textarea id="out" class="log"></textarea>
-    </label>
-  </div>
-
-  <script>
-    const out = document.getElementById('out');
-    function log(x){ out.value = (new Date()).toISOString()+"\n"+JSON.stringify(x, null, 2); }
-    async function call(path, opts={}){
-      const base = document.getElementById('baseUrl').value; 
-      const token = document.getElementById('token').value.trim();
-      const headers = { 'Content-Type': 'application/json' };
-      if(token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(base + path, { ...opts, headers });
-      const text = await res.text();
-      try { return { status: res.status, ok: res.ok, json: JSON.parse(text) }; }
-      catch { return { status: res.status, ok: res.ok, text }; }
-    }
-
-    document.getElementById('requestBtn').onclick = async ()=>{
-      const r = await call('/api/profile/verify-phone/request', { method: 'POST' });
-      log(r);
-    };
-    document.getElementById('confirmBtn').onclick = async ()=>{
-      const code = document.getElementById('otp').value.trim();
-      const r = await call('/api/profile/verify-phone/confirm', { method: 'POST', body: JSON.stringify({ otp: code })});
-      log(r);
-    };
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Removed — Debug Page</title>
+    <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#333}</style>
+  </head>
+  <body>
+    <h2>This debug page has been removed</h2>
+    <p>Interactive debug pages were removed from production sources. Run such tests locally or in a secured testing environment.</p>
+  </body>
 </html>

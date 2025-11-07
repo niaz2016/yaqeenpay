@@ -112,8 +112,8 @@ public async Task<IActionResult> SubmitDocument(SubmitKycDocumentCommand command
 ```powershell
 cd "d:\Work Repos\AI\yaqeenpay\Backend"
 dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o ./publish
-scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@16.170.233.86:/opt/techtorio/backend/
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86 "sudo systemctl restart yaqeenpay"
+scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@techtorio.online:/opt/techtorio/backend/
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart yaqeenpay"
 ```
 
 ### Test Cases
@@ -192,7 +192,7 @@ ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86 "sudo sy
 ### Server Log Monitoring
 ```bash
 # Watch logs in real-time
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
 sudo journalctl -u yaqeenpay -f
 
 # Look for:
@@ -286,7 +286,7 @@ If issues persist:
 
 ```bash
 # Revert to previous version
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
 cd /opt/techtorio/backend
 sudo systemctl stop yaqeenpay
 

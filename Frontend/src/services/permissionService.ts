@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { registerPlugin } from '@capacitor/core';
+import logger from '../utils/logger';
 
 export interface PermissionStatus {
   granted: boolean;
@@ -53,10 +54,10 @@ export class PermissionService {
 
     try {
       const result = await PermissionManager.checkAllPermissions();
-      console.log('Permission check result:', result);
+      logger.debug('Permission check result:', result);
       return result.permissions;
     } catch (error) {
-      console.error('Error checking permissions:', error);
+      logger.error('Error checking permissions:', error);
       return this.getDefaultPermissions(false);
     }
   }
@@ -65,7 +66,7 @@ export class PermissionService {
    * Force refresh permission status (useful after granting permissions)
    */
   async refreshPermissions(): Promise<AllPermissionsStatus> {
-    console.log('Refreshing permission status...');
+    logger.debug('Refreshing permission status...');
     // Add a small delay to ensure Android has updated permission state
     await new Promise(resolve => setTimeout(resolve, 500));
     return await this.checkAllPermissions();
@@ -84,7 +85,7 @@ export class PermissionService {
       await this.requestCriticalPermissions();
       return await this.checkAllPermissions();
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      logger.error('Error requesting permissions:', error);
       return this.getDefaultPermissions(false);
     }
   }
@@ -108,7 +109,7 @@ export class PermissionService {
       try {
         await this.requestPermission(perm);
       } catch (e) {
-        console.warn('Permission request failed for', perm, e);
+        logger.warn('Permission request failed for ' + perm, e);
       }
     }
   }
@@ -125,7 +126,7 @@ export class PermissionService {
       const result = await PermissionManager.requestPermission({ permission });
       return result.granted;
     } catch (error) {
-      console.error(`Error requesting ${permission} permission:`, error);
+      logger.error(`Error requesting ${permission} permission:`, error);
       return false;
     }
   }
@@ -135,14 +136,14 @@ export class PermissionService {
    */
   async openAppSettings(): Promise<void> {
     if (!this.isNative) {
-      console.warn('App settings only available on native platforms');
+      logger.warn('App settings only available on native platforms');
       return;
     }
 
     try {
       await PermissionManager.openAppSettings();
     } catch (error) {
-      console.error('Error opening app settings:', error);
+      logger.error('Error opening app settings:', error);
     }
   }
 

@@ -223,7 +223,7 @@ namespace YaqeenPay.Application.Features.Wallets.Services
                 var transactionCountBefore = wallet.Transactions.Count;
                 
                 // Credit the wallet (removed await since Credit is not async)
-                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"Bank SMS: {record.TransactionId ?? topupLock.TransactionReference}");
+                wallet.Credit(new Money(record.Amount, topupLock.Amount.Currency), $"{record.TransactionId ?? topupLock.TransactionReference}");
                 
                 // Ensure new transactions are tracked by EF Core
                 var newTransactions = wallet.Transactions.Skip(transactionCountBefore).ToList();

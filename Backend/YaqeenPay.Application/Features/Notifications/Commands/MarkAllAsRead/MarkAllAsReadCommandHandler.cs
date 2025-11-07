@@ -26,14 +26,14 @@ public class MarkAllAsReadCommandHandler : IRequestHandler<MarkAllAsReadCommand>
     public async Task Handle(MarkAllAsReadCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        _logger.LogInformation("MarkAllAsReadCommand: Starting for user {UserId}", userId);
+    _logger.LogDebug("MarkAllAsReadCommand: Starting for user {UserId}", userId);
 
         var unreadNotifications = await _context.Notifications
             .AsTracking() // Enable change tracking so updates are persisted
             .Where(n => n.UserId == userId && n.Status == NotificationStatus.Unread)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("MarkAllAsReadCommand: Found {Count} unread notifications for user {UserId}", 
+        _logger.LogDebug("MarkAllAsReadCommand: Found {Count} unread notifications for user {UserId}", 
             unreadNotifications.Count, userId);
 
         foreach (var notification in unreadNotifications)
@@ -45,7 +45,7 @@ public class MarkAllAsReadCommandHandler : IRequestHandler<MarkAllAsReadCommand>
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("MarkAllAsReadCommand: Successfully marked {Count} notifications as read", 
+        _logger.LogDebug("MarkAllAsReadCommand: Successfully marked {Count} notifications as read", 
             unreadNotifications.Count);
     }
 }

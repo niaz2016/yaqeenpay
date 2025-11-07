@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { PermissionRequestDialog } from './PermissionRequestDialog';
 import { permissionService } from '../services/permissionService';
 import { locationService } from '../services/locationService';
+import logger from '../utils/logger';
 
 interface AppInitializerProps {
   children: React.ReactNode;
@@ -30,7 +31,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
         setIsInitialized(true);
       }
     } catch (error) {
-      console.error('App initialization error:', error);
+      logger.error('App initialization error:', error);
       // Continue anyway for better user experience
       setIsInitialized(true);
     } finally {
@@ -41,8 +42,8 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const handleNativeAppInitialization = async () => {
     try {
       // Check current permission status
-      const currentPermissions = await permissionService.checkAllPermissions();
-      console.log('Current permissions:', currentPermissions);
+  const currentPermissions = await permissionService.checkAllPermissions();
+  logger.debug('Current permissions:', currentPermissions);
 
       // Always check if critical permissions are missing
       const hasCriticalPermissions = await permissionService.hasCriticalPermissions();
@@ -50,14 +51,14 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
       // Always show permission dialog if critical permissions are missing
       // This ensures camera and location are requested on app startup
       if (!hasCriticalPermissions) {
-        console.log('Missing critical permissions, showing permission dialog');
+        logger.debug('Missing critical permissions, showing permission dialog');
         setShowPermissionDialog(true);
       } else {
-        console.log('All critical permissions granted, proceeding with app initialization');
+        logger.debug('All critical permissions granted, proceeding with app initialization');
         await finalizeInitialization();
       }
     } catch (error) {
-      console.error('Native app initialization error:', error);
+      logger.error('Native app initialization error:', error);
       // Show permission dialog as fallback to ensure permissions are requested
       setShowPermissionDialog(true);
     }
@@ -68,7 +69,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
       const { Preferences } = await import('@capacitor/preferences');
       await Preferences.set({ key: 'app_initialized', value: 'true' });
     } catch (error) {
-      console.error('Error marking app as initialized:', error);
+      logger.error('Error marking app as initialized:', error);
     }
   };
 
@@ -77,7 +78,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
       // Initialize location service in background (don't wait)
       if (await locationService.isLocationAvailable()) {
         locationService.getCurrentLocation().catch(err => {
-          console.warn('Failed to get initial location:', err);
+          logger.warn('Failed to get initial location:', err);
         });
       }
 
@@ -86,8 +87,8 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
 
       // App is ready
       setIsInitialized(true);
-    } catch (error) {
-      console.error('Finalization error:', error);
+      } catch (error) {
+      logger.error('Finalization error:', error);
       setIsInitialized(true); // Continue anyway
     }
   };
@@ -95,10 +96,10 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const handlePermissionsGranted = async () => {
     setShowPermissionDialog(false);
     
-    // Double-check permissions after dialog closes
-    console.log('Permission dialog closed, refreshing permissions...');
-    const refreshedPermissions = await permissionService.refreshPermissions();
-    console.log('Final permission status:', refreshedPermissions);
+  // Double-check permissions after dialog closes
+  logger.debug('Permission dialog closed, refreshing permissions...');
+  const refreshedPermissions = await permissionService.refreshPermissions();
+  logger.debug('Final permission status:', refreshedPermissions);
     
     await finalizeInitialization();
   };
@@ -106,7 +107,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const handlePermissionsSkipped = async () => {
     setShowPermissionDialog(false);
     // Still initialize, but some features may not work
-    console.log('Permissions skipped, continuing with app initialization');
+    logger.debug('Permissions skipped, continuing with app initialization');
     await finalizeInitialization();
   };
 

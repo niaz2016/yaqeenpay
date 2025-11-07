@@ -9,7 +9,7 @@ Your YaqeenPay backend is now fully configured to send emails via Brevo SMTP rel
 **SMTP Server:** smtp-relay.brevo.com  
 **Port:** 587 (STARTTLS)  
 **Login:** 9aaba7001@smtp-brevo.com  
-**Sender:** mmaxhillh@gmail.com  
+**Sender:** support@techtorio.online  
 **Free Tier:** 300 emails/day (9,000/month)
 
 ## What's Working
@@ -199,7 +199,7 @@ docker logs yaqeenpay-backend --tail 50
 
 Access your Brevo account:
 - URL: https://app.brevo.com/
-- Email: mmaxhillh@gmail.com
+- Email: support@techtorio.online
 - View sent emails, statistics, and delivery status
 
 ## Future Enhancements

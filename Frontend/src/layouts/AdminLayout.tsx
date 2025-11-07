@@ -30,7 +30,8 @@ import {
   AccountBalance as WithdrawalsIcon,
   AccountCircle,
   Logout,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Analytics as AnalyticsIcon
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +47,7 @@ interface AdminMenuItem {
 
 const menuItems: AdminMenuItem[] = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
+  { text: 'Analytics', icon: <AnalyticsIcon />, path: '/admin/analytics' },
   { text: 'User Management', icon: <PeopleIcon />, path: '/admin/users' },
   { text: 'KYC Verification', icon: <VerifiedUserIcon />, path: '/admin/kyc' },
   { text: 'Seller Approval', icon: <StoreIcon />, path: '/admin/sellers' },

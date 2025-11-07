@@ -11,6 +11,7 @@ import ratingService from '../../services/ratingService';
 import type { Order } from '../../types/order';
 import type { Rating } from '../../types/rating';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
+import logger from '../../utils/logger';
 
 import OrderStatusTimeline from '../../components/orders/OrderStatusTimeline';
 import DeliveryDecisionDialog from '../../components/orders/DeliveryDecisionDialog';
@@ -74,14 +75,9 @@ const OrderDetailsPage: React.FC = () => {
   // Debug helper to inspect URL transformations
   const debugNormalize = (original: string) => {
     const normalized = normalizeImageUrl(original);
-    if (typeof window !== 'undefined') {
-      // Log once per original to avoid noise
-      (window as any).__imageDebugLog = (window as any).__imageDebugLog || new Set<string>();
-      const key = original + '->' + normalized;
-      if (!(window as any).__imageDebugLog.has(key)) {
-        console.debug('[ImageDebug] original:', original, 'normalized:', normalized);
-        (window as any).__imageDebugLog.add(key);
-      }
+    // Development helper: use centralized logger instead of console.debug
+    if (import.meta.env.DEV) {
+      logger.debug('[ImageDebug] original -> normalized', { original, normalized });
     }
     return normalized;
   };
@@ -113,6 +109,7 @@ const OrderDetailsPage: React.FC = () => {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load order');
+      logger.error('[OrderDetails] load error', e);
     } finally {
       setLoading(false);
     }
@@ -135,7 +132,7 @@ const OrderDetailsPage: React.FC = () => {
         setCanEditRating(daysSinceRating <= 30);
       }
     } catch (e) {
-      console.error('Failed to load existing rating:', e);
+      logger.debug('Failed to load existing rating (non-fatal):', e);
       // Don't show error to user, just log it
     }
   };
@@ -160,7 +157,7 @@ const OrderDetailsPage: React.FC = () => {
         try {
           updated = await ordersService.getById(targetOrder.id);
         } catch (inner) {
-          console.warn('[OrderDetails] Failed fetching updated order after pay, using previous order snapshot', inner);
+          logger.warn('[OrderDetails] Failed fetching updated order after pay, using previous order snapshot', inner);
           updated = { ...targetOrder, status: targetOrder.status }; // no-op fallback
         }
         if (mountedRef.current && updated) setOrder(updated);
@@ -175,7 +172,7 @@ const OrderDetailsPage: React.FC = () => {
   if (mountedRef.current) setSnack({ open: true, message: 'Delivery confirmed. Escrowed Wallet Credits will be released to the seller.', severity: 'success' });
       }
     } catch (e) {
-      console.error('[OrderDetails] executeConfirmedAction error', e);
+      logger.error('[OrderDetails] executeConfirmedAction error', e);
       if (mountedRef.current) setSnack({ open: true, message: e instanceof Error ? e.message : 'Action failed', severity: 'error' });
     } finally {
       if (mountedRef.current) setConfirmState({ open: false, action: null, processing: false });
@@ -797,12 +794,12 @@ const OrderDetailsPage: React.FC = () => {
               }}
               onError={(e) => {
                 const attempted = debugNormalize(selectedImageUrl) || selectedImageUrl;
-                console.error('[ImageDebug] modal image failed:', selectedImageUrl, '->', attempted);
+                logger.error('[ImageDebug] modal image failed', { selectedImageUrl, attempted });
                 if (attempted.startsWith('https://')) {
                   const httpAlt = attempted.replace('https://', 'http://');
                   fetch(httpAlt, { method: 'HEAD' }).then(r => {
                     if (r.ok) {
-                      console.info('[ImageDebug] modal switching to http:', httpAlt);
+                      logger.info('[ImageDebug] modal switching to http:', httpAlt);
                       e.currentTarget.src = httpAlt;
                     } else {
                       e.currentTarget.src = placeholderDataUri(400);

@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { permissionService } from '../services/permissionService';
 import type { AllPermissionsStatus } from '../services/permissionService';
+import logger from '../utils/logger';
 
 interface PermissionRequestDialogProps {
   open: boolean;
@@ -78,7 +79,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
       setPermissions(result);
     } catch (err) {
       setError('Failed to check permissions');
-      console.error('Permission check error:', err);
+      logger.error('Permission check error:', err);
     } finally {
       setLoading(false);
     }
@@ -95,12 +96,12 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
       const result = await permissionService.refreshPermissions();
       
       // Add a small delay and refresh permissions to ensure accurate status
-      console.log('Initial permission result:', result);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  logger.debug('Initial permission result:', result);
+  await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Refresh permissions to get accurate status after user interaction
-      const refreshedResult = await permissionService.refreshPermissions();
-      console.log('Refreshed permission result:', refreshedResult);
+  // Refresh permissions to get accurate status after user interaction
+  const refreshedResult = await permissionService.refreshPermissions();
+  logger.debug('Refreshed permission result:', refreshedResult);
       
       setPermissions(refreshedResult);
       setStep('result');
@@ -117,7 +118,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
         (!locationEnabled || refreshedResult.location.granted)
       );
 
-      console.log('Critical permissions check:', {
+      logger.debug('Critical permissions check:', {
         sms: refreshedResult.sms.granted,
         location: refreshedResult.location.granted,
         camera: refreshedResult.camera.granted,
@@ -132,7 +133,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
       }
     } catch (err) {
       setError('Failed to request permissions. Please try again.');
-      console.error('Permission request error:', err);
+      logger.error('Permission request error:', err);
       setStep('intro');
     } finally {
       setRequesting(false);
@@ -143,7 +144,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
     try {
       await permissionService.openAppSettings();
     } catch (err) {
-      console.error('Failed to open app settings:', err);
+      logger.error('Failed to open app settings:', err);
     }
   };
 

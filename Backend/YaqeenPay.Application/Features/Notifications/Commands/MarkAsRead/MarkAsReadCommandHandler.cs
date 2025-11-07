@@ -26,7 +26,7 @@ public class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand>
     public async Task Handle(MarkAsReadCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
-        _logger.LogInformation("MarkAsReadCommand: Starting for user {UserId}, IDs: {NotificationIds}", 
+        _logger.LogDebug("MarkAsReadCommand: Starting for user {UserId}, IDs: {NotificationIds}", 
             userId, string.Join(", ", request.NotificationIds));
 
         var notifications = await _context.Notifications
@@ -34,7 +34,7 @@ public class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand>
             .Where(n => request.NotificationIds.Contains(n.Id) && n.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("MarkAsReadCommand: Found {Count} notifications to mark as read", notifications.Count);
+    _logger.LogDebug("MarkAsReadCommand: Found {Count} notifications to mark as read", notifications.Count);
 
         foreach (var notification in notifications)
         {
@@ -48,7 +48,7 @@ public class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand>
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("MarkAsReadCommand: Successfully marked {Count} notifications as read", 
+        _logger.LogDebug("MarkAsReadCommand: Successfully marked {Count} notifications as read", 
             notifications.Count);
     }
 }

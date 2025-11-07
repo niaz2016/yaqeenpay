@@ -76,13 +76,13 @@ If uploading manually, these directories will be preserved on the server.
 
 ### Check Service User
 ```bash
-ssh -i "key.pem" ubuntu@16.170.233.86 "systemctl show yaqeenpay | grep '^User='"
+ssh -i "key.pem" ubuntu@techtorio.online "systemctl show yaqeenpay | grep '^User='"
 # Output: User=www-data
 ```
 
 ### Check Directory Permissions
 ```bash
-ssh -i "key.pem" ubuntu@16.170.233.86 "ls -la /opt/techtorio/backend/ | grep -E 'Documents|Logs|wwwroot'"
+ssh -i "key.pem" ubuntu@techtorio.online "ls -la /opt/techtorio/backend/ | grep -E 'Documents|Logs|wwwroot'"
 ```
 
 ### Test Document Upload

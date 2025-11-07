@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 import productService from '../../services/productService';
+import analyticsService from '../../services/analyticsService';
 
 interface Product {
   id: string;
@@ -125,6 +126,34 @@ const SellerProductsPage: React.FC = () => {
         } else if (data.data?.items) {
           productsArray = data.data.items;
         } 
+        // Ensure viewCount is mapped correctly (fallback to 0 if missing)
+        productsArray = productsArray.map((product: any) => ({
+          ...product,
+          viewCount: typeof product.viewCount === 'number' ? product.viewCount : (product.views || 0)
+        }));
+
+        // Merge analytics-based view counts if the product-level value is missing or zero.
+        // The analytics endpoint is the source-of-truth for page views (from PageViews table).
+        try {
+          const analytics = await analyticsService.getSellerProductViews();
+          if (Array.isArray(analytics) && analytics.length > 0) {
+            const viewsMap = new Map<string, number>();
+            analytics.forEach((a: any) => {
+              if (a && a.productId) viewsMap.set(a.productId, a.totalViews || 0);
+            });
+
+            productsArray = productsArray.map((product: any) => ({
+              ...product,
+              // prefer existing numeric viewCount if it's > 0, otherwise take from analytics
+              viewCount: (typeof product.viewCount === 'number' && product.viewCount > 0)
+                ? product.viewCount
+                : (viewsMap.get(product.id) ?? (product.viewCount || 0))
+            }));
+          }
+        } catch (err) {
+          // don't fail product loading for analytics lookup errors
+          console.warn('[SellerProductsPage] Failed to merge analytics view counts:', err);
+        }
         setProducts(productsArray);
         setTotalPages(Math.ceil((data.data?.totalCount || 0) / 12));
       } else {
@@ -420,7 +449,7 @@ const SellerProductsPage: React.FC = () => {
                 <Box sx={{ display: 'flex', gap: 1, mt: 'auto' }}>
                   <IconButton
                     size="small"
-                    onClick={() => navigate(`/seller/products/${product.id}`)}
+                    onClick={() => navigate(`/products/${product.id}`)}
                     color="primary"
                   >
                     <EyeIcon />

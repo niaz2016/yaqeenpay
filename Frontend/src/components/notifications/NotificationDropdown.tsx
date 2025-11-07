@@ -39,6 +39,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '../../context/NotificationContext';
 import type { Notification, NotificationType } from '../../types/notification';
+import logger from '../../utils/logger';
 
 // Type to icon mapping
 const getTypeIcon = (type: NotificationType) => {
@@ -388,13 +389,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ maxHeight =
     deleteNotification,
   } = useNotifications();
 
-  // Debug logging
-  console.log('[NotificationDropdown] Render:', { 
-    statsUnread: stats.unread, 
-    statsTotal: stats.total,
-    showButton: stats.unread > 0,
-    notificationsCount: notifications.length 
-  });
+  // Development debug logging removed for production readiness
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -413,7 +408,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ maxHeight =
     try {
       await markAllAsRead();
     } catch (error) {
-      console.error('Failed to mark all as read:', error);
+      logger.error('Failed to mark all as read:', error);
     }
   }, [markAllAsRead]);
 
@@ -421,7 +416,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ maxHeight =
     try {
       await markAsRead([notificationId]);
     } catch (error) {
-      console.error('Failed to mark as read:', error);
+      logger.error('Failed to mark as read:', error);
     }
   }, [markAsRead]);
 
@@ -429,7 +424,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({ maxHeight =
     try {
       await deleteNotification(notificationId);
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      logger.error('Failed to delete notification:', error);
     }
   }, [deleteNotification]);
 

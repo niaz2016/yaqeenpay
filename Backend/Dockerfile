@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /src
 
@@ -29,7 +29,7 @@ COPY . .
 # Build the application (explicitly specify solution to avoid MSB1011)
 RUN dotnet build YaqeenPay.sln -c Release --no-restore
 
-# Publish the application
+# Publish the application (output to /app/publish)
 RUN dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
@@ -40,11 +40,11 @@ WORKDIR /app
 # Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy published application
-COPY --from=build /app/publish .
+ # Copy published output directly (simpler and avoids potential file corruption edge cases)
+COPY --from=build /app/publish/. /app/
 
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /app
+# Create Documents directory and change ownership to non-root user
+RUN mkdir -p /app/Documents && chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser

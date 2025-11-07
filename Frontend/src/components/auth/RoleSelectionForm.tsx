@@ -33,6 +33,17 @@ const RoleSelectionForm: React.FC<RoleSelectionFormProps> = ({
         <Typography variant="h4" component="h1" gutterBottom>
           Join YaqeenPay
         </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Already have an account?{' '}
+          <Button 
+            component={Link}
+            to="/auth/login" 
+            variant="text" 
+            size="small"
+          >
+            Sign In
+          </Button>
+        </Typography>
         <Typography variant="body1" color="text.secondary">
           Choose how you want to use our platform
         </Typography>
@@ -141,17 +152,7 @@ const RoleSelectionForm: React.FC<RoleSelectionFormProps> = ({
       </Stack>
 
       <Box sx={{ mt: 4, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Already have an account?{' '}
-          <Button 
-            component={Link}
-            to="/auth/login" 
-            variant="text" 
-            size="small"
-          >
-            Sign In
-          </Button>
-        </Typography>
+        
         
         {onBack && (
           <Button

@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
+import { buildProductPath } from '../../utils/slug';
 import { getRecentlyViewed } from '../../hooks/useProductCache';
 import productService from '../../services/productService';
 import type { ProductDetail } from '../../types/product';
@@ -85,7 +86,7 @@ const RecentProductCard: React.FC<{ productId: string }> = ({ productId }) => {
   return (
     <Card
       component={Link}
-      to={`/products/${product.id}`}
+  to={buildProductPath(product.id, product.name)}
       sx={{
         textDecoration: 'none',
         color: 'inherit',

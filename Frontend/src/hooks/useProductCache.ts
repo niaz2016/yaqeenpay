@@ -77,3 +77,11 @@ export const clearProductCache = (): void => {
   Object.keys(cache).forEach(key => delete cache[key]);
   recentlyViewed = [];
 };
+
+export const invalidateProductCache = (productId: string): void => {
+  delete cache[productId];
+};
+
+export const invalidateAllProductCache = (): void => {
+  Object.keys(cache).forEach(key => delete cache[key]);
+};

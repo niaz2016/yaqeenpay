@@ -1,5 +1,7 @@
 import apiService from './api';
 import type { ProductDetail } from '../types/product';
+import type { AxiosRequestConfig } from 'axios';
+import { invalidateProductCache, invalidateAllProductCache } from '../hooks/useProductCache';
 
 // Response wrapper interface
 interface BaseApiResponse {
@@ -38,6 +40,40 @@ export interface ProductAttribute {
   value: string;
 }
 
+type VariantPrimitive = string | number | boolean | undefined;
+
+export interface ProductVariantDTO {
+  size?: string;
+  color?: string;
+  price?: string;
+  stockQuantity?: string;
+  sku?: string;
+  [key: string]: VariantPrimitive;
+}
+
+export interface ProductVariantInput {
+  size?: string;
+  color?: string;
+  price?: number;
+  stockQuantity?: number;
+  sku?: string;
+  [key: string]: VariantPrimitive;
+}
+
+export interface UploadProgressEvent {
+  index: number;
+  total: number;
+  percent: number;
+  fileName: string;
+}
+
+export interface CreateProductOptions {
+  onUploadStart?: (info: { total: number }) => void;
+  onUploadProgress?: (event: UploadProgressEvent) => void;
+  onUploadComplete?: () => void;
+  onSubmitting?: () => void;
+}
+
 // (CreateProductRequest defined later with richer options)
 
 export interface CreateProductDTO {
@@ -61,16 +97,13 @@ export interface CreateProductDTO {
   material?: string;
   tags?: string[];
   attributes?: { name: string; value: string }[];
+  faqs?: { question: string; answer: string }[];
   images?: ProductImage[];
   imagesToDelete?: string[];
-  variants?: Array<{
-    size?: string;
-    color?: string;
-    price?: string;
-    stockQuantity?: string;
-    sku?: string;
-    [key: string]: any;
-  }>;
+  variants?: ProductVariantDTO[];
+  allowBackorders?: boolean;
+  isFeatured?: boolean;
+  featuredUntil?: string;
 }
 
 // Frontend-friendly create request that supports uploading newImages (files)
@@ -79,14 +112,79 @@ export type CreateProductRequest = Omit<CreateProductDTO, 'images' | 'variants'>
   images?: ProductImage[]; // existing images (for updates)
   imagesToDelete?: string[];
   sku?: string;
-  variants?: Array<{
-    size?: string;
-    color?: string;
-    price?: number;
-    stockQuantity?: number;
-    [key: string]: any;
-  }>;
+  variants?: ProductVariantInput[];
 };
+
+interface ProductImagePayload {
+  imageUrl: string;
+  altText?: string;
+  sortOrder: number;
+  isPrimary: boolean;
+}
+
+interface CreateProductPayload {
+  name: string;
+  description: string;
+  price: number;
+  discountPrice?: string;
+  stockQuantity: number;
+  categoryId: string;
+  status: number;
+  currency: string;
+  minOrderQuantity?: number;
+  maxOrderQuantity?: number;
+  weight?: number;
+  weightUnit?: string;
+  dimensions?: string;
+  brand?: string;
+  model?: string;
+  material?: string;
+  tags?: string[];
+  attributes: Record<string, string>;
+  faqs?: { question: string; answer: string }[];
+  images: ProductImagePayload[];
+  imagesToDelete?: string[];
+  sku: string;
+  variants?: ProductVariantInput[];
+  allowBackorders?: boolean;
+  isFeatured?: boolean;
+  featuredUntil?: string;
+}
+
+interface ProductVariantUpdatePayload {
+  size?: string;
+  color?: string;
+  price?: number;
+  stockQuantity?: number;
+  sku?: string;
+  [key: string]: VariantPrimitive;
+}
+
+interface UpdateProductPayload {
+  id: string;
+  name?: string;
+  description?: string;
+  price?: number;
+  discountPrice?: string;
+  stockQuantity?: number;
+  categoryId?: string;
+  status?: number;
+  currency?: string;
+  minOrderQuantity?: number;
+  maxOrderQuantity?: number;
+  weight?: number;
+  weightUnit?: string;
+  dimensions?: string;
+  brand?: string;
+  model?: string;
+  material?: string;
+  tags?: string[];
+  attributes?: Record<string, string>;
+  faqs?: { question: string; answer: string }[];
+  NewImages?: ProductImagePayload[];
+  ImagesToDelete?: string[];
+  variants?: ProductVariantUpdatePayload[];
+}
 
 class ProductService {
   private statusToEnum(status?: string): number | undefined {
@@ -101,6 +199,33 @@ class ProductService {
       Rejected: 6,
     };
     return map[status as keyof typeof map];
+  }
+
+  private extractUploadUrl(response: unknown): string | null {
+    if (!response || typeof response !== 'object') {
+      return null;
+    }
+
+    const topLevel = response as { url?: unknown; data?: unknown };
+    if (typeof topLevel.url === 'string') {
+      return topLevel.url;
+    }
+
+    if (topLevel.data && typeof topLevel.data === 'object') {
+      const dataLevel = topLevel.data as { url?: unknown; data?: unknown };
+      if (typeof dataLevel.url === 'string') {
+        return dataLevel.url;
+      }
+
+      if (dataLevel.data && typeof dataLevel.data === 'object') {
+        const nestedLevel = dataLevel.data as { url?: unknown };
+        if (typeof nestedLevel.url === 'string') {
+          return nestedLevel.url;
+        }
+      }
+    }
+
+    return null;
   }
   async getProduct(id: string): Promise<ProductDetail> {
     try {
@@ -127,26 +252,58 @@ class ProductService {
     }
   }
 
-  async uploadImage(file: File): Promise<string> {
+  async uploadImage(file: File, onProgress?: (percent: number) => void): Promise<string> {
     const formData = new FormData();
     formData.append('file', file);
-    // apiService.post unwraps ApiResponse wrappers and returns inner data when possible.
-    const result = await apiService.post<any>('/profile/upload-image', formData);
+    const config: AxiosRequestConfig | undefined = onProgress
+      ? {
+          onUploadProgress: (event) => {
+            if (!event.total) return;
+            const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+            onProgress(percent);
+          },
+        }
+      : undefined;
+
+    const result = await apiService.post<unknown>('/profile/upload-image', formData, config);
     // Support multiple possible shapes returned by the upload endpoint
     // - { url: '...' }
     // - { data: { url: '...' } }
     // - { success: true, data: { url: '...' } }
-    const url = result?.url || result?.data?.url || (result?.data && result.data?.data?.url) || null;
+    const url = this.extractUploadUrl(result);
     if (!url) throw new Error('Upload succeeded but server did not return file URL');
     return url;
   }
 
-  async uploadImages(images: ProductImage[]): Promise<Array<{ imageUrl: string; isPrimary: boolean }>> {
-    const uploadPromises = images.map(async (image) => {
-      const imageUrl = await this.uploadImage(image.file);
-      return { imageUrl, isPrimary: image.isPrimary };
-    });
-    return await Promise.all(uploadPromises);
+  async uploadImages(
+    images: ProductImage[],
+    onProgress?: (event: UploadProgressEvent) => void
+  ): Promise<Array<{ imageUrl: string; isPrimary: boolean }>> {
+    const uploaded: Array<{ imageUrl: string; isPrimary: boolean }> = [];
+    const total = images.length;
+
+    for (let index = 0; index < images.length; index += 1) {
+      const image = images[index];
+      const fileName = image.file?.name || `image-${index + 1}`;
+
+      if (onProgress) {
+        onProgress({ index, total, percent: 0, fileName });
+      }
+
+      const imageUrl = await this.uploadImage(image.file, (percent) => {
+        if (onProgress) {
+          onProgress({ index, total, percent, fileName });
+        }
+      });
+
+      if (onProgress) {
+        onProgress({ index, total, percent: 100, fileName });
+      }
+
+      uploaded.push({ imageUrl, isPrimary: image.isPrimary });
+    }
+
+    return uploaded;
   }
 
   async getProducts(params?: {
@@ -181,11 +338,22 @@ class ProductService {
     return await apiService.get(url);
   }
 
-  async createProduct(data: CreateProductRequest): Promise<any> {
+  async createProduct(data: CreateProductRequest, options?: CreateProductOptions): Promise<unknown> {
     // Prefer images passed in `images` (already in service format), otherwise use `newImages` (File uploads)
-    const imagesToUpload = (data.images && data.images.length) ? data.images : (data.newImages || []);
+    const imagesToUpload = data.images?.length ? data.images : data.newImages ?? [];
+    if (imagesToUpload.length && options?.onUploadStart) {
+      options.onUploadStart({ total: imagesToUpload.length });
+    }
 
-    const uploadedImages = imagesToUpload.length ? await this.uploadImages(imagesToUpload) : [];
+    const uploadedImages = imagesToUpload.length
+      ? await this.uploadImages(imagesToUpload, options?.onUploadProgress)
+      : [];
+
+    if (imagesToUpload.length && options?.onUploadComplete) {
+      options.onUploadComplete();
+    }
+
+    options?.onSubmitting?.();
 
     // Build attributes object expected by backend (Dictionary<string,string>)
     const attributesObj = data.attributes?.reduce((acc, attr) => ({
@@ -194,38 +362,50 @@ class ProductService {
     }), {} as Record<string, string>) || {};
 
     // Ensure SKU exists - backend requires SKU
-    const sku = (data as any).sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const sku = data.sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    const statusCode = this.statusToEnum(data.status) ?? this.statusToEnum('Active') ?? 1;
 
-    const payload: any = {
-      ...data,
-      sku,
+    const payload: CreateProductPayload = {
+      name: data.name,
+      description: data.description,
       price: parseFloat(data.price),
-      stockQuantity: parseInt(data.stockQuantity as any, 10),
-      status: this.statusToEnum((data as any).status) ?? this.statusToEnum('Active'),
-      // optional numeric conversions
-      minOrderQuantity: data.minOrderQuantity ? parseInt(data.minOrderQuantity as any, 10) : undefined,
-      maxOrderQuantity: data.maxOrderQuantity ? parseInt(data.maxOrderQuantity as any, 10) : undefined,
-      weight: data.weight ? parseFloat(data.weight as any) : undefined,
+      discountPrice: data.discountPrice,
+      stockQuantity: parseInt(data.stockQuantity, 10),
+      categoryId: data.categoryId,
+      status: statusCode,
+      currency: data.currency,
+      minOrderQuantity: data.minOrderQuantity ? parseInt(data.minOrderQuantity, 10) : undefined,
+      maxOrderQuantity: data.maxOrderQuantity ? parseInt(data.maxOrderQuantity, 10) : undefined,
+      weight: data.weight ? parseFloat(data.weight) : undefined,
       weightUnit: data.weightUnit,
-      dimensions: (data as any).dimensions,
-      brand: (data as any).brand,
-      model: (data as any).model,
-      material: (data as any).material,
-      tags: (data as any).tags,
+      dimensions: data.dimensions,
+      brand: data.brand,
+      model: data.model,
+      material: data.material,
+      tags: data.tags,
       attributes: attributesObj,
+      faqs: data.faqs,
       images: uploadedImages.map((img, index) => ({
         imageUrl: img.imageUrl,
-        altText: undefined,
         sortOrder: index,
         isPrimary: img.isPrimary
-      }))
+      })),
+      imagesToDelete: data.imagesToDelete,
+      sku,
+      variants: data.variants?.map((variant) => ({
+        ...variant
+      })),
+      allowBackorders: data.allowBackorders,
+      isFeatured: data.isFeatured,
+      featuredUntil: data.featuredUntil,
     };
 
-    // Remove frontend-only props that backend doesn't expect
-    delete payload.newImages;
-
-    const response = await apiService.post<any>('/products', payload);
-    return response;
+    const result = await apiService.post<unknown>('/products', payload);
+    
+    // Invalidate all product cache to ensure product lists refresh
+    invalidateAllProductCache();
+    
+    return result;
   }
 
   async getProductById(productId: string): Promise<ProductDetail> {
@@ -242,47 +422,63 @@ class ProductService {
     }
 
     // Prepare the update payload
-    const updatePayload: any = {
-      ...data,
-      id: productId, // Include the product ID in the payload
+    const statusCode = data.status ? this.statusToEnum(data.status) : undefined;
+    const attributes = data.attributes?.reduce((acc, attr) => ({
+      ...acc,
+      [attr.name]: attr.value
+    }), {} as Record<string, string>);
+
+    const updateVariants = data.variants?.map<ProductVariantUpdatePayload>((variant) => ({
+      ...variant,
+      price: variant.price ? parseFloat(variant.price) : undefined,
+      stockQuantity: variant.stockQuantity ? parseInt(variant.stockQuantity, 10) : undefined,
+    }));
+
+    const updatePayload: UpdateProductPayload = {
+      id: productId,
+      name: data.name,
+      description: data.description,
       price: data.price ? parseFloat(data.price) : undefined,
+      discountPrice: data.discountPrice,
       stockQuantity: data.stockQuantity ? parseInt(data.stockQuantity, 10) : undefined,
+      categoryId: data.categoryId,
+      status: statusCode,
+      currency: data.currency,
       minOrderQuantity: data.minOrderQuantity ? parseInt(data.minOrderQuantity, 10) : undefined,
       maxOrderQuantity: data.maxOrderQuantity ? parseInt(data.maxOrderQuantity, 10) : undefined,
       weight: data.weight ? parseFloat(data.weight) : undefined,
-      status: this.statusToEnum((data as any).status),
-      attributes: data.attributes?.reduce((acc, attr) => ({ 
-        ...acc, [attr.name]: attr.value 
-      }), {} as Record<string, string>),
-      // Map to backend's expected property name for new images
+      weightUnit: data.weightUnit,
+      dimensions: data.dimensions,
+      brand: data.brand,
+      model: data.model,
+      material: data.material,
+      tags: data.tags,
+      attributes,
+      faqs: data.faqs,
       NewImages: imageUrls.length > 0 ? imageUrls.map((img, index) => ({
         imageUrl: img.imageUrl,
         altText: `${data.name || 'Product'} image ${index + 1}`,
         sortOrder: index,
         isPrimary: img.isPrimary
       })) : undefined,
-      // Pass through imagesToDelete if provided
-      ImagesToDelete: (data as any).imagesToDelete
+      ImagesToDelete: data.imagesToDelete,
+      variants: updateVariants,
     };
-
-    // Include variants when provided by the frontend
-    if ((data as any).variants && Array.isArray((data as any).variants)) {
-      updatePayload.variants = (data as any).variants.map((v: any) => ({
-        size: v.size,
-        color: v.color,
-        price: v.price ? parseFloat(v.price as any) : undefined,
-        stockQuantity: v.stockQuantity ? parseInt(v.stockQuantity as any, 10) : undefined,
-        sku: v.sku
-      }));
-    }
 
     const responseData = await apiService.put<ProductDetail>(`/products/${productId}`, updatePayload);
     if (!responseData) throw new Error('Failed to update product');
+    
+    // Invalidate cache for this product so it gets fresh data on next view
+    invalidateProductCache(productId);
+    
     return responseData;
   }
 
   async deleteProduct(productId: string): Promise<void> {
     await apiService.delete(`/products/${productId}`);
+    
+    // Invalidate cache for deleted product
+    invalidateProductCache(productId);
   }
 
   async reduceStock(productId: string, quantity: number): Promise<void> {

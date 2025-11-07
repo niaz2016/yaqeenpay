@@ -279,8 +279,7 @@ const WithdrawalsPage: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    // Display as Wallet Credits without implying fiat custody
-    return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} Wallet Credits`;
+    return `${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   if (loading) {
@@ -340,9 +339,6 @@ const WithdrawalsPage: React.FC = () => {
             <Box>
                 <Typography variant="body2" color="text.secondary">
                   Denomination Reference
-                </Typography>
-                <Typography variant="h6">
-                  Wallet Credits (1 Credit = PKR 1 reference)
                 </Typography>
             </Box>
           </Stack>

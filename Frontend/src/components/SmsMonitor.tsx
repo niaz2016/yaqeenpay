@@ -3,6 +3,7 @@ import { Alert, Snackbar } from '@mui/material';
 import { smsService } from '../services/smsService';
 import type { SmsMessage } from '../services/smsService';
 import authService from '../services/authService';
+import logger from '../utils/logger';
 
 interface SmsMonitorProps {
   isOtpPending?: boolean;
@@ -51,7 +52,7 @@ export const SmsMonitor: React.FC<SmsMonitorProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error with SMS permissions:', error);
+      logger.error('Error with SMS permissions:', error);
       setNotification({
         message: 'Error requesting SMS permissions',
         severity: 'error'
@@ -79,7 +80,7 @@ export const SmsMonitor: React.FC<SmsMonitorProps> = ({
           setLastProcessedSmsId(recentMessages[0].id);
         }
       } catch (error) {
-        console.error('Error monitoring SMS:', error);
+        logger.error('Error monitoring SMS:', error);
       }
     }, 5000); // Check every 5 seconds
 
@@ -92,7 +93,7 @@ export const SmsMonitor: React.FC<SmsMonitorProps> = ({
     if (isOtpPending && onOtpDetected) {
       const otpCode = smsService.extractOtpFromMessage(message.body);
       if (otpCode) {
-        console.log('OTP detected:', otpCode);
+        // Do not log OTPs in console for production. Notify the caller.
         onOtpDetected(otpCode);
         setNotification({
           message: `OTP detected: ${otpCode}`,
@@ -118,19 +119,17 @@ export const SmsMonitor: React.FC<SmsMonitorProps> = ({
       ];
 
       const isBankSms = bankPatterns.some(pattern => pattern.test(message.body));
-      
       if (isBankSms) {
         try {
           const currentUser = await authService.getCurrentUser();
+          // Do not log full SMS content to console in production
           await smsService.sendSmsToBackend(message.body, currentUser?.id);
-          
-          console.log('Bank SMS sent to backend:', message.body);
           setNotification({
             message: 'Bank SMS processed automatically',
             severity: 'info'
           });
         } catch (error) {
-          console.error('Error sending bank SMS to backend:', error);
+          logger.error('Error sending bank SMS to backend:', error);
         }
       }
     }

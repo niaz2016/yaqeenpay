@@ -43,6 +43,9 @@ public interface IApplicationDbContext
     // Product Reviews
     DbSet<YaqeenPay.Domain.Entities.ProductReview> ProductReviews { get; }
 
+    // Analytics
+    DbSet<PageView> PageViews { get; }
+
     // Subdomain Management
     DbSet<Subdomain> Subdomains { get; }
 

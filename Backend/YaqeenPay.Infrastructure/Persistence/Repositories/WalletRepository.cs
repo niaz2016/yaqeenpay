@@ -37,7 +37,8 @@ namespace YaqeenPay.Infrastructure.Persistence.Repositories
 
         public async Task UpdateAsync(Wallet wallet)
         {
-            _context.Entry(wallet).State = EntityState.Modified;
+            // Ensure EF Core is tracking the entity and marks Money value objects as modified
+            _context.Wallets.Update(wallet);
             await _context.SaveChangesAsync();
         }
 

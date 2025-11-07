@@ -165,10 +165,11 @@ public class LoginWithGoogleCommandHandler : IRequestHandler<LoginWithGoogleComm
         }
 
         // Register the current device as trusted without OTP
-        var userAgent = _currentUserService.UserAgent ?? "Unknown";
-        var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
+    var userAgent = _currentUserService.UserAgent ?? "Unknown";
+    var ipAddress = _currentUserService.IpAddress ?? "127.0.0.1";
         var fingerprint = _deviceService.GenerateDeviceFingerprint(userAgent);
         var existingDevice = await _deviceService.GetUserDeviceAsync(user.Id, fingerprint, cancellationToken);
+        var isNewDevice = existingDevice == null;
 
         if (existingDevice == null)
         {
@@ -204,7 +205,8 @@ public class LoginWithGoogleCommandHandler : IRequestHandler<LoginWithGoogleComm
             Email = user.Email ?? string.Empty,
             UserName = user.UserName ?? string.Empty,
             RequiresDeviceVerification = false,
-            IsNewUser = isNewUser
+            IsNewUser = isNewUser,
+            IsNewDevice = isNewDevice
         }, message);
     }
 

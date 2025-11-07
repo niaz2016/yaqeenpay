@@ -43,6 +43,10 @@ export interface ProductDetail {
   weightUnit?: string;
   dimensions?: string;
   attributes: Record<string, string>;
+  faqs?: Array<{
+    question: string;
+    answer: string;
+  }>;
   averageRating?: number;
   reviewCount?: number;
   tags?: string[];

@@ -26,12 +26,12 @@
       "type": "image/png"
     },
     {
-      "src": "/yaqeenpay/icons/icon-192.png",
+      "src": "/yaqeenpay/icons/techtorio-logo.svg",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/yaqeenpay/icons/icon-512.png",
+      "src": "/yaqeenpay/icons/techtorio-logo.svg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -43,14 +43,14 @@
       "short_name": "New Order",
       "description": "Create a new buying order",
       "url": "/yaqeenpay/orders/new",
-      "icons": [{ "src": "/yaqeenpay/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/yaqeenpay/icons/techtorio-logo.svg", "sizes": "192x192" }]
     },
     {
       "name": "Marketplace",
       "short_name": "Market",
       "description": "Open the marketplace",
       "url": "/yaqeenpay/marketplace",
-      "icons": [{ "src": "/yaqeenpay/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/yaqeenpay/icons/techtorio-logo.svg", "sizes": "192x192" }]
     }
   ]
 }

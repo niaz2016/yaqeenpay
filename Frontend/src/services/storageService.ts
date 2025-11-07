@@ -1,3 +1,5 @@
+import logger from '../utils/logger';
+
 /**
  * Local Storage Service for YaqeenPay
  * Provides safe and consistent localStorage operations with error handling
@@ -13,7 +15,7 @@ export class StorageService {
     try {
       return localStorage.getItem(this.PREFIX + key);
     } catch (error) {
-      console.warn(`Failed to get item from localStorage: ${key}`, error);
+      logger.warn(`Failed to get item from localStorage: ${key}`, error);
       return null;
     }
   }
@@ -26,7 +28,7 @@ export class StorageService {
       localStorage.setItem(this.PREFIX + key, value);
       return true;
     } catch (error) {
-      console.warn(`Failed to set item in localStorage: ${key}`, error);
+      logger.warn(`Failed to set item in localStorage: ${key}`, error);
       return false;
     }
   }
@@ -39,7 +41,7 @@ export class StorageService {
       localStorage.removeItem(this.PREFIX + key);
       return true;
     } catch (error) {
-      console.warn(`Failed to remove item from localStorage: ${key}`, error);
+      logger.warn(`Failed to remove item from localStorage: ${key}`, error);
       return false;
     }
   }
@@ -53,7 +55,7 @@ export class StorageService {
       keys.forEach(key => localStorage.removeItem(key));
       return true;
     } catch (error) {
-      console.warn('Failed to clear localStorage', error);
+      logger.warn('Failed to clear localStorage', error);
       return false;
     }
   }
@@ -103,7 +105,7 @@ export class StorageService {
       const prefs = this.getItem('user_preferences');
       return prefs ? JSON.parse(prefs) : {};
     } catch (error) {
-      console.warn('Failed to parse user preferences', error);
+      logger.warn('Failed to parse user preferences', error);
       return {};
     }
   }
@@ -115,7 +117,7 @@ export class StorageService {
     try {
       return this.setItem('user_preferences', JSON.stringify(preferences));
     } catch (error) {
-      console.warn('Failed to save user preferences', error);
+      logger.warn('Failed to save user preferences', error);
       return false;
     }
   }
@@ -141,7 +143,7 @@ export class StorageService {
         autoBackup: false
       };
     } catch (error) {
-      console.warn('Failed to parse app settings', error);
+      logger.warn('Failed to parse app settings', error);
       return {
         rememberEmail: true,
         enableNotifications: true,
@@ -157,7 +159,7 @@ export class StorageService {
     try {
       return this.setItem('app_settings', JSON.stringify(settings));
     } catch (error) {
-      console.warn('Failed to save app settings', error);
+      logger.warn('Failed to save app settings', error);
       return false;
     }
   }

@@ -64,14 +64,18 @@ const WalletPage: React.FC = () => {
     }
   };
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = async (days: number = 30) => {
     try {
-      const data = await walletService.getAnalytics();
+      const data = await walletService.getAnalytics(days);
       setAnalytics(data);
     } catch (e: any) {
       // Not critical; don't show toast for analytics failures
       console.error('Wallet analytics load failed:', e);
     }
+  };
+
+  const handlePeriodChange = async (days: number) => {
+    await loadAnalytics(days);
   };
 
   useEffect(() => {
@@ -160,7 +164,7 @@ const WalletPage: React.FC = () => {
           />
         </Box>
         <Box sx={{ minWidth: 0, height: '340px' }}>
-          <WalletCharts analytics={analytics} />
+          <WalletCharts analytics={analytics} onPeriodChange={handlePeriodChange} />
         </Box>
       </Box>
 

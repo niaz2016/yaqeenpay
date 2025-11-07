@@ -53,6 +53,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
 
+    // Analytics
+    public DbSet<PageView> PageViews => Set<PageView>();
+
     // Rating System
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<RatingStats> RatingStats => Set<RatingStats>();

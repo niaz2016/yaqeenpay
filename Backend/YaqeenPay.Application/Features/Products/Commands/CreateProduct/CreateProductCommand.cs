@@ -31,12 +31,21 @@ public record CreateProductCommand : IRequest<ApiResponse<Guid>>
     public string? Size { get; set; }
     public string? Material { get; set; }
     public bool AllowBackorders { get; set; } = false;
+    public bool IsFeatured { get; set; } = false;
+    public DateTime? FeaturedUntil { get; set; }
     public ProductStatus Status { get; set; } = ProductStatus.Active;
     public List<string> Tags { get; set; } = new List<string>();
     public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
+    public List<ProductFaqDto> Faqs { get; set; } = new List<ProductFaqDto>();
     public List<CreateProductImageRequest> Images { get; set; } = new List<CreateProductImageRequest>();
     // Optional product variants supplied by the frontend
     public List<CreateProductVariantRequest> Variants { get; set; } = new List<CreateProductVariantRequest>();
+}
+
+public record ProductFaqDto
+{
+    public string Question { get; set; } = string.Empty;
+    public string Answer { get; set; } = string.Empty;
 }
 
 public record CreateProductImageRequest
@@ -160,6 +169,17 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
         product.UpdateProductDetails(request.Brand, request.Model, request.Color, request.Size, request.Material);
         product.UpdateTags(request.Tags);
         product.UpdateAttributes(request.Attributes);
+        
+        // Update FAQs
+        var faqs = request.Faqs?.Select(f => new ProductFaq { Question = f.Question, Answer = f.Answer }).ToList() ?? new List<ProductFaq>();
+        product.UpdateFaqs(faqs);
+        
+        // Set featured status if requested
+        if (request.IsFeatured)
+        {
+            product.SetFeatured(request.FeaturedUntil);
+        }
+        
     // Honor requested status (Active/Draft/Inactive)
     product.UpdateStatus(request.Status);
 

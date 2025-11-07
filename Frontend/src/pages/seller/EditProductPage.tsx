@@ -102,6 +102,11 @@ const EditProductPage: React.FC = () => {
   const [attributes, setAttributes] = useState<Array<{ name: string; value: string }>>([
     { name: '', value: '' }
   ]);
+
+  // FAQs
+  const [faqs, setFaqs] = useState<Array<{ question: string; answer: string }>>([
+    { question: '', answer: '' }
+  ]);
   
   // UI state
   const [loading, setLoading] = useState(true);
@@ -184,6 +189,14 @@ const EditProductPage: React.FC = () => {
           const attrs = Object.entries(productData.attributes).map(([name, value]) => ({ name, value }));
           if (attrs.length > 0) setAttributes(attrs);
         }
+
+        // Load FAQs from product
+        if (productData.faqs && Array.isArray(productData.faqs) && productData.faqs.length > 0) {
+          setFaqs(productData.faqs.map(f => ({
+            question: f.question || '',
+            answer: f.answer || ''
+          })));
+        }
         
       } catch (err) {
         console.error('Error loading product:', err);
@@ -223,8 +236,14 @@ const EditProductPage: React.FC = () => {
   // Attribute handlers
   const addAttribute = () => setAttributes(prev => [...prev, { name: '', value: '' }]);
   const removeAttribute = (index: number) => setAttributes(prev => prev.filter((_, i) => i !== index));
-  const updateAttribute = (index: number, field: 'name' | 'value', value: string) => {
+  const updateAttribute = (index: number, field: string, value: string) => {
     setAttributes(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
+  };
+
+  const addFaq = () => setFaqs(prev => [...prev, { question: '', answer: '' }]);
+  const removeFaq = (index: number) => setFaqs(prev => prev.filter((_, i) => i !== index));
+  const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    setFaqs(prev => prev.map((f, i) => i === index ? { ...f, [field]: value } : f));
   };
 
   const handleRemoveExistingImage = (imageUrl: string) => {
@@ -303,6 +322,10 @@ const EditProductPage: React.FC = () => {
       // Include attributes if provided
       const validAttributes = attributes.filter(a => a.name.trim() && a.value.trim()).map(a => ({ name: a.name.trim(), value: a.value.trim() }));
       if (validAttributes.length > 0) updateData.attributes = validAttributes;
+
+      // Include FAQs if provided
+      const validFaqs = faqs.filter(f => f.question.trim() && f.answer.trim()).map(f => ({ question: f.question.trim(), answer: f.answer.trim() }));
+      if (validFaqs.length > 0) updateData.faqs = validFaqs;
 
       // Include variants if any
       const validVariants = variants.filter(v => (v.size && v.size.trim()) || (v.color && v.color.trim()) || (v.price && v.price.trim()) || (v.stockQuantity && v.stockQuantity.trim()));
@@ -602,6 +625,44 @@ const EditProductPage: React.FC = () => {
                           <IconButton onClick={() => removeAttribute(idx)} disabled={saving} color="error">
                             <DeleteIcon />
                           </IconButton>
+                        </Box>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* FAQs */}
+                  <Card sx={{ mt: 2, p: 1 }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="subtitle1">FAQs</Typography>
+                        <Button size="small" startIcon={<AddIcon />} onClick={addFaq} disabled={saving}>Add FAQ</Button>
+                      </Box>
+                      {faqs.map((faq, idx) => (
+                        <Box key={idx} sx={{ mb: 2, p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                          <TextField
+                            label="Question"
+                            value={faq.question}
+                            onChange={(e) => updateFaq(idx, 'question', e.target.value)}
+                            size="small"
+                            fullWidth
+                            disabled={saving}
+                            sx={{ mb: 1 }}
+                          />
+                          <TextField
+                            label="Answer"
+                            value={faq.answer}
+                            onChange={(e) => updateFaq(idx, 'answer', e.target.value)}
+                            size="small"
+                            fullWidth
+                            multiline
+                            rows={3}
+                            disabled={saving}
+                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                            <IconButton onClick={() => removeFaq(idx)} disabled={saving} color="error" size="small">
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
                         </Box>
                       ))}
                     </CardContent>

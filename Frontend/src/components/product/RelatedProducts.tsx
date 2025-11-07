@@ -12,6 +12,7 @@ import {
   useMediaQuery
 } from '@mui/material';
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
+import { buildProductPath } from '../../utils/slug';
 import type { ProductDetail } from '../../types/product';
 
 interface RelatedProductsProps {
@@ -85,7 +86,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
               flexDirection: 'column',
               cursor: 'pointer'
             }}
-            onClick={() => navigate(`/products/${product.id}`)}
+            onClick={() => navigate(buildProductPath(product.id, product.name))}
           >
             <CardMedia
               component="img"

@@ -34,10 +34,17 @@ public record UpdateProductCommand : IRequest<ApiResponse<Unit>>
     public ProductStatus Status { get; set; } = ProductStatus.Active;
     public List<string> Tags { get; set; } = new List<string>();
     public Dictionary<string, string> Attributes { get; set; } = new Dictionary<string, string>();
+    public List<ProductFaqDto> Faqs { get; set; } = new List<ProductFaqDto>();
     public List<string> ImagesToDelete { get; set; } = new List<string>();
     public List<CreateProductImageRequest> NewImages { get; set; } = new List<CreateProductImageRequest>();
     // Variants supplied by frontend to replace existing variants
     public List<CreateProductVariantRequest> Variants { get; set; } = new List<CreateProductVariantRequest>();
+}
+
+public record ProductFaqDto
+{
+    public string Question { get; set; } = string.Empty;
+    public string Answer { get; set; } = string.Empty;
 }
 
 public record CreateProductVariantRequest
@@ -153,6 +160,10 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
         product.UpdateTags(request.Tags);
         product.UpdateAttributes(request.Attributes);
         product.UpdateStatus(request.Status);
+        
+        // Update FAQs
+        var faqs = request.Faqs?.Select(f => new ProductFaq { Question = f.Question, Answer = f.Answer }).ToList() ?? new List<ProductFaq>();
+        product.UpdateFaqs(faqs);
 
         // Handle image operations
         if (request.ImagesToDelete.Count > 0)

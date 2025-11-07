@@ -18,7 +18,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Show loading state
   if (loading) {
     // You could replace this with a loading spinner
-    return <div>Loading...</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div className="spinner" style={{
+        width: 40,
+        height: 40,
+        border: '4px solid #ccc',
+        borderTop: '4px solid #007bff',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+      <style>
+        {`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        `}
+      </style>
+      </div>
+    );
   }
 
   // If not authenticated, redirect to login

@@ -27,17 +27,15 @@ export default defineConfig(({ mode }) => {
         '.ngrok.app' // Allow any ngrok.app subdomain
       ],
       proxy: {
+        // For local development with Docker gateway published on host port 8080
+        // proxy `/api` calls to the local gateway so the frontend can call `/api/...` without CORS issues.
         '/api': {
-          target: 'https://localhost:7137',
+          target: 'http://localhost:8080',
           changeOrigin: true,
-          secure: false, // Allow self-signed certificates for local HTTPS
+          secure: false,
           timeout: 10000,
           proxyTimeout: 10000,
-          ws: true, // Enable WebSocket proxying if needed
-          headers: {
-            'X-Forwarded-Proto': 'https',
-            'X-Forwarded-For': 'ngrok-proxy'
-          }
+          ws: true
         }
       }
     },

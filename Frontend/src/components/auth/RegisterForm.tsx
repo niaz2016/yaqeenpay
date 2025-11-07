@@ -1,5 +1,5 @@
 // src/components/auth/RegisterForm.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -24,13 +24,29 @@ import type { z } from 'zod';
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 const RegisterForm: React.FC = () => {
-  const { register } = useAuth();
+  const { register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Redirect authenticated users away from register page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRoles = user.roles || [];
+      const isBuyer = !userRoles.some((role: string) => 
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
+      
+      if (isBuyer) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const {
     control,

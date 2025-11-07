@@ -1,6 +1,5 @@
 // src/services/authService.ts
 import apiService from './api';
-import notificationTrigger from './notificationTrigger';
 import type { LoginCredentials, RegisterCredentials, TokenResponse, User, OtpVerification, PasswordReset } from '../types/auth';
 
 class AuthService {
@@ -72,15 +71,8 @@ class AuthService {
 
     const user = await this.getCurrentUser();
 
-    try {
-      await notificationTrigger.onLoginSuccess({
-        location: 'Unknown location',
-        device: navigator.userAgent,
-        timestamp: new Date().toISOString()
-      }, user.id);
-    } catch (error) {
-      console.warn('Failed to trigger login notification:', error);
-    }
+    // Notifications for new-device logins are now handled server-side via the outbox.
+    // Client no longer triggers login notifications to avoid duplicate alerts.
 
     window.dispatchEvent(new CustomEvent('auth:login'));
 

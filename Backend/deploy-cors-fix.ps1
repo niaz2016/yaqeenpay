@@ -3,7 +3,7 @@
 
 $serverKey = "C:\Users\Precision\Downloads\firstKey.pem"
 $serverUser = "ubuntu"
-$serverHost = "16.170.233.86"
+$serverHost = "techtorio.online"
 $backendPath = "/opt/techtorio/backend"
 
 Write-Host "=== YaqeenPay Backend Deployment ===" -ForegroundColor Cyan

@@ -29,11 +29,12 @@ import authService from '../../services/authService';
 import StorageService from '../../services/storageService';
 import TechTorioLogo from '../common/TechTorioLogo';
 import type { z } from 'zod';
+import logger from '../../utils/logger';
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginForm: React.FC = () => {
-  const { login, loginWithGoogle, error } = useAuth();
+  const { login, loginWithGoogle, error, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -62,13 +63,7 @@ const LoginForm: React.FC = () => {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY as string | undefined;
   
-  // Debug logging for mobile
-  useEffect(() => {
-    console.log('[LoginForm] Environment Check:');
-    console.log('  API URL:', import.meta.env.VITE_API_URL);
-    console.log('  Google Client ID:', clientId ? 'Present' : 'Missing');
-    console.log('  Is Capacitor:', !!(window as any).Capacitor);
-  }, [clientId]);
+  // Removed verbose environment debug logs for production
   
   // Show Google Sign-In if we have a client ID (works in mobile apps and browsers)
   // IMPORTANT: Only treat true native (Capacitor runtime) as native; window.Capacitor can exist on web builds
@@ -79,6 +74,22 @@ const LoginForm: React.FC = () => {
   const locationState = location.state as { email?: string; message?: string } | undefined;
   const prefilledEmail = locationState?.email || StorageService.getRememberedEmail();
   const successMessage = locationState?.message || '';
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userRoles = user.roles || [];
+      const isBuyer = !userRoles.some((role: string) => 
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
+      
+      if (isBuyer) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const { 
     control, 
@@ -98,9 +109,7 @@ const LoginForm: React.FC = () => {
       setIsSubmitting(true);
       setCaptchaError('');
       
-      console.log('[LoginForm] Attempting login...');
-      console.log('  API URL:', import.meta.env.VITE_API_URL);
-      console.log('  Email:', data.email);
+  // Attempting login (sensitive data is not logged in production)
       
       // Validate CAPTCHA token if reCAPTCHA is enabled
       if (recaptchaSiteKey && !captchaToken) {
@@ -145,12 +154,7 @@ const LoginForm: React.FC = () => {
       }
       
       // Enhanced error logging
-      console.error('[LoginForm] Login error:', {
-        message: err?.message,
-        response: err?.response?.data,
-        status: err?.response?.status,
-        requiresVerification: err?.requiresDeviceVerification
-      });
+      logger.error('[LoginForm] Login error:', err);
       
       // Check if this is an email verification error
       if (err?.message?.includes('verify your email')) {
@@ -175,7 +179,7 @@ const LoginForm: React.FC = () => {
       }
       
       // Error handling is managed by the auth context
-      console.error('Login failed:', err);
+  logger.error('Login failed:', err);
     } finally {
       if (!showOtpDialog) {
         setIsSubmitting(false);
@@ -214,7 +218,7 @@ const LoginForm: React.FC = () => {
 
       const googleAccounts = window.google?.accounts?.id;
       if (!googleAccounts) {
-        console.error('Google Identity Services SDK not available on window');
+    logger.error('Google Identity Services SDK not available on window');
         return;
       }
 
@@ -242,7 +246,7 @@ const LoginForm: React.FC = () => {
               navigate('/dashboard', { replace: true });
             }
           } catch (err: any) {
-            console.error('Google sign-in failed:', err);
+            logger.error('Google sign-in failed:', err);
             setGoogleError(err?.message || 'Google sign-in failed. Please try again.');
           } finally {
             setGoogleLoading(false);
@@ -316,7 +320,7 @@ const LoginForm: React.FC = () => {
         navigate('/dashboard', { replace: true });
       }
     } catch (err: any) {
-      console.error('Google mobile sign-in failed:', err);
+  logger.error('Google mobile sign-in failed:', err);
       setGoogleError(err?.message || 'Google sign-in failed. Please try again.');
     } finally {
       setGoogleLoading(false);
@@ -357,7 +361,7 @@ const LoginForm: React.FC = () => {
         setResendVerificationSuccess('');
       }, 5000);
     } catch (err: any) {
-      console.error('Failed to resend verification email:', err);
+  logger.error('Failed to resend verification email:', err);
     } finally {
       setIsResendingVerification(false);
     }

@@ -187,10 +187,10 @@ dotnet test
 dotnet publish -c Release -o ./publish
 
 # Copy to server
-scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@16.170.233.86:/opt/techtorio/backend/
+scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@techtorio.online:/opt/techtorio/backend/
 
 # Restart service
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@16.170.233.86 "sudo systemctl restart yaqeenpay"
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart yaqeenpay"
 ```
 
 ### 3. Verify on Server

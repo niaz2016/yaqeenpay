@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Build stage
 FROM node:20-alpine AS build
 
@@ -6,10 +7,10 @@ WORKDIR /app
 # Copy package files first for better layer caching
 COPY package.json package-lock.json* ./
 
-# Install all dependencies (need devDependencies for TypeScript build)
-# Using 'npm install --legacy-peer-deps' to tolerate older packages that have not yet declared React 19 support.
-# After aligning peer dependency ranges you can revert to 'npm ci' for reproducible installs.
-RUN npm install --legacy-peer-deps
+# Install dependencies using BuildKit cache mount for npm cache and use npm ci for reproducible installs.
+# Keep --legacy-peer-deps here since the repo currently needs it; once deps are fixed you can drop it.
+RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
+	npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .

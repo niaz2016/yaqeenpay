@@ -1,0 +1,55 @@
+version: "3.8"
+
+# Deployment compose for host Nginx reverse proxy
+# - Backend published only on 127.0.0.1:5000 (proxied by host Nginx at /api/)
+# - Frontend image pulled for artifact extraction to /opt/techtorio/yaqeenpay (served by host Nginx at /yaqeenpay/)
+# - Uses a single bridge network for inter-container needs if expanded later
+
+services:
+  backend:
+    image: ${REGISTRY:-localhost:5000}/yaqeenpaybackend:${TAG:-latest}
+    container_name: yaqeenpay-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_URLS=http://+:8080
+      # JWT config
+      - JwtSettings__Issuer=${JWT_ISSUER:-YaqeenPay}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-YaqeenPayClient}
+      - JwtSettings__KeyId=${JWT_KEY_ID:-prod-1}
+      - JwtSettings__PrivateKey=${JWT_PRIVATE_KEY}
+      - JwtSettings__PublicKey=${JWT_PUBLIC_KEY}
+      # Database and Redis
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+      - Redis__ConnectionString=${REDIS_CONNECTION_STRING}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-5000}:8080"
+    volumes:
+      # Expose app Documents to host so Nginx can serve /documents if desired
+      - /opt/techtorio/backend/Documents:/app/Documents
+    networks:
+      - yaqeenpay-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend is not exposed publicly by Compose; assets are copied to host and served by host Nginx at /yaqeenpay/
+  # Keeping this service allows us to pull the image and optionally run locally for checks if needed.
+  frontend:
+    image: ${REGISTRY:-localhost:5000}/yaqeenpayfrontend:${TAG:-latest}
+    container_name: yaqeenpay-frontend
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://techtorio.online/api}
+    # Uncomment to test containerized serving on localhost if needed
+    # ports:
+    #   - "127.0.0.1:${FRONTEND_PORT:-3001}:80"
+    networks:
+      - yaqeenpay-network
+    restart: "no"
+
+networks:
+  yaqeenpay-network:
+    driver: bridge

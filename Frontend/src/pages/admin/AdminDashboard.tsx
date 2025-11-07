@@ -14,6 +14,7 @@ import {
   DialogContent
 } from '@mui/material';
 import AdminTopUpReview from '../../components/dashboard/AdminTopUpReview';
+import AdminAnalyticsCard from '../../components/admin/AdminAnalyticsCard';
 import {
   People as PeopleIcon,
   VerifiedUser as VerifiedUserIcon,
@@ -253,12 +254,11 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Box>
-
         {/* Top-Up Dialog */}
-        <Dialog 
-          open={topUpDialogOpen} 
-          onClose={() => setTopUpDialogOpen(false)} 
-          maxWidth="lg" 
+        <Dialog
+          open={topUpDialogOpen}
+          onClose={() => setTopUpDialogOpen(false)}
+          maxWidth="lg"
           fullWidth
           fullScreen={window.innerWidth < 600}
           PaperProps={{
@@ -268,9 +268,9 @@ const AdminDashboard: React.FC = () => {
             }
           }}
         >
-          <DialogTitle sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+          <DialogTitle sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             pb: 2,
             fontSize: { xs: '1.125rem', sm: '1.25rem' }
@@ -393,7 +393,7 @@ const AdminDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Box>
-        
+
         {/* Quick Actions Alert */}
         {(stats.pendingKycDocuments > 0 || stats.pendingSellers > 0 || stats.openDisputes > 0) && (
           <Box mt={{ xs: 2, sm: 3 }}>
@@ -436,6 +436,17 @@ const AdminDashboard: React.FC = () => {
             </Alert>
           </Box>
         )}
+        <Box
+          display="grid"
+          gridTemplateColumns={{ xs: '1fr', md: 'repeat(2, 1fr)' }}
+          gap={{ xs: 2, sm: 2.5, md: 3 }}
+          sx={{ mb: { xs: 3, sm: 4 } }}
+        >
+          {/* Analytics Section */}
+          <Box sx={{ mt: 3 }}>
+            <AdminAnalyticsCard />
+          </Box>
+        </Box>
       </Box>
     </Box>
   );

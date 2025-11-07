@@ -132,6 +132,12 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<YaqeenPay.Application.Common.Models.EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
+// Configure Analytics Settings
+builder.Services.Configure<YaqeenPay.API.Configuration.AnalyticsSettings>(
+    builder.Configuration.GetSection(YaqeenPay.API.Configuration.AnalyticsSettings.SectionName));
+builder.Services.AddSingleton<YaqeenPay.Application.Common.Interfaces.IAnalyticsSettings>(sp => 
+    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<YaqeenPay.API.Configuration.AnalyticsSettings>>().Value);
+
 // Add data migration service
 builder.Services.AddTransient<DataMigrationService>();
 

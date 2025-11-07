@@ -1,5 +1,6 @@
 // src/services/notificationService.ts
 import apiService from './api';
+import logger from '../utils/logger';
 import type { 
   NotificationListResponse, 
   NotificationType, 
@@ -77,10 +78,10 @@ class NotificationService {
         window.dispatchEvent(new CustomEvent('app:notification-sent', { detail: notification }));
       } catch (evtErr) {
         // non-fatal
-        console.debug('Notification event dispatch failed (harmless):', evtErr);
+        logger.debug('Notification event dispatch failed (harmless):', evtErr);
       }
     } catch (error) {
-      console.error('Failed to send notification via API:', error);
+      logger.error('Failed to send notification via API:', error);
       throw error;
     }
   }
@@ -91,7 +92,7 @@ class NotificationService {
       const response = await apiService.get<NotificationHistory[]>('/notifications');
       return response;
     } catch (error) {
-      console.error('Failed to fetch notifications via API:', error);
+      logger.error('Failed to fetch notifications via API:', error);
       throw error;
     }
   }
@@ -101,14 +102,14 @@ class NotificationService {
     try {
       await apiService.put(`/notifications/${notificationId}/read`);
     } catch (error) {
-      console.error('Failed to mark notification as read via API:', error);
+      logger.error('Failed to mark notification as read via API:', error);
       throw error;
     }
   }
 
   async requestPermission(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support desktop notifications');
+      logger.warn('This browser does not support desktop notifications');
       return false;
     }
 
@@ -193,7 +194,7 @@ class NotificationService {
         }
       });
     } catch (error) {
-      console.error('Failed to send withdrawal initiated notification:', error);
+      logger.error('Failed to send withdrawal initiated notification:', error);
       throw error;
     }
   }
@@ -215,7 +216,7 @@ class NotificationService {
         }
       });
     } catch (error) {
-      console.error('Failed to send withdrawal approved notification:', error);
+      logger.error('Failed to send withdrawal approved notification:', error);
       throw error;
     }
   }
@@ -238,7 +239,7 @@ class NotificationService {
         }
       });
     } catch (error) {
-      console.error('Failed to send withdrawal rejected notification:', error);
+      logger.error('Failed to send withdrawal rejected notification:', error);
       throw error;
     }
   }
@@ -254,7 +255,7 @@ class NotificationService {
       const response = await apiService.get<NotificationListResponse>(`/notifications?${queryParams}`);
       return response;
     } catch (error) {
-      console.error('Failed to fetch notifications via API:', error);
+      logger.error('Failed to fetch notifications via API:', error);
       throw error;
     }
   }
@@ -263,7 +264,7 @@ class NotificationService {
     try {
       await apiService.put('/notifications/mark-read', { notificationIds } as MarkAsReadRequest);
     } catch (error) {
-      console.error('Failed to mark notifications as read via API:', error);
+      logger.error('Failed to mark notifications as read via API:', error);
       throw error;
     }
   }
@@ -272,7 +273,7 @@ class NotificationService {
     try {
       await apiService.put('/notifications/mark-all-read');
     } catch (error) {
-      console.error('Failed to mark all notifications as read via API:', error);
+      logger.error('Failed to mark all notifications as read via API:', error);
       throw error;
     }
   }
@@ -281,7 +282,7 @@ class NotificationService {
     try {
       await apiService.delete(`/notifications/${notificationId}`);
     } catch (error) {
-      console.error('Failed to delete notification via API:', error);
+      logger.error('Failed to delete notification via API:', error);
       throw error;
     }
   }
@@ -290,7 +291,7 @@ class NotificationService {
     try {
       await apiService.delete('/notifications/bulk', { data: { notificationIds } });
     } catch (error) {
-      console.error('Failed to delete multiple notifications via API:', error);
+      logger.error('Failed to delete multiple notifications via API:', error);
       throw error;
     }
   }
@@ -300,7 +301,7 @@ class NotificationService {
       const response = await apiService.get<NotificationPreferences>('/notifications/preferences');
       return response;
     } catch (error) {
-      console.error('Failed to get preferences via API:', error);
+      logger.error('Failed to get preferences via API:', error);
       throw error;
     }
   }
@@ -310,7 +311,7 @@ class NotificationService {
       const response = await apiService.put<NotificationPreferences>('/notifications/preferences', preferences);
       return response;
     } catch (error) {
-      console.error('Failed to update preferences via API:', error);
+      logger.error('Failed to update preferences via API:', error);
       throw error;
     }
   }

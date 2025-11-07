@@ -17,7 +17,7 @@ $FrontendPath = "D:\Work Repos\AI\yaqeenpay\Frontend"
 $DistPath = "$FrontendPath\dist"
 $SSHKey = "C:\Users\Precision\Downloads\firstKey.pem"
 $ServerUser = "ubuntu"
-$ServerIP = "16.170.233.86"
+$ServerIP = "techtorio.online"
 $ServerPath = "/opt/techtorio/yaqeenpay/"
 
 # Step 1: Build Frontend

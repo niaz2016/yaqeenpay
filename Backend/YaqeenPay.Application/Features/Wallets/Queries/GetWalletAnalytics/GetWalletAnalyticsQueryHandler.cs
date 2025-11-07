@@ -43,47 +43,100 @@ namespace YaqeenPay.Application.Features.Wallets.Queries.GetWalletAnalytics
             }
 
             // Get transaction history for analytics
-            var endDate = DateTime.UtcNow.Date;
-            var startDate = endDate.AddDays(-request.Days);
+            var endDate = DateTime.UtcNow;
+            var startDate = request.Days == 1 
+                ? endDate.Date // For 1 day, start from midnight today
+                : endDate.Date.AddDays(-request.Days);
             
             var transactions = await _walletService.GetTransactionHistoryAsync(
                 wallet.Id, 
                 startDate, 
-                endDate.AddDays(1).AddTicks(-1)); // End of day
+                endDate); // Use current time for end
 
-            // Group transactions by date
-            var seriesData = new List<WalletAnalyticsPointDto>();
-            var runningBalance = wallet.Balance.Amount;
+            // Sort transactions chronologically to calculate running balance forward
+            var sortedTransactions = transactions.OrderBy(t => t.CreatedAt).ToList();
             
-            // Calculate analytics for each day
-            for (int i = 0; i < request.Days; i++)
-            {
-                var currentDate = endDate.AddDays(-i);
-                var dayTransactions = transactions.Where(t => t.CreatedAt.Date == currentDate).ToList();
-                
-                var credits = dayTransactions
-                    .Where(t => t.Type == TransactionType.Credit || t.Type == TransactionType.TopUp || t.Type == TransactionType.Refund)
-                    .Sum(t => t.Amount.Amount);
-                    
-                var debits = dayTransactions
-                    .Where(t => t.Type == TransactionType.Debit || t.Type == TransactionType.Payment || t.Type == TransactionType.Withdrawal)
-                    .Sum(t => t.Amount.Amount);
-
-                // For running balance calculation, we'd need to calculate backwards from current balance
-                // For now, we'll use current balance for the latest day and estimate for previous days
-                var dayBalance = i == 0 ? runningBalance : Math.Max(0, runningBalance - (credits - debits));
-                
-                seriesData.Add(new WalletAnalyticsPointDto
-                {
-                    Date = currentDate.ToString("yyyy-MM-dd"),
-                    Balance = dayBalance,
-                    Credits = credits,
-                    Debits = debits
+            // Calculate starting balance (current balance minus all transactions in period)
+            var currentBalance = wallet.Balance.Amount;
+            var netChangeInPeriod = sortedTransactions
+                .Sum(t => {
+                    if (t.Type == TransactionType.Credit || t.Type == TransactionType.TopUp || t.Type == TransactionType.Refund)
+                        return t.Amount.Amount;
+                    else if (t.Type == TransactionType.Debit || t.Type == TransactionType.Payment || t.Type == TransactionType.Withdrawal)
+                        return -t.Amount.Amount;
+                    return 0m;
                 });
-            }
+            
+            var startingBalance = currentBalance - netChangeInPeriod;
+            var runningBalance = startingBalance;
+            
+            var seriesData = new List<WalletAnalyticsPointDto>();
+            
+            // For 1 day (24 hours), generate hourly points
+            if (request.Days == 1)
+            {
+                var today = DateTime.UtcNow.Date;
+                
+                for (int hour = 0; hour < 24; hour++)
+                {
+                    var hourStart = today.AddHours(hour);
+                    var hourEnd = hourStart.AddHours(1).AddTicks(-1);
+                    
+                    var hourTransactions = sortedTransactions
+                        .Where(t => t.CreatedAt >= hourStart && t.CreatedAt <= hourEnd)
+                        .ToList();
+                    
+                    var credits = hourTransactions
+                        .Where(t => t.Type == TransactionType.Credit || t.Type == TransactionType.TopUp || t.Type == TransactionType.Refund)
+                        .Sum(t => t.Amount.Amount);
+                        
+                    var debits = hourTransactions
+                        .Where(t => t.Type == TransactionType.Debit || t.Type == TransactionType.Payment || t.Type == TransactionType.Withdrawal)
+                        .Sum(t => t.Amount.Amount);
 
-            // Reverse to get chronological order
-            seriesData.Reverse();
+                    runningBalance += credits - debits;
+                    
+                    seriesData.Add(new WalletAnalyticsPointDto
+                    {
+                        Date = hourStart.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        Balance = runningBalance,
+                        Credits = credits,
+                        Debits = debits
+                    });
+                }
+            }
+            else
+            {
+                // Daily aggregation for periods > 1 day
+                for (int i = request.Days - 1; i >= 0; i--)
+                {
+                    var currentDate = endDate.Date.AddDays(-i);
+                    var dayStart = currentDate.Date;
+                    var dayEnd = dayStart.AddDays(1).AddTicks(-1);
+                    
+                    var dayTransactions = sortedTransactions
+                        .Where(t => t.CreatedAt >= dayStart && t.CreatedAt <= dayEnd)
+                        .ToList();
+                    
+                    var credits = dayTransactions
+                        .Where(t => t.Type == TransactionType.Credit || t.Type == TransactionType.TopUp || t.Type == TransactionType.Refund)
+                        .Sum(t => t.Amount.Amount);
+                        
+                    var debits = dayTransactions
+                        .Where(t => t.Type == TransactionType.Debit || t.Type == TransactionType.Payment || t.Type == TransactionType.Withdrawal)
+                        .Sum(t => t.Amount.Amount);
+
+                    runningBalance += credits - debits;
+                    
+                    seriesData.Add(new WalletAnalyticsPointDto
+                    {
+                        Date = currentDate.ToString("yyyy-MM-dd"),
+                        Balance = runningBalance,
+                        Credits = credits,
+                        Debits = debits
+                    });
+                }
+            }
 
             // Calculate totals
             var totalCredits = seriesData.Sum(s => s.Credits);

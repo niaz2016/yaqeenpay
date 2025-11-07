@@ -373,28 +373,6 @@ const columns: GridColDef[] = [
       );
     },
   },
-  // {
-  //   field: 'proof',
-  //   headerName: 'Proof',
-  //   width: 100,
-  //   sortable: false,
-  //   filterable: false,
-  //   renderCell: (p: any) => {
-  //     const row = p.row || {};
-  //     const url = row.proofUrl || (row.attachments && row.attachments[0]?.url) || '';
-  //     if (!url) return null;
-  //     return (
-  //       <Tooltip title="Open proof in new tab">
-  //         <img
-  //           src={url}
-  //           alt={row.proofFilename || 'proof'}
-  //           style={{ width: 48, height: 48, objectFit: 'cover', cursor: 'pointer', borderRadius: 4 }}
-  //           onClick={() => window.open(url, '_blank')}
-  //         />
-  //       </Tooltip>
-  //     );
-  //   },
-  // },
   {
     field: 'transactionReference',
     headerName: 'Reference',
@@ -495,7 +473,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
               border: '1px solid rgba(46, 125, 50, 0.2)' 
             }}>
               <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 600 }}>
-                💰 Credits: {stats.totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
+                💰 Credits: {stats.totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
             </Box>
             
@@ -505,19 +483,19 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
               border: '1px solid rgba(237, 108, 2, 0.2)' 
             }}>
               <Typography variant="caption" sx={{ color: '#ed6c02', fontWeight: 600 }}>
-                🔒 Frozen: {currentFrozenDisplay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
+                🔒 Frozen: {currentFrozenDisplay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
             </Box>
-            
+{/*             
             <Box sx={{ 
               px: 1.5, py: 0.75, borderRadius: 2, 
               backgroundColor: 'rgba(211, 47, 47, 0.08)', 
               border: '1px solid rgba(211, 47, 47, 0.2)' 
-            }}>
+             }}>
               <Typography variant="caption" sx={{ color: '#d32f2f', fontWeight: 600 }}>
-                💸 Processed: {stats.processedPayments.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
+                💸 Processed: {stats.processedPayments.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
-            </Box>
+            </Box> */}
             
             {stats.totalDebits > 0 && (
               <Box sx={{ 
@@ -526,7 +504,7 @@ const TransactionTable: React.FC<Props> = ({ rows, rowCount, page, pageSize, loa
                 border: '1px solid rgba(117, 117, 117, 0.2)' 
               }}>
                 <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600 }}>
-                  💳 Debits: {stats.totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Wallet Credits
+                  💳 Debits: {stats.totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
               </Box>
             )}

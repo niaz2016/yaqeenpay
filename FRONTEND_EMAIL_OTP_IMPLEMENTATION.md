@@ -354,7 +354,7 @@ See `test-frontend-email-otp.ps1` for comprehensive testing guide.
 2. Start frontend: `cd Frontend && npm run dev`
 3. Navigate to: http://localhost:5173/auth/register
 4. Register new buyer with test email
-5. Check mmaxhillh@gmail.com for OTP
+5. Check support@techtorio.online for OTP
 6. Enter OTP in verification page
 7. Verify redirect to login
 8. Login with credentials

@@ -16,7 +16,8 @@ import {
   Chip,
   IconButton,
   InputAdornment,
-  Divider
+  Divider,
+  LinearProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -28,6 +29,7 @@ import {
 
 import productService, { type CreateProductRequest, type ProductImage as ServiceProductImage, type ProductAttribute as ServiceProductAttribute } from '../../services/productService';
 import categoryService, { type Category } from '../../services/categoryService';
+import CategorySelector from '../../components/CategorySelector';
 
 interface ProductImage {
   file: File;
@@ -40,6 +42,13 @@ interface ProductAttribute {
   value: string;
 }
 
+interface ProductFaq {
+  question: string;
+  answer: string;
+}
+
+type ProgressStatus = 'idle' | 'uploading' | 'submitting' | 'success' | 'error';
+
 const NewProductPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -47,6 +56,14 @@ const NewProductPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [progressState, setProgressState] = useState<{ status: ProgressStatus; percent: number; message: string }>(
+    { status: 'idle', percent: 0, message: '' }
+  );
+
+  const updateProgress = (status: ProgressStatus, percent: number, message: string) => {
+    const clampedPercent = Math.min(100, Math.max(0, percent));
+    setProgressState({ status, percent: clampedPercent, message });
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -57,20 +74,38 @@ const NewProductPage: React.FC = () => {
     stockQuantity: '',
     categoryId: '',
     status: 'Active' as 'Draft' | 'Active' | 'Inactive',
-    currency: 'USD'
+    currency: 'USD',
+    brand: '',
+    model: '',
+    sku: '',
+    gtin: '',
+    mpn: '',
+    minOrderQuantity: '',
+    maxOrderQuantity: '',
+    weight: '',
+    weightUnit: 'kg',
+    dimensions: '',
+    // Removed color, size, material from top-level formData to avoid duplication with variants/attributes
+    allowBackorders: false,
+    isFeatured: false,
+    tags: '',
+    featuredUntil: ''
   });
 
   const [images, setImages] = useState<ProductImage[]>([]);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([
     { name: '', value: '' }
   ]);
+  const [faqs, setFaqs] = useState<ProductFaq[]>([
+    { question: '', answer: '' }
+  ]);
   // Product variants state
   const [variants, setVariants] = useState([
-    { size: '', color: '', price: '', stockQuantity: '' }
+    { size: '', color: '', price: '', stockQuantity: '', sku: '' }
   ]);
   // Variant handlers
   const addVariant = () => {
-    setVariants(prev => [...prev, { size: '', color: '', price: '', stockQuantity: '' }]);
+    setVariants(prev => [...prev, { size: '', color: '', price: '', stockQuantity: '', sku: '' }]);
   };
 
   const removeVariant = (index: number) => {
@@ -83,17 +118,32 @@ const NewProductPage: React.FC = () => {
     ));
   };
 
+  // FAQ handlers
+  const addFaq = () => {
+    setFaqs(prev => [...prev, { question: '', answer: '' }]);
+  };
+
+  const removeFaq = (index: number) => {
+    setFaqs(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    setFaqs(prev => prev.map((faq, i) =>
+      i === index ? { ...faq, [field]: value } : faq
+    ));
+  };
+
   // Load categories on component mount
   useEffect(() => {
     const loadCategories = async () => {
       try {
         setCategoriesLoading(true);
-        
+
         // Clear cache to ensure fresh data
         categoryService.clearCache();
-        
+
         const fetchedCategories = await categoryService.getCategories();
-        
+
         if (fetchedCategories && fetchedCategories.length > 0) {
           setCategories(fetchedCategories);
         } else {
@@ -114,7 +164,13 @@ const NewProductPage: React.FC = () => {
   }, []);
 
   const handleInputChange = (field: string, value: string | number) => {
-    if (field === 'categoryId') {
+    // Special handling for boolean fields from select
+    if (field === 'allowBackorders' || field === 'isFeatured') {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value === 'yes'
+      }));
+      return;
     }
     setFormData(prev => ({
       ...prev,
@@ -167,7 +223,7 @@ const NewProductPage: React.FC = () => {
   };
 
   const updateAttribute = (index: number, field: 'name' | 'value', value: string) => {
-    setAttributes(prev => prev.map((attr, i) => 
+    setAttributes(prev => prev.map((attr, i) =>
       i === index ? { ...attr, [field]: value } : attr
     ));
   };
@@ -178,22 +234,23 @@ const NewProductPage: React.FC = () => {
     if (!formData.price || parseFloat(formData.price) <= 0) return 'Valid price is required';
     if (!formData.stockQuantity || parseInt(formData.stockQuantity) < 0) return 'Valid stock quantity is required';
     if (!formData.categoryId) return 'Category is required';
-    
+
     // Check if categoryId is a valid GUID format
     const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!guidRegex.test(formData.categoryId)) {
       console.error('Invalid categoryId format:', formData.categoryId);
       return 'Invalid category selection. Please select a category from the dropdown.';
     }
-    
+
     if (images.length === 0) return 'At least one product image is required';
-    
+
     return null;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
+    setProgressState({ status: 'idle', percent: 0, message: '' });
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -202,6 +259,8 @@ const NewProductPage: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
+    updateProgress('uploading', images.length > 0 ? 5 : 50, images.length > 0 ? 'Preparing images for upload...' : 'Preparing product details...');
 
     try {
       // Convert images to service format
@@ -219,7 +278,17 @@ const NewProductPage: React.FC = () => {
         }));
 
       // Prepare product data
-      const validVariants = variants.filter(v => v.size || v.color || v.price || v.stockQuantity);
+      const validVariants = variants
+        .filter(v => v.size || v.color || v.price || v.stockQuantity)
+        .map(v => ({
+          size: v.size || undefined,
+          color: v.color || undefined,
+          price: v.price !== '' ? parseFloat(v.price) : undefined,
+          stockQuantity: v.stockQuantity !== '' ? parseInt(v.stockQuantity) : undefined,
+          sku: v.sku || undefined
+        }));
+      const validFaqs = faqs.filter(f => f.question.trim() && f.answer.trim());
+
       const productData: CreateProductRequest = {
         name: formData.name,
         description: formData.description,
@@ -229,24 +298,72 @@ const NewProductPage: React.FC = () => {
         categoryId: formData.categoryId,
         status: formData.status,
         currency: formData.currency,
+        brand: formData.brand || undefined,
+        model: formData.model || undefined,
+        sku: formData.sku || undefined,
+        minOrderQuantity: formData.minOrderQuantity || undefined,
+        maxOrderQuantity: formData.maxOrderQuantity || undefined,
+        weight: formData.weight || undefined,
+        weightUnit: formData.weightUnit || undefined,
+        dimensions: formData.dimensions || undefined,
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : undefined,
+        allowBackorders: formData.allowBackorders,
+        isFeatured: formData.isFeatured,
+        featuredUntil: formData.featuredUntil || undefined,
         attributes: validAttributes,
+        faqs: validFaqs,
         newImages: productImages,
-        variants: validVariants.map(v => ({
-          size: v.size,
-          color: v.color,
-          price: v.price ? parseFloat(v.price) : undefined,
-          stockQuantity: v.stockQuantity ? parseInt(v.stockQuantity) : undefined
-        }))
+        variants: validVariants
       };
-      await productService.createProduct(productData);
-      
+
+      // Add GTIN and MPN as attributes if provided
+      if (formData.gtin) {
+        productData.attributes = productData.attributes || [];
+        productData.attributes.push({ name: 'GTIN', value: formData.gtin });
+      }
+      if (formData.mpn) {
+        productData.attributes = productData.attributes || [];
+        productData.attributes.push({ name: 'MPN', value: formData.mpn });
+      }
+
+      await productService.createProduct(productData, {
+        onUploadStart: ({ total }) => {
+          if (total === 0) {
+            updateProgress('submitting', 60, 'Uploading skipped. Saving product details...');
+            return;
+          }
+          const descriptor = total === 1 ? 'image' : 'images';
+          updateProgress('uploading', 5, `Uploading ${total} ${descriptor}...`);
+        },
+        onUploadProgress: ({ index, total, percent, fileName }) => {
+          const overall = total > 0
+            ? Math.min(99, Math.round(((index + percent / 100) / total) * 100))
+            : Math.min(99, percent);
+          const label = total > 0
+            ? `Uploading ${fileName} (${index + 1}/${total}) ${percent}%`
+            : `Uploading ${fileName} ${percent}%`;
+          updateProgress('uploading', overall, label);
+        },
+        onUploadComplete: () => {
+          updateProgress('submitting', 90, 'Images uploaded. Finalising product...');
+        },
+        onSubmitting: () => {
+          updateProgress('submitting', 95, 'Saving product details...');
+        },
+      });
+
+      updateProgress('success', 100, 'Product created successfully!');
       setSuccess('Product created successfully!');
       setTimeout(() => {
         navigate('/seller/products');
       }, 2000);
     } catch (error) {
       console.error('Error creating product:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create product');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create product';
+      setError(errorMessage);
+      updateProgress('error', 0, errorMessage.includes('Network')
+        ? 'Network error while uploading. Please check your connection or try smaller images.'
+        : errorMessage || 'An unexpected error occurred while creating the product.');
     } finally {
       setLoading(false);
     }
@@ -281,11 +398,24 @@ const NewProductPage: React.FC = () => {
         </Alert>
       )}
 
+      {progressState.status !== 'idle' && (
+        <Paper sx={{ mb: 3, p: 2 }} elevation={0} variant="outlined">
+          <Typography variant="body2" sx={{ mb: 1 }} color="text.secondary">
+            {progressState.message || (progressState.status === 'success' ? 'Product created successfully.' : 'Processing...')}
+          </Typography>
+          <LinearProgress
+            variant={progressState.status === 'error' ? 'indeterminate' : 'determinate'}
+            value={progressState.status === 'error' ? undefined : progressState.percent}
+            color={progressState.status === 'error' ? 'error' : progressState.status === 'success' ? 'success' : 'primary'}
+          />
+        </Paper>
+      )}
+
       <form onSubmit={handleSubmit}>
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, 
-          gap: 3 
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
+          gap: 3
         }}>
           {/* Left Column - Basic Information */}
           <Box>
@@ -293,7 +423,7 @@ const NewProductPage: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Basic Information
               </Typography>
-              
+
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <TextField
                   fullWidth
@@ -303,7 +433,7 @@ const NewProductPage: React.FC = () => {
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Enter product name"
                 />
-                
+
                 <TextField
                   fullWidth
                   label="Description"
@@ -326,89 +456,98 @@ const NewProductPage: React.FC = () => {
                     InputProps={{
                       startAdornment: <InputAdornment position="start">$</InputAdornment>,
                     }}
+                    />
+
+                    <TextField
+                      fullWidth
+                      label="Discount Price (Optional)"
+                      type="number"
+                      value={formData.discountPrice}
+                      onChange={(e) => handleInputChange('discountPrice', e.target.value)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      label="Stock Quantity"
+                      required
+                      type="number"
+                      value={formData.stockQuantity}
+                      onChange={(e) => handleInputChange('stockQuantity', e.target.value)}
+                    />
+
+                    <CategorySelector
+                      categories={categories}
+                      value={formData.categoryId}
+                      onChange={(id) => handleInputChange('categoryId', id)}
+                      disabled={categoriesLoading}
+                    />
+                </Box>
+
+                {/* SEO Fields Section */}
+                <Divider sx={{ my: 3 }}>
+                  <Chip label="SEO & Product Identifiers" size="small" />
+                </Divider>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    label="Brand"
+                    value={formData.brand}
+                    onChange={(e) => handleInputChange('brand', e.target.value)}
+                    placeholder="e.g., Sony, Samsung, Apple"
+                    helperText="Product brand (important for SEO)"
                   />
 
                   <TextField
                     fullWidth
-                    label="Discount Price (Optional)"
-                    type="number"
-                    value={formData.discountPrice}
-                    onChange={(e) => handleInputChange('discountPrice', e.target.value)}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                    }}
+
+                    label="Model Number"
+                    value={formData.model}
+                    onChange={(e) => handleInputChange('model', e.target.value)}
+                    placeholder="e.g., XYZ-123"
+                    helperText="Product model"
                   />
                 </Box>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2 }}>
                   <TextField
                     fullWidth
-                    label="Stock Quantity"
-                    required
-                    type="number"
-                    value={formData.stockQuantity}
-                    onChange={(e) => handleInputChange('stockQuantity', e.target.value)}
+                    label="SKU"
+                    value={formData.sku}
+                    onChange={(e) => handleInputChange('sku', e.target.value)}
+                    placeholder="e.g., PROD-001"
+                    helperText="Stock Keeping Unit"
                   />
 
-                  <FormControl fullWidth required>
-                    <InputLabel id="category-select-label">Category</InputLabel>
-                    <Select
-                      labelId="category-select-label"
-                      value={formData.categoryId}
-                      onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                      label="Category"
-                      disabled={categoriesLoading}
-                      MenuProps={{
-                        PaperProps: {
-                          style: {
-                            maxHeight: 300,
-                            zIndex: 1500,
-                          },
-                        },
-                        anchorOrigin: {
-                          vertical: 'bottom',
-                          horizontal: 'left',
-                        },
-                        transformOrigin: {
-                          vertical: 'top',
-                          horizontal: 'left',
-                        },
-                      }}
-                    >
-                      {categoriesLoading ? (
-                        <MenuItem disabled>Loading categories...</MenuItem>
-                      ) : (
-                        [
-                          /* Always render backend categories first */
-                          ...categoryService.getFlattenedCategories(categories).map((category: Category) => (
-                            <MenuItem key={category.id} value={category.id}>
-                              <Box>
-                                <Typography variant="body2">{category.name}</Typography>
-                                <Typography variant="caption" color="textSecondary">
-                                  {category.description}
-                                </Typography>
-                              </Box>
-                            </MenuItem>
-                          )),
-                          
-                          /* Show message if no categories loaded */
-                          ...(categories.length === 0 ? [(
-                            <MenuItem key="no-categories" disabled>
-                              <Typography variant="body2" color="error">
-                                No categories available. Please ensure backend is running.
-                              </Typography>
-                            </MenuItem>
-                          )] : [])
-                        ]
-                      )}
-                    </Select>
-                  </FormControl>
+                  <TextField
+                    fullWidth
+                    label="GTIN"
+                    value={formData.gtin}
+                    onChange={(e) => handleInputChange('gtin', e.target.value)}
+                    placeholder="UPC/EAN/ISBN"
+                    helperText="Global Trade Item Number (critical for Google)"
+                  />
+
+
+                  <TextField
+                    fullWidth
+                    label="MPN"
+                    value={formData.mpn}
+                    onChange={(e) => handleInputChange('mpn', e.target.value)}
+                    placeholder="Manufacturer Part Number"
+                    helperText="Helps identify authentic products"
+                  />
                 </Box>
               </Box>
             </Paper>
 
             {/* Product Variants */}
-            <Paper sx={{ p: 3, mb: 3 }}>
+            <Paper sx={{ p: 3, mb: 2}}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Product Variants
               </Typography>
@@ -442,27 +581,96 @@ const NewProductPage: React.FC = () => {
                     onChange={(e) => updateVariant(index, 'stockQuantity', e.target.value)}
                     sx={{ flex: 1 }}
                   />
+                  <TextField
+                    label="SKU"
+                    value={variant.sku}
+                    onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                    placeholder="e.g., VAR-001"
+                    sx={{ flex: 1 }}
+                  />
                   {variants.length > 1 && (
                     <IconButton onClick={() => removeVariant(index)} color="error">
                       <RemoveIcon />
                     </IconButton>
                   )}
+                  
                 </Box>
+                
               ))}
               <Button
                 startIcon={<AddIcon />}
                 onClick={addVariant}
                 variant="outlined"
                 size="small"
-              >
+               >
                 Add Variant
               </Button>
-            </Paper>
 
-            {/* Product Attributes */}
+              {/* Additional Backend Fields */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', m: 1, gap: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Min Order Quantity"
+                  type="number"
+                  value={formData.minOrderQuantity}
+                  onChange={(e) => handleInputChange('minOrderQuantity', e.target.value)}
+                  slotProps={{
+                    input: { title: "Minimum quantity per order" }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Max Order Quantity"
+                  type="number"
+                  value={formData.maxOrderQuantity}
+                  onChange={(e) => handleInputChange('maxOrderQuantity', e.target.value)}
+                  slotProps={{
+                    input: { title: "Maximum quantity per order" }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Weight"
+                  type="number"
+                  value={formData.weight}
+                  onChange={(e) => handleInputChange('weight', e.target.value)}
+                  slotProps={{
+                    input: { title: "Product weight" }
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Weight Unit"
+                  value={formData.weightUnit}
+                  onChange={(e) => handleInputChange('weightUnit', e.target.value)}
+                  slotProps={{
+                    input: { title: "e.g., kg, g, lb" }
+                  }}
+                />
+                <TextField
+                fullWidth
+                label="Dimensions"
+                value={formData.dimensions}
+                onChange={(e) => handleInputChange('dimensions', e.target.value)}
+                slotProps={{
+                  input: { title: "e.g., 10x20x5 cm" }
+                }}
+              />
+              <TextField
+                fullWidth
+                label="Tags (comma separated)"
+                value={formData.tags}
+                onChange={(e) => handleInputChange('tags', e.target.value)}
+                slotProps={{
+                  input: { title: "e.g., electronics, cable, hdmi" }
+                }}
+              />
+              </Box>
+            </Paper>
+            {/* Custom Attributes */}
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Product Attributes (Optional)
+                Custom Attributes
               </Typography>
               {attributes.map((attribute, index) => (
                 <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
@@ -496,6 +704,53 @@ const NewProductPage: React.FC = () => {
                 Add Attribute
               </Button>
             </Paper>
+
+            {/* Product FAQs */}
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                Product FAQs (Optional)
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Add frequently asked questions to help customers make informed purchasing decisions.
+              </Typography>
+              {faqs.map((faq, index) => (
+                <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle2" color="primary">FAQ {index + 1}</Typography>
+                    {faqs.length > 1 && (
+                      <IconButton onClick={() => removeFaq(index)} color="error" size="small">
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
+                  </Box>
+                  <TextField
+                    fullWidth
+                    label="Question"
+                    value={faq.question}
+                    onChange={(e) => updateFaq(index, 'question', e.target.value)}
+                    placeholder="e.g., What is the warranty period?"
+                    sx={{ mb: 2 }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="Answer"
+                    value={faq.answer}
+                    onChange={(e) => updateFaq(index, 'answer', e.target.value)}
+                    placeholder="e.g., This product comes with a 1-year manufacturer warranty."
+                    multiline
+                    rows={3}
+                  />
+                </Box>
+              ))}
+              <Button
+                startIcon={<AddIcon />}
+                onClick={addFaq}
+                variant="outlined"
+                size="small"
+              >
+                Add FAQ
+              </Button>
+            </Paper>
           </Box>
 
           {/* Right Column - Sidebar */}
@@ -505,9 +760,9 @@ const NewProductPage: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Status & Publishing
               </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <FormControl fullWidth>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <FormControl >
                   <InputLabel>Status</InputLabel>
                   <Select
                     value={formData.status}
@@ -526,12 +781,44 @@ const NewProductPage: React.FC = () => {
                     value={formData.currency}
                     onChange={(e) => handleInputChange('currency', e.target.value)}
                     label="Currency"
+                    renderValue={() => 'PKR'}
                   >
-                    <MenuItem value="USD">USD</MenuItem>
                     <MenuItem value="PKR">PKR</MenuItem>
-                    <MenuItem value="EUR">EUR</MenuItem>
-                    <MenuItem value="GBP">GBP</MenuItem>
                   </Select>
+                </FormControl>
+                <FormControl>
+                  <InputLabel>Allow Backorders</InputLabel>
+                  <Select
+                    value={formData.allowBackorders ? 'yes' : 'no'}
+                    onChange={(e) => handleInputChange('allowBackorders', e.target.value)}
+                    label="Allow Backorders"
+                  >
+                    <MenuItem value="no">No</MenuItem>
+                    <MenuItem value="yes">Yes</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <InputLabel>Featured</InputLabel>
+                  <Select
+                    value={formData.isFeatured ? 'yes' : 'no'}
+                    onChange={(e) => handleInputChange('isFeatured', e.target.value)}
+                    label="Featured"
+                  >
+                    <MenuItem value="no">No</MenuItem>
+                    <MenuItem value="yes">Yes</MenuItem>
+                  </Select>
+
+                </FormControl>
+                <FormControl fullWidth sx={{ gridColumn: '1 / -1' }}>
+                  <TextField
+                    id="featured-until-date"
+                    type="date"
+                    fullWidth
+                    label="Featured Until"
+                    value={formData.featuredUntil}
+                    onChange={(e) => handleInputChange('featuredUntil', e.target.value)}
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  />
                 </FormControl>
               </Box>
             </Paper>
@@ -541,7 +828,7 @@ const NewProductPage: React.FC = () => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
                 Product Images
               </Typography>
-              
+
               <Button
                 component="label"
                 variant="outlined"

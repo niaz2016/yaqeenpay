@@ -97,6 +97,14 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
                 v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, new System.Text.Json.JsonSerializerOptions()) ?? new Dictionary<string, string>())
             .HasColumnName("Attributes");
 
+        builder.Property(p => p.Faqs)
+            .HasConversion(
+                v => System.Text.Json.JsonSerializer.Serialize(v, new System.Text.Json.JsonSerializerOptions()),
+                v => string.IsNullOrEmpty(v) 
+                    ? new List<ProductFaq>() 
+                    : System.Text.Json.JsonSerializer.Deserialize<List<ProductFaq>>(v, new System.Text.Json.JsonSerializerOptions()) ?? new List<ProductFaq>())
+            .HasColumnName("Faqs");
+
         // Relationships
         builder.HasOne(p => p.Seller)
             .WithMany()

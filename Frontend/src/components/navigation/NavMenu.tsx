@@ -1,7 +1,7 @@
 // src/components/navigation/NavMenu.tsx
 import React from 'react';
 import { List, ListItem, ListItemIcon, ListItemText, ListItemButton, Divider, useMediaQuery, useTheme } from '@mui/material';
-import { Dashboard as DashboardIcon, AccountCircle as AccountIcon, Payment as PaymentIcon, ShoppingCart as OrderIcon, Store as StoreIcon, LocalShipping as ShippingIcon, Assessment as ReportIcon, VerifiedUser as KycIcon, AdminPanelSettings as AdminIcon, Analytics as AnalyticsIcon, AccountBalance as WithdrawIcon, Inventory as MarketplaceIcon } from '@mui/icons-material';
+import { Dashboard as DashboardIcon, AccountCircle as AccountIcon, Payment as PaymentIcon, ShoppingCart as OrderIcon, Store as StoreIcon, LocalShipping as ShippingIcon, Assessment as ReportIcon, VerifiedUser as KycIcon, AdminPanelSettings as AdminIcon, Analytics as AnalyticsIcon, AccountBalance as WithdrawIcon, Inventory as MarketplaceIcon, Inventory as InventoryIcon } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import RoleBasedComponent from '../auth/RoleBasedComponent';
 import { useAuth } from '../../context/AuthContext';
@@ -56,7 +56,7 @@ const ShowSellerRegistrationLink: React.FC<{ collapsed?: boolean }> = ({ collaps
         sx={{ minHeight: 48, justifyContent: showCollapsed ? 'center' : 'initial' }}
       >
         <ListItemIcon sx={{ minWidth: showCollapsed ? 0 : 56 }}>
-          <StoreIcon />
+          <ReportIcon />
         </ListItemIcon>
         {!showCollapsed && <ListItemText primary="Seller Registration" />}
       </ListItemButton>
@@ -147,10 +147,10 @@ const NavMenu: React.FC<NavMenuProps> = ({ collapsed = false }) => {
           to="/orders/new"
           sx={{ minHeight: 48, justifyContent: showCollapsed ? 'center' : 'initial' }}
         >
-          <ListItemIcon sx={{ minWidth: showCollapsed ? 0 : 56 }}>
-            <OrderIcon />
-          </ListItemIcon>
-          {!showCollapsed && <ListItemText primary="Create Order" />}
+            <ListItemIcon sx={{ minWidth: showCollapsed ? 0 : 56 }}>
+              <InventoryIcon /> {/* Escrow Order: Delivery box icon */}
+            </ListItemIcon>
+          {!showCollapsed && <ListItemText primary="Escrow Order" />}
         </ListItemButton>
       </ListItem>
 
@@ -160,9 +160,9 @@ const NavMenu: React.FC<NavMenuProps> = ({ collapsed = false }) => {
           to="/marketplace"
           sx={{ minHeight: 48, justifyContent: showCollapsed ? 'center' : 'initial' }}
         >
-          <ListItemIcon sx={{ minWidth: showCollapsed ? 0 : 56 }}>
-            <MarketplaceIcon />
-          </ListItemIcon>
+            <ListItemIcon sx={{ minWidth: showCollapsed ? 0 : 56 }}>
+            <StoreIcon /> {/* Store icon represents a real marketplace/store */}
+            </ListItemIcon>
           {!showCollapsed && <ListItemText primary="Marketplace" />}
         </ListItemButton>
       </ListItem>

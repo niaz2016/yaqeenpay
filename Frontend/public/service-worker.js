@@ -4,8 +4,8 @@ const PRECACHE_URLS = [
   '/index.html',
   '/offline.html',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  '/icons/techtorio-logo.svg',
+  '/icons/techtorio-logo.svg',
   '/assets/index.css',
   '/assets/index.js'
 ];

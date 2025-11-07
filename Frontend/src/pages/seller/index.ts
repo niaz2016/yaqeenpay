@@ -5,6 +5,7 @@ export { default as UserRegistrationPage } from './SellerRegistrationPage';
 export { default as SellerOrdersPage } from './SellerOrdersPage';
 export { default as SellerOrderDetailsPage } from './SellerOrderDetailsPage';
 export { default as SellerAnalyticsPage } from './SellerAnalyticsPage';
+export { default as SellerProductAnalyticsPage } from './SellerProductAnalyticsPage';
 // User-prefixed aliases for gradual migration
 export { default as UserOrdersPage } from './SellerOrdersPage';
 export { default as UserOrderDetailsPage } from './SellerOrderDetailsPage';

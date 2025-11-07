@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { usePageViewTracking } from '../../hooks/usePageViewTracking';
 import {
   Box,
   Container,
@@ -14,25 +15,74 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import {
-  Security,
-  Verified,
-  Speed,
-  Support,
-  TrendingUp,
+  // Use more realistic icons and apply a metallic treatment below
+  VerifiedUser,
+  FlashOn,
+  SupportAgent,
   Shield,
-  HandshakeOutlined,
-  MonetizationOn,
   CheckCircle,
   Star,
   ArrowForward,
   PlayArrow
 } from '@mui/icons-material';
+
+import {
+  PostAdd,
+  AccountBalanceWallet,
+  LocalShipping,
+  DoneAll,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { isAuthenticated, user } = useAuth();
+
+  // Track page view
+  usePageViewTracking({ pageType: 'Landing' });
+
+  // Helper function to navigate to dashboard if authenticated, otherwise to target page
+  const handleNavigateWithAuth = (targetPath: string) => {
+    if (isAuthenticated && user) {
+      const userRoles = user.roles || [];
+      const isBuyer = !userRoles.some((role: string) => 
+        role.toLowerCase() === 'seller' || role.toLowerCase() === 'admin'
+      );
+      
+      if (isBuyer) {
+        navigate('/marketplace', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    } else {
+      navigate(targetPath);
+    }
+  };
+
+  // Simple wrapper to give icons a metallic/chrome appearance
+  const MetallicIcon: React.FC<{ children: React.ReactNode; size?: number }> = ({ children, size = 40 }) => (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        // metallic gradient
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #cfcfcf 25%, #e9e9e9 50%, #bdbdbd 75%, #ffffff 100%)',
+        boxShadow: 'inset 0 2px 6px rgba(255,255,255,0.6), inset 0 -2px 6px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.12)',
+        border: '1px solid rgba(255,255,255,0.6)',
+        color: '#222',
+        svg: { fontSize: size * 0.6 },
+      }}
+    >
+      {children}
+    </Box>
+  );
 
   // Basic SEO: title, description, keywords, canonical, JSON-LD
   useEffect(() => {
@@ -132,23 +182,24 @@ const LandingPage: React.FC = () => {
   }, []);
 
   const features = [
+    // We'll wrap icons with a metallic treatment below when rendering
     {
-      icon: <Security />,
+      icon: <Shield />,
       title: 'Secure Escrow',
       description: 'Wallet Credits are securely held in escrow until both parties fulfill their obligations',
     },
     {
-      icon: <Verified />,
+      icon: <VerifiedUser />,
       title: 'Verified Users',
       description: 'All users go through identity verification for added security',
     },
     {
-      icon: <Speed />,
+      icon: <FlashOn />,
       title: 'Fast Transactions',
       description: 'Quick payment processing with real-time notifications',
     },
     {
-      icon: <Support />,
+      icon: <SupportAgent />,
       title: '24/7 Support',
       description: 'Round-the-clock customer support to resolve any disputes',
     },
@@ -159,25 +210,25 @@ const LandingPage: React.FC = () => {
       step: '1',
       title: 'Create Order',
       description: 'Seller creates an order with item details and price',
-      icon: <HandshakeOutlined />,
+      icon: <PostAdd />,
     },
     {
       step: '2',
       title: 'Secure Payment',
       description: 'Buyer pays through our secure escrow system',
-      icon: <MonetizationOn />,
+      icon: <AccountBalanceWallet />,
     },
     {
       step: '3',
       title: 'Item Delivery',
       description: 'Seller ships the item with tracking information',
-      icon: <TrendingUp />,
+      icon: <LocalShipping />,
     },
     {
       step: '4',
       title: 'Confirm & Release',
       description: 'Buyer confirms delivery, Wallet Credits released to seller',
-      icon: <CheckCircle />,
+      icon: <DoneAll />,
     },
   ];
 
@@ -283,7 +334,7 @@ const LandingPage: React.FC = () => {
                     py: 1.5,
                     '&:hover': { bgcolor: '#ffd54f' },
                   }}
-                  onClick={() => navigate('/auth/register')}
+                  onClick={() => handleNavigateWithAuth('/auth/register')}
                   endIcon={<ArrowForward />}
                 >
                   Get Started Free
@@ -354,7 +405,7 @@ const LandingPage: React.FC = () => {
                     }}
                   >
                     <Stack alignItems="center" spacing={2}>
-                      <Shield sx={{ fontSize: 60, color: '#4caf50' }} />
+                      <VerifiedUser sx={{ fontSize: 60}} />
                       <Typography variant="h6" color="primary" textAlign="center">
                         Wallet Credits Protected
                       </Typography>
@@ -426,12 +477,10 @@ const LandingPage: React.FC = () => {
                         width: 64,
                         height: 64,
                         borderRadius: '50%',
-                        bgcolor: 'primary.light',
-                        color: 'primary.main',
                         mb: 3,
                       }}
                     >
-                      {feature.icon}
+                      <MetallicIcon size={56}>{feature.icon}</MetallicIcon>
                     </Box>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
                       {feature.title}
@@ -478,20 +527,8 @@ const LandingPage: React.FC = () => {
               {steps.map((step, index) => (
                 <Box key={index} sx={{ flex: { xs: '1 1 100%', sm: '1 1 calc(50% - 16px)', md: '1 1 calc(25% - 24px)' }, minWidth: 250 }}>
                   <Stack alignItems="center" spacing={3}>
-                    <Box
-                      sx={{
-                        position: 'relative',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 80,
-                        height: 80,
-                        borderRadius: '50%',
-                        bgcolor: 'primary.main',
-                        color: 'white',
-                      }}
-                    >
-                      {step.icon}
+                    <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <MetallicIcon size={80}>{step.icon}</MetallicIcon>
                       <Box
                         sx={{
                           position: 'absolute',
@@ -829,7 +866,7 @@ const LandingPage: React.FC = () => {
                   py: 1.5,
                   '&:hover': { bgcolor: '#ffd54f' },
                 }}
-                onClick={() => navigate('/auth/register')}
+                onClick={() => handleNavigateWithAuth('/auth/register')}
                 endIcon={<ArrowForward />}
               >
                 Create Account
@@ -847,7 +884,7 @@ const LandingPage: React.FC = () => {
                     bgcolor: 'rgba(255,255,255,0.1)',
                   },
                 }}
-                onClick={() => navigate('/auth/login')}
+                onClick={() => handleNavigateWithAuth('/auth/login')}
               >
                 Sign In
               </Button>

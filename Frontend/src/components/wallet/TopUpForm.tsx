@@ -11,9 +11,9 @@ import {
   Box,
   Alert,
   CircularProgress,
-  DialogActions,
-  Snackbar
+  DialogActions
 } from '@mui/material';
+import TopRightToast from '../TopRightToast';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -369,23 +369,10 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
       </Box>
 
       {/* Error Display */}
-      {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
 
       {/* Success Message */}
-      <Snackbar
-        open={showSuccessMessage}
-        autoHideDuration={5000}
-        onClose={() => setShowSuccessMessage(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert severity="success" onClose={() => setShowSuccessMessage(false)}>
-          Payment confirmed! Your wallet has been updated.
-        </Alert>
-      </Snackbar>
+      <TopRightToast open={showSuccessMessage} message={'Payment confirmed! Your wallet has been updated.'} severity="success" onClose={() => setShowSuccessMessage(false)} autoHideDuration={5000} />
 
       {/* Background Verification Status */}
       {backgroundVerifying && (

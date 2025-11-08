@@ -13,6 +13,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import TopRightToast from '../TopRightToast';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { changePasswordSchema, setPasswordSchema } from '../../utils/validationSchemas';
 import profileService from '../../services/profileService';
@@ -123,17 +124,8 @@ const ChangePassword: React.FC = () => {
         </Alert>
       )}
       
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
+      <TopRightToast open={Boolean(success)} message={success || ''} severity="success" onClose={() => setSuccess(null)} />
       
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ mt: 2 }}>
         {hasPassword && (

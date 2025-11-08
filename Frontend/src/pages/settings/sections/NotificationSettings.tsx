@@ -6,7 +6,6 @@ import {
   Switch,
   FormControlLabel,
   Button,
-  Alert,
   CircularProgress,
   FormControl,
   InputLabel,
@@ -29,6 +28,7 @@ import {
 import { useSettings } from '../../../context/SettingsContext';
 import { SettingsCategory } from '../../../services/settingsService';
 import type { NotificationSettings as NotificationSettingsType } from '../../../services/settingsService';
+import TopRightToast from '../../../components/TopRightToast';
 
 const emailFrequencyOptions = [
   { value: 'immediate', label: 'Immediately' },
@@ -146,17 +146,8 @@ const NotificationSettings: React.FC = () => {
 
   return (
     <Box>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Notification settings updated successfully!
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      <TopRightToast open={success} message={'Notification settings updated successfully!'} severity="success" onClose={() => setSuccess(false)} />
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
 
       {/* Notification Status Overview */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>

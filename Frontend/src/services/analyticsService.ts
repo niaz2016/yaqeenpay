@@ -1,4 +1,5 @@
 import api from './api';
+import type { ProductViewStats, AnalyticsData } from '../types/analytics';
 
 // Generate a unique visitor ID based on browser fingerprint
 const getVisitorId = (): string => {
@@ -52,36 +53,7 @@ export const trackPageView = async (params: TrackPageViewParams): Promise<void> 
   }
 };
 
-export interface AnalyticsData {
-  totalPageViews: number;
-  totalUniqueVisitors: number;
-  pageTypeBreakdown: Array<{
-    pageType: string;
-    totalViews: number;
-    uniqueVisitors: number;
-  }>;
-  deviceBreakdown: Array<{
-    deviceType: string;
-    totalViews: number;
-    uniqueVisitors: number;
-  }>;
-  browserBreakdown: Array<{
-    browser: string;
-    totalViews: number;
-    uniqueVisitors: number;
-  }>;
-  osBreakdown: Array<{
-    operatingSystem: string;
-    totalViews: number;
-    uniqueVisitors: number;
-  }>;
-  todayViews: number;
-  todayUniqueVisitors: number;
-  weekViews: number;
-  weekUniqueVisitors: number;
-  monthViews: number;
-  monthUniqueVisitors: number;
-}
+// AnalyticsData is defined in src/types/analytics.ts and imported above
 
 export const getAdminAnalytics = async (startDate?: Date, endDate?: Date): Promise<AnalyticsData> => {
   const params: any = {};
@@ -90,21 +62,6 @@ export const getAdminAnalytics = async (startDate?: Date, endDate?: Date): Promi
   
   return await api.get<AnalyticsData>('/analytics/admin', { params });
 };
-
-export interface ProductViewStats {
-  productId: string;
-  productName: string;
-  totalViews: number;
-  uniqueVisitors: number;
-  todayViews: number;
-  weekViews: number;
-  monthViews: number;
-  dailyViews: Array<{
-    date: string;
-    views: number;
-    uniqueVisitors: number;
-  }>;
-}
 
 export const getSellerProductViews = async (): Promise<ProductViewStats[]> => {
   try {

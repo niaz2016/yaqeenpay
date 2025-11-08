@@ -414,11 +414,17 @@ class ProductService {
     return data;
   }
 
-  async updateProduct(productId: string, data: Partial<CreateProductDTO>): Promise<ProductDetail> {
+  async updateProduct(productId: string, data: Partial<CreateProductDTO>, options?: CreateProductOptions): Promise<ProductDetail> {
     // Handle image uploads if present
     let imageUrls: Array<{ imageUrl: string; isPrimary: boolean }> = [];
     if (data.images?.length) {
-      imageUrls = await this.uploadImages(data.images);
+      if (options?.onUploadStart) {
+        options.onUploadStart({ total: data.images.length });
+      }
+      imageUrls = await this.uploadImages(data.images, options?.onUploadProgress);
+      if (options?.onUploadComplete) {
+        options.onUploadComplete();
+      }
     }
 
     // Prepare the update payload
@@ -465,7 +471,8 @@ class ProductService {
       variants: updateVariants,
     };
 
-    const responseData = await apiService.put<ProductDetail>(`/products/${productId}`, updatePayload);
+  if (options?.onSubmitting) options.onSubmitting();
+  const responseData = await apiService.put<ProductDetail>(`/products/${productId}`, updatePayload);
     if (!responseData) throw new Error('Failed to update product');
     
     // Invalidate cache for this product so it gets fresh data on next view

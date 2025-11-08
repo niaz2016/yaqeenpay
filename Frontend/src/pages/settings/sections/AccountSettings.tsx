@@ -10,7 +10,6 @@ import {
   Switch,
   FormControlLabel,
   Button,
-  Alert,
   CircularProgress,
   Card,
   CardContent,
@@ -26,6 +25,7 @@ import { useSettings } from '../../../context/SettingsContext';
 import { useAuth } from '../../../context/AuthContext';
 import { SettingsCategory } from '../../../services/settingsService';
 import type { AccountSettings as AccountSettingsType } from '../../../services/settingsService';
+import TopRightToast from '../../../components/TopRightToast';
 
 const languages = [
   { value: 'en', label: 'English' },
@@ -127,17 +127,8 @@ const AccountSettings: React.FC = () => {
 
   return (
     <Box>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Account settings updated successfully!
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      <TopRightToast open={success} message={'Account settings updated successfully!'} severity="success" onClose={() => setSuccess(false)} />
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
 
       {/* Basic Profile Information */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>

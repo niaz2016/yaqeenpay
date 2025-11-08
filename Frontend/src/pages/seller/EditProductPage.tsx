@@ -7,9 +7,10 @@ import {
   CardContent,
   TextField,
   Button,
-  Alert,
+  Snackbar,
   CircularProgress,
   FormControl,
+  LinearProgress,
   InputLabel,
   Select,
   MenuItem,
@@ -27,6 +28,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import productService from '../../services/productService';
 import categoryService, { type Category } from '../../services/categoryService';
+import CategorySelector from '../../components/CategorySelector';
 
 // Category interface is now imported from categoryService
 
@@ -113,6 +115,18 @@ const EditProductPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [progressState, setProgressState] = useState<{ status: 'idle' | 'uploading' | 'submitting' | 'success' | 'error'; percent: number; message: string }>({ status: 'idle', percent: 0, message: '' });
+
+  const updateProgress = (status: 'idle' | 'uploading' | 'submitting' | 'success' | 'error', percent: number, message: string) => {
+    const clamped = Math.min(100, Math.max(0, percent));
+    setProgressState({ status, percent: clamped, message });
+  };
+
+  // (No scroll tracking on Edit page; toast will always be top-right)
+
+  const isUploadingOrSubmitting = progressState.status === 'uploading' || progressState.status === 'submitting';
+  const isError = progressState.status === 'error';
+  const isSuccess = progressState.status === 'success';
 
   useEffect(() => {
     const loadData = async () => {
@@ -339,8 +353,33 @@ const EditProductPage: React.FC = () => {
         }));
       }
 
-      await productService.updateProduct(productId, updateData);
-      
+      await productService.updateProduct(productId, updateData, {
+        onUploadStart: ({ total }) => {
+          if (total === 0) {
+            updateProgress('submitting', 60, 'Uploading skipped. Saving product details...');
+            return;
+          }
+          const descriptor = total === 1 ? 'image' : 'images';
+          updateProgress('uploading', 5, `Uploading ${total} ${descriptor}...`);
+        },
+        onUploadProgress: ({ index, total, percent, fileName }) => {
+          const overall = total > 0
+            ? Math.min(99, Math.round(((index + percent / 100) / total) * 100))
+            : Math.min(99, percent);
+          const label = total > 0
+            ? `Uploading ${fileName} (${index + 1}/${total}) ${percent}%`
+            : `Uploading ${fileName} ${percent}%`;
+          updateProgress('uploading', overall, label);
+        },
+        onUploadComplete: () => {
+          updateProgress('submitting', 90, 'Images uploaded. Finalising product...');
+        },
+        onSubmitting: () => {
+          updateProgress('submitting', 95, 'Saving product details...');
+        }
+      });
+
+      updateProgress('success', 100, 'Product updated successfully!');
       setSuccess('Product updated successfully!');
       
       // Navigate back to seller products after a delay
@@ -367,7 +406,7 @@ const EditProductPage: React.FC = () => {
   if (!product) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Product not found</Alert>
+        <Typography variant="h6" color="error">Product not found</Typography>
         <Button 
           startIcon={<ArrowBackIcon />} 
           onClick={() => navigate('/seller/products')}
@@ -395,18 +434,42 @@ const EditProductPage: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Alerts */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
+      {/* Alerts are shown via the upload toast (Snackbar) instead of inline Alerts */}
+      {/* Snackbar toast for upload progress / result */}
+      <Snackbar
+        open={progressState.status !== 'idle' || Boolean(success) || Boolean(error)}
+        // Always show the edit-page toast at the top-right for easier visibility while editing
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => {
+          if (progressState.status === 'success' || progressState.status === 'error') {
+            updateProgress('idle', 0, '');
+            setSuccess(null);
+            setError(null);
+          }
+        }}
+  slotProps={{ clickAwayListener: { mouseEvent: false } }}
+        disableWindowBlurListener
+        autoHideDuration={progressState.status === 'success' || progressState.status === 'error' ? 4000 : undefined}
+      >
+        <Paper sx={{ p: 2, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 1 }} elevation={6}>
+          <Typography variant="body2" color={isError ? 'error.main' : 'text.primary'}>
+            {progressState.message || (progressState.status === 'success' ? 'Product updated successfully.' : 'Processing...')}
+          </Typography>
+          {isUploadingOrSubmitting ? (
+            <LinearProgress
+              variant={isError ? 'indeterminate' : 'determinate'}
+              value={isError ? undefined : progressState.percent}
+              color={isError ? 'error' : isSuccess ? 'success' : 'primary'}
+            />
+          ) : (
+            <LinearProgress
+              variant={isError ? 'indeterminate' : 'determinate'}
+              value={isSuccess ? 100 : 0}
+              color={isError ? 'error' : isSuccess ? 'success' : 'primary'}
+            />
+          )}
+        </Paper>
+      </Snackbar>
 
       {/* Form */}
       <form onSubmit={handleSubmit}>
@@ -498,20 +561,12 @@ const EditProductPage: React.FC = () => {
                       disabled={saving}
                     />
                     
-                    <FormControl fullWidth disabled={saving} required>
-                      <InputLabel>Category</InputLabel>
-                      <Select
-                        value={formData.categoryId}
-                        label="Category"
-                        onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                      >
-                        {availableCategories.map((category) => (
-                          <MenuItem key={category.id} value={category.id}>
-                            {category.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <CategorySelector
+                      categories={availableCategories}
+                      value={formData.categoryId}
+                      onChange={(id) => handleInputChange('categoryId', id)}
+                      disabled={saving || availableCategories.length === 0}
+                    />
                   </Box>
                   <Box sx={{ display: 'flex', gap: 2, mt: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                     <TextField

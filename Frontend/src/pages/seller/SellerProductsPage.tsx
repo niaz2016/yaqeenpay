@@ -15,7 +15,6 @@ import {
   InputLabel,
   InputAdornment,
   IconButton,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,6 +34,9 @@ import {
 import { normalizeImageUrl, placeholderDataUri } from '../../utils/image';
 import productService from '../../services/productService';
 import analyticsService from '../../services/analyticsService';
+import TopRightToast from '../../components/TopRightToast';
+import type { Category as ServiceCategory } from '../../services/categoryService';
+import CategorySelector from '../../components/CategorySelector';
 
 interface Product {
   id: string;
@@ -63,15 +65,10 @@ interface Product {
   effectivePrice: number;
 }
 
-interface Category {
-  id: string;
-  name: string;
-}
-
 const SellerProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -298,21 +295,14 @@ const SellerProductsPage: React.FC = () => {
               }}
               sx={{ flex: 1 }}
             />
-            <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Category</InputLabel>
-              <Select
+            <Box sx={{ minWidth: 200 }}>
+              <CategorySelector
+                categories={categories}
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                label="Category"
-              >
-                <MenuItem value="">All Categories</MenuItem>
-                {categories.map(category => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                onChange={(id) => setSelectedCategory(id)}
+                disabled={categories.length === 0}
+              />
+            </Box>
             <FormControl sx={{ minWidth: 200 }}>
               <InputLabel>Status</InputLabel>
               <Select
@@ -345,12 +335,8 @@ const SellerProductsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Error Alert */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+      {/* Top-right toast for errors */}
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
 
       {/* Products Grid */}
       {products.length === 0 ? (

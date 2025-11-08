@@ -7,7 +7,6 @@ import {
   Paper,
   Button,
   Chip,
-  Alert,
   Divider,
   Stack,
   Card,
@@ -30,6 +29,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { userService } from '../../services/userService';
 import type { SellerOrder, ShippingInfo } from '../../types/user';
+import TopRightToast from '../../components/TopRightToast';
 
 const shippingInfoSchema = z.object({
   trackingNumber: z.string().min(1, 'Tracking number is required'),
@@ -217,11 +217,7 @@ const UserOrderDetailsPage: React.FC = () => {
           </Box>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+        <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
 
         <Stack spacing={3}>
           {/* Order Information */}
@@ -338,9 +334,7 @@ const UserOrderDetailsPage: React.FC = () => {
                   </Typography>
                 </Box>
               ) : (
-                <Alert severity="info">
-                  No shipping information available yet.
-                </Alert>
+                <TopRightToast open={true} message={'No shipping information available yet.'} severity="info" onClose={() => {}} autoHideDuration={3000} />
               )}
             </Paper>
           )}

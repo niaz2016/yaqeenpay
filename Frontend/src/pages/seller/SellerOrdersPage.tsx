@@ -14,7 +14,6 @@ import {
   MenuItem,
   TextField,
   InputAdornment,
-  Alert,
   useTheme,
   useMediaQuery,
   Card,
@@ -31,6 +30,7 @@ import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { userService } from '../../services/userService';
 import type { SellerOrder, SellerOrdersFilters } from '../../types/user';
+import TopRightToast from '../../components/TopRightToast';
 
 const UserOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<SellerOrder[]>([]);
@@ -372,11 +372,7 @@ const UserOrdersPage: React.FC = () => {
           </Box>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+        <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
 
         <Paper sx={{ width: '100%' }}>
           <Tabs

@@ -4,6 +4,7 @@ import {
   Box,
   Typography,
   Paper,
+  Snackbar,
   TextField,
   Button,
   Select,
@@ -12,7 +13,6 @@ import {
   InputLabel,
   Card,
   CardContent,
-  Alert,
   Chip,
   IconButton,
   InputAdornment,
@@ -59,6 +59,28 @@ const NewProductPage: React.FC = () => {
   const [progressState, setProgressState] = useState<{ status: ProgressStatus; percent: number; message: string }>(
     { status: 'idle', percent: 0, message: '' }
   );
+
+  // Track whether the user is scrolled to the bottom of the page.
+  const [isAtBottom, setIsAtBottom] = useState(false);
+
+  useEffect(() => {
+    const checkBottom = () => {
+      const threshold = 150; // px from bottom considered "at bottom"
+      const atBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - threshold);
+      setIsAtBottom(atBottom);
+    };
+    checkBottom();
+    window.addEventListener('scroll', checkBottom, { passive: true });
+    window.addEventListener('resize', checkBottom);
+    return () => {
+      window.removeEventListener('scroll', checkBottom);
+      window.removeEventListener('resize', checkBottom);
+    };
+  }, []);
+
+  const isUploadingOrSubmitting = progressState.status === 'uploading' || progressState.status === 'submitting';
+  const isError = progressState.status === 'error';
+  const isSuccess = progressState.status === 'success';
 
   const updateProgress = (status: ProgressStatus, percent: number, message: string) => {
     const clampedPercent = Math.min(100, Math.max(0, percent));
@@ -386,30 +408,7 @@ const NewProductPage: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Alerts */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-
-      {progressState.status !== 'idle' && (
-        <Paper sx={{ mb: 3, p: 2 }} elevation={0} variant="outlined">
-          <Typography variant="body2" sx={{ mb: 1 }} color="text.secondary">
-            {progressState.message || (progressState.status === 'success' ? 'Product created successfully.' : 'Processing...')}
-          </Typography>
-          <LinearProgress
-            variant={progressState.status === 'error' ? 'indeterminate' : 'determinate'}
-            value={progressState.status === 'error' ? undefined : progressState.percent}
-            color={progressState.status === 'error' ? 'error' : progressState.status === 'success' ? 'success' : 'primary'}
-          />
-        </Paper>
-      )}
+      {/* Progress/notification shown as a toast (Snackbar). */}
 
       <form onSubmit={handleSubmit}>
         <Box sx={{
@@ -922,6 +921,43 @@ const NewProductPage: React.FC = () => {
           </Button>
         </Box>
       </form>
+
+      {/* Snackbar toast for upload progress / result */}
+      <Snackbar
+        open={progressState.status !== 'idle' || Boolean(success) || Boolean(error)}
+        anchorOrigin={isAtBottom ? { vertical: 'bottom', horizontal: 'center' } : { vertical: 'top', horizontal: 'right' }}
+        onClose={() => {
+          // allow manual closing after final state
+          if (progressState.status === 'success' || progressState.status === 'error') {
+            updateProgress('idle', 0, '');
+            setSuccess(null);
+            setError(null);
+          }
+        }}
+  slotProps={{ clickAwayListener: { mouseEvent: false } }}
+        disableWindowBlurListener
+        autoHideDuration={progressState.status === 'success' || progressState.status === 'error' ? 4000 : undefined}
+      >
+        <Paper sx={{ p: 2, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 1 }} elevation={6}>
+          <Typography variant="body2" color={progressState.status === 'error' ? 'error.main' : 'text.primary'}>
+            {progressState.message || (progressState.status === 'success' ? 'Product created successfully.' : 'Processing...')}
+          </Typography>
+          {isUploadingOrSubmitting ? (
+            <LinearProgress
+              variant={isError ? 'indeterminate' : 'determinate'}
+              value={isError ? undefined : progressState.percent}
+              color={isError ? 'error' : isSuccess ? 'success' : 'primary'}
+            />
+          ) : (
+            // show a thin progress bar on final states for a short time
+            <LinearProgress
+              variant={isError ? 'indeterminate' : 'determinate'}
+              value={isSuccess ? 100 : 0}
+              color={isError ? 'error' : isSuccess ? 'success' : 'primary'}
+            />
+          )}
+        </Paper>
+      </Snackbar>
     </Box>
   );
 };

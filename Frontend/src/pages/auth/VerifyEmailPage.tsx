@@ -6,9 +6,9 @@ import {
   Typography,
   Paper,
   CircularProgress,
-  Alert,
   Button,
 } from '@mui/material';
+import TopRightToast from '../../components/TopRightToast';
 import { CheckCircle, Error } from '@mui/icons-material';
 import apiService from '../../services/api';
 import TechTorioLogo from '../../components/common/TechTorioLogo';
@@ -91,9 +91,7 @@ const VerifyEmailPage: React.FC = () => {
         {status === 'success' && (
           <Box>
             <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {message}
-            </Alert>
+            <TopRightToast open={true} message={message} severity="success" onClose={() => {}} autoHideDuration={3000} />
             <Typography variant="body2" color="text.secondary">
               Redirecting to login page...
             </Typography>
@@ -103,9 +101,7 @@ const VerifyEmailPage: React.FC = () => {
         {status === 'error' && (
           <Box>
             <Error sx={{ fontSize: 80, color: 'error.main', mb: 2 }} />
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {message}
-            </Alert>
+            <TopRightToast open={true} message={message} severity="error" onClose={() => {}} autoHideDuration={4000} />
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Button
                 variant="contained"

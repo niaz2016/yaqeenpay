@@ -7,7 +7,6 @@ import {
   TextField,
   Button,
   Typography,
-  Alert,
   IconButton,
   InputAdornment,
   Paper,
@@ -23,6 +22,7 @@ import {
   VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material';
 import adminService from '../../services/adminServiceSelector';
+import TopRightToast from '../../components/TopRightToast';
 
 interface CreateEmailForm {
   username: string;
@@ -152,17 +152,8 @@ const EmailManagement: React.FC = () => {
       <Container maxWidth="md">
         <Stack spacing={3}>
           {/* Alert Messages */}
-          {error && (
-            <Alert severity="error" onClose={() => setError('')}>
-              {error}
-            </Alert>
-          )}
-
-          {success && (
-            <Alert severity="success" onClose={() => setSuccess('')}>
-              {success}
-            </Alert>
-          )}
+          <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
+          <TopRightToast open={Boolean(success)} message={success || ''} severity="success" onClose={() => setSuccess('')} />
 
           {/* Create Email Form */}
           <Card>

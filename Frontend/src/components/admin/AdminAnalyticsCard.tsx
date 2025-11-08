@@ -11,7 +11,8 @@ import {
 import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import analyticsService, { type AnalyticsData } from '../../services/analyticsService';
+import analyticsService from '../../services/analyticsService';
+import type { AnalyticsData } from '../../types/analytics';
 
 const AdminAnalyticsCard: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);

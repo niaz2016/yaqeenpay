@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Paper, Typography, Tabs, Tab, Box, Alert, TextField, MenuItem, Stack, Button, Chip, Fade } from '@mui/material';
+import { Container, Paper, Typography, Tabs, Tab, Box, Snackbar, TextField, MenuItem, Stack, Button, Chip, Fade } from '@mui/material';
 import walletService from '../../services/walletService';
 import type { WalletSummary, WalletTransaction, WalletAnalytics, TopUpDto, TransactionType } from '../../types/wallet';
 import BalanceCard from '../../components/wallet/BalanceCard';
@@ -142,9 +142,18 @@ const WalletPage: React.FC = () => {
         </Fade>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-      )}
+      {/* Top-right toast for errors */}
+      <Snackbar
+        open={Boolean(error)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setError(null)}
+        autoHideDuration={4000}
+        slotProps={{ clickAwayListener: { mouseEvent: false } }}
+      >
+        <Paper sx={{ p: 2, minWidth: 300 }} elevation={6}>
+          <Typography variant="body2" color="error.main">{error}</Typography>
+        </Paper>
+      </Snackbar>
 
       {/* Balance Card and Analytics - Equal Width Layout */}
       <Box sx={{ 

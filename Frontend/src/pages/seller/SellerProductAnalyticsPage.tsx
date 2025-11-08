@@ -3,7 +3,7 @@ import {
   Box,
   Container,
   Typography,
-  Alert,
+  // Alert removed — using TopRightToast instead
   CircularProgress,
   Card,
   CardContent,
@@ -37,9 +37,11 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import analyticsService, { type ProductViewStats } from '../../services/analyticsService';
+import analyticsService from '../../services/analyticsService';
+import type { ProductViewStats } from '../../types/analytics';
 import { useAuth } from '../../context/AuthContext';
 import { usePageViewTracking } from '../../hooks/usePageViewTracking';
+import TopRightToast from '../../components/TopRightToast';
 
 const SellerProductAnalyticsPage: React.FC = () => {
   const theme = useTheme();
@@ -90,7 +92,14 @@ const SellerProductAnalyticsPage: React.FC = () => {
     return (
       <Container maxWidth="xl">
         <Box sx={{ py: 4 }}>
-          <Alert severity="error">{error}</Alert>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600 }}>
+            Product Analytics
+          </Typography>
+          <Typography variant="body1" color="text.secondary" gutterBottom sx={{ mb: 4 }}>
+            Track your product views and engagement metrics
+          </Typography>
+          {/* Show top-right toast for the error */}
+          <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
         </Box>
       </Container>
     );

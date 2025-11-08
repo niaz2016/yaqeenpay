@@ -6,7 +6,6 @@ import {
   Switch,
   FormControlLabel,
   Button,
-  Alert,
   CircularProgress,
   FormControl,
   InputLabel,
@@ -37,6 +36,7 @@ import {
 import { useSettings } from '../../../context/SettingsContext';
 import { SettingsCategory } from '../../../services/settingsService';
 import type { PaymentSettings as PaymentSettingsType } from '../../../services/settingsService';
+import TopRightToast from '../../../components/TopRightToast';
 
 const currencies = [
   { value: 'PKR', label: 'Pakistani Rupee (PKR)', symbol: 'Rs' },
@@ -141,17 +141,8 @@ const PaymentSettings: React.FC = () => {
 
   return (
     <Box>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Payment settings updated successfully!
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      <TopRightToast open={success} message={'Payment settings updated successfully!'} severity="success" onClose={() => setSuccess(false)} />
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
 
       {/* Payment Methods */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
@@ -389,12 +380,6 @@ const PaymentSettings: React.FC = () => {
             fullWidth
           />
         </Box>
-
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="body2">
-            Withdrawal fees may apply based on the method selected. Processing times vary by provider.
-          </Typography>
-        </Alert>
       </Paper>
 
       {/* Security & Notifications */}

@@ -137,6 +137,9 @@ export interface SellerAnalytics {
     count: number;
     revenue: number;
   }>;
+  // Aggregated product view metrics (optional) — populated for sellers
+  productViews?: number;
+  productUniqueVisitors?: number;
 }
 
 export interface WithdrawalRequest {

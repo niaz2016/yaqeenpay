@@ -14,7 +14,8 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Alert,
+  Snackbar,
+  Paper as MuiPaper,
   CircularProgress,
   Card,
   CardContent,
@@ -301,11 +302,18 @@ const WithdrawalsPage: React.FC = () => {
         </Typography>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {/* Top-right toast for errors */}
+      <Snackbar
+        open={Boolean(error)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={() => setError(null)}
+        autoHideDuration={4000}
+        slotProps={{ clickAwayListener: { mouseEvent: false } }}
+      >
+        <MuiPaper sx={{ p: 2, minWidth: 300 }} elevation={6}>
+          <Typography variant="body2" color="error.main">{error}</Typography>
+        </MuiPaper>
+      </Snackbar>
 
       {/* Wallet Summary */}
       <Card sx={{ mb: 3 }}>

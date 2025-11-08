@@ -7,17 +7,33 @@ import {
   CircularProgress
 } from '@mui/material';
 import { selectedUserService } from '../../services/userServiceSelector';
+import analyticsService from '../../services/analyticsService';
 import type { UserAnalytics as SellerAnalytics } from '../../types/user';
 const UserAnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<SellerAnalytics | null>(null);
+  const [productViews, setProductViews] = useState<number | null>(null);
+  const [productUniqueVisitors, setProductUniqueVisitors] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const loadAnalytics = async () => {
     setLoading(true);
     setError(null);
     try {
-  const data = await selectedUserService.getAnalytics();
+      const data = await selectedUserService.getAnalytics();
       setAnalytics(data);
+
+      // Fetch seller product view stats and aggregate totals for visits
+      try {
+        const views = await analyticsService.getSellerProductViews();
+        // sum totals
+        const totalViews = views.reduce((sum, v) => sum + (v.totalViews || 0), 0);
+        const totalUnique = views.reduce((sum, v) => sum + (v.uniqueVisitors || 0), 0);
+        setProductViews(totalViews);
+        setProductUniqueVisitors(totalUnique);
+      } catch (err) {
+        // non-fatal: log and continue
+        console.debug('Failed to load product views:', err);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics');
     } finally {
@@ -84,6 +100,18 @@ const UserAnalyticsPage: React.FC = () => {
             <Typography variant="h6">Avg Order Value</Typography>
             <Typography variant="h4" color="primary">
               ${(analytics.averageOrderValue || 0).toFixed(2)}
+            </Typography>
+          </Box>
+          <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Typography variant="h6">Total Product Views</Typography>
+            <Typography variant="h4" color="primary">
+              {productViews !== null ? productViews.toLocaleString() : '—'}
+            </Typography>
+          </Box>
+          <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+            <Typography variant="h6">Unique Visitors (Products)</Typography>
+            <Typography variant="h4" color="primary">
+              {productUniqueVisitors !== null ? productUniqueVisitors.toLocaleString() : '—'}
             </Typography>
           </Box>
         </Box>

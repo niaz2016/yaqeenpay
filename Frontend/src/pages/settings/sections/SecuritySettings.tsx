@@ -6,7 +6,7 @@ import {
   Switch,
   FormControlLabel,
   Button,
-  Alert,
+  Snackbar,
   CircularProgress,
   List,
   ListItem,
@@ -37,6 +37,7 @@ import { SettingsCategory } from '../../../services/settingsService';
 import type { SecuritySettings as SecuritySettingsType } from '../../../services/settingsService';
 import profileService from '../../../services/profileService';
 import { LoginPreferencesCard } from '../../../components/auth/LoginPreferencesCard';
+import TopRightToast from '../../../components/TopRightToast';
 
 const SessionTimeouts = [
   { value: 15, label: '15 minutes' },
@@ -239,17 +240,17 @@ const SecuritySettings: React.FC = () => {
 
   return (
     <Box>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          {successMessage || 'Security settings updated successfully!'}
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+      {/* Top-right toast for success / error */}
+      <Snackbar open={success} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} onClose={() => setSuccess(false)} autoHideDuration={4000} slotProps={{ clickAwayListener: { mouseEvent: false } }}>
+        <Paper sx={{ p: 2, minWidth: 300 }} elevation={6}>
+          <Typography variant="body2" color="success.main">{successMessage || 'Security settings updated successfully!'}</Typography>
+        </Paper>
+      </Snackbar>
+      <Snackbar open={Boolean(error)} anchorOrigin={{ vertical: 'top', horizontal: 'right' }} onClose={() => setError('')} autoHideDuration={4000} slotProps={{ clickAwayListener: { mouseEvent: false } }}>
+        <Paper sx={{ p: 2, minWidth: 300 }} elevation={6}>
+          <Typography variant="body2" color="error.main">{error}</Typography>
+        </Paper>
+      </Snackbar>
 
       {/* Security Score */}
       <Paper elevation={1} sx={{ py: 3, mb: 3 }}>
@@ -375,9 +376,9 @@ const SecuritySettings: React.FC = () => {
         </Typography>
         
         {securitySettings.trustedDevices.length === 0 ? (
-          <Alert severity="info">
-            No trusted devices configured. You can add devices after logging in from them.
-          </Alert>
+          <Box>
+            <TopRightToast open={true} message={'No trusted devices configured. You can add devices after logging in from them.'} severity="info" onClose={() => {}} autoHideDuration={3000} />
+          </Box>
         ) : (
           <List>
             {securitySettings.trustedDevices.map((deviceId, index) => (
@@ -423,9 +424,7 @@ const SecuritySettings: React.FC = () => {
         <DialogTitle>{hasPassword ? 'Change Password' : 'Set Password'}</DialogTitle>
         <DialogContent>
           {!hasPassword && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              You registered using Google OAuth and don't have a password yet. Set a password to enable traditional login.
-            </Alert>
+            <TopRightToast open={showChangePassword && !hasPassword} message={"You registered using Google OAuth and don't have a password yet. Set a password to enable traditional login."} severity="info" onClose={() => {}} />
           )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
             {hasPassword && (

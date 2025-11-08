@@ -11,7 +11,6 @@ import {
   Button, 
   Switch, 
   FormControlLabel, 
-  Alert, 
   Chip,
   IconButton,
   Tooltip,
@@ -22,6 +21,7 @@ import {
 
 
 } from '@mui/material';
+import TopRightToast from '../../components/TopRightToast';
 import {
   ExpandMore as ExpandMoreIcon,
   Save as SaveIcon,
@@ -304,16 +304,8 @@ const AdminSettingsPage: React.FC = () => {
       </Box>
 
       {/* Alerts */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
+          <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
+          <TopRightToast open={Boolean(success)} message={success || ''} severity="success" onClose={() => setSuccess(null)} />
 
       {/* Settings Groups */}
       {settingsGroups.map((group) => (

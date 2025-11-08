@@ -7,12 +7,12 @@ import {
   Step,
   StepLabel,
   Typography,
-  Alert,
   Container
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { BusinessProfileForm, KycDocumentUpload, RegistrationSummary } from '../../components/user';
+import TopRightToast from '../../components/TopRightToast';
 import { userService } from '../../services/userService';
 import type {
   CreateBusinessProfileRequest,
@@ -210,17 +210,9 @@ const UserRegistrationPage: React.FC = () => {
           Complete the registration process to start selling on YaqeenPay
         </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            {success}
-          </Alert>
-        )}
+        {/* top-right toast for error/success */}
+        <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
+        <TopRightToast open={Boolean(success)} message={success || ''} severity="success" onClose={() => setSuccess(null)} />
 
         <Paper sx={{ p: 3 }}>
           <Stepper activeStep={activeStep} sx={{ mb: 4 }}>

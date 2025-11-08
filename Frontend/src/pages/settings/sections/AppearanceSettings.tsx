@@ -10,7 +10,6 @@ import {
   Switch,
   FormControlLabel,
   Button,
-  Alert,
   CircularProgress,
   Slider,
   Card,
@@ -37,6 +36,7 @@ import {
 import { useSettings } from '../../../context/SettingsContext';
 import { SettingsCategory } from '../../../services/settingsService';
 import type { AppearanceSettings as AppearanceSettingsType } from '../../../services/settingsService';
+import TopRightToast from '../../../components/TopRightToast';
 
 const themes = [
   { value: 'light', label: 'Light', icon: <LightModeIcon />, description: 'Clean and bright interface' },
@@ -159,23 +159,9 @@ const AppearanceSettings: React.FC = () => {
 
   return (
     <Box>
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Appearance settings updated successfully!
-        </Alert>
-      )}
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {previewTheme && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          Previewing {themes.find(t => t.value === previewTheme)?.label} theme. Changes will revert in 3 seconds.
-        </Alert>
-      )}
+      <TopRightToast open={success} message={'Appearance settings updated successfully!'} severity="success" onClose={() => setSuccess(false)} />
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError('')} />
+      <TopRightToast open={Boolean(previewTheme)} message={`Previewing ${themes.find(t => t.value === previewTheme)?.label} theme. Changes will revert in 3 seconds.`} severity="info" onClose={() => setPreviewTheme(null)} autoHideDuration={3000} />
 
       {/* Theme Settings */}
       <Paper elevation={1} sx={{ p: 3, mb: 3 }}>

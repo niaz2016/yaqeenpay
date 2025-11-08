@@ -102,10 +102,6 @@ const AdminDashboard: React.FC = () => {
   if (error) {
     return (
       <Box>
-        <Typography variant="h4" gutterBottom>
-          Admin Dashboard
-        </Typography>
-
         <Alert
           severity="error"
           action={
@@ -180,11 +176,7 @@ const AdminDashboard: React.FC = () => {
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Main content */}
       <Box>
-        {/* Header with Refresh Button */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={{ xs: 2, sm: 3 }}>
-          <Typography variant="h5" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 600 }}>
-            Dashboard
-          </Typography>
           <Tooltip title="Refresh Statistics">
             <IconButton onClick={fetchStats} color="primary" size="medium">
               <RefreshIcon />

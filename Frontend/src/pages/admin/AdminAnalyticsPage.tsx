@@ -34,7 +34,8 @@ import {
   ShoppingBag as ProductIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
-import analyticsService, { type AnalyticsData } from '../../services/analyticsService';
+import analyticsService from '../../services/analyticsService';
+import type { AnalyticsData } from '../../types/analytics';
 
 interface TabPanelProps {
   children?: React.ReactNode;

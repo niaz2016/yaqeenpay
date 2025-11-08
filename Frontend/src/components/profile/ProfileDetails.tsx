@@ -9,7 +9,6 @@ import {
   Box,
   Typography,
   Paper,
-  Alert,
   CircularProgress,
   Chip,
   Stack,
@@ -17,6 +16,7 @@ import {
 import profileService from '../../services/profileService';
 import { useAuth } from '../../context/AuthContext';
 import type { ProfileDetails as ProfileDetailsType } from '../../types/profile';
+import TopRightToast from '../TopRightToast';
 
 // Validation schema for profile form
 const profileSchema = z.object({
@@ -258,17 +258,8 @@ const ProfileDetails: React.FC = () => {
 
   return (
     <Paper elevation={3} sx={{ p: { xs: 2, sm: 3 }, mb: 4 }}>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
+      <TopRightToast open={Boolean(error)} message={error || ''} severity="error" onClose={() => setError(null)} />
+      <TopRightToast open={Boolean(success)} message={success || ''} severity="success" onClose={() => setSuccess(null)} />
       
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

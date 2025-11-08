@@ -16,6 +16,9 @@ export interface ProductViewStats {
   weekViews: number;
   monthViews: number;
   dailyViews: ProductDailyView[];
+  // Additional engagement metrics
+  inCartCount?: number; // number of active carts containing this product
+  favoritesCount?: number; // number of times users clicked the 'heart' (favorites)
 }
 
 export interface AnalyticsData {
@@ -47,6 +50,10 @@ export interface AnalyticsData {
   weekUniqueVisitors: number;
   monthViews: number;
   monthUniqueVisitors: number;
+}
+
+export interface SellerSummary {
+  totalUniqueVisitors: number;
 }
 
 export default {} as const;

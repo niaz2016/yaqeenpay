@@ -140,6 +140,9 @@ export interface SellerAnalytics {
   // Aggregated product view metrics (optional) — populated for sellers
   productViews?: number;
   productUniqueVisitors?: number;
+  // Aggregated engagement metrics across seller's products
+  productInCarts?: number;
+  productFavorites?: number;
 }
 
 export interface WithdrawalRequest {

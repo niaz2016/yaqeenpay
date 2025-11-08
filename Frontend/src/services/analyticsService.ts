@@ -83,6 +83,18 @@ export const getSellerProductViews = async (): Promise<ProductViewStats[]> => {
   }
 };
 
+export const getSellerSummary = async (): Promise<import('../types/analytics').SellerSummary | null> => {
+  try {
+    const resp: any = await api.get('/analytics/seller/summary');
+    const data = resp?.data !== undefined ? resp.data : resp;
+    if (data && typeof data === 'object') return data as import('../types/analytics').SellerSummary;
+    return null;
+  } catch (err) {
+    console.error('Failed to fetch seller summary:', err);
+    return null;
+  }
+};
+
 export interface VisitorStat {
   visitorId: string;
   totalVisits: number;
@@ -126,7 +138,7 @@ const analyticsService = {
   trackPageView,
   getAdminAnalytics,
   getSellerProductViews
-  , getVisitorStats
+  , getSellerSummary, getVisitorStats
 };
 
 export default analyticsService;

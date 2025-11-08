@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using YaqeenPay.Application.Features.Analytics.Commands.TrackPageView;
 using YaqeenPay.Application.Features.Analytics.Queries.GetAnalytics;
 using YaqeenPay.Application.Features.Analytics.Queries.GetSellerProductViews;
+using YaqeenPay.Application.Features.Analytics.Queries.GetSellerSummary;
 using System.Security.Claims;
 
 namespace YaqeenPay.API.Controllers;
@@ -63,6 +64,23 @@ public class AnalyticsController : ControllerBase
             return Unauthorized();
 
         var query = new GetSellerProductViewsQuery
+        {
+            SellerId = userId
+        };
+
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    [HttpGet("seller/summary")]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> GetSellerSummary()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var query = new GetSellerSummaryQuery
         {
             SellerId = userId
         };

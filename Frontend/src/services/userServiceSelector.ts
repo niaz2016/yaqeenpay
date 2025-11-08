@@ -13,11 +13,15 @@ const createSelectedUserService = () => ({
       const views = await analyticsService.getSellerProductViews();
       const totalViews = Array.isArray(views) ? views.reduce((s, v) => s + (v.totalViews || 0), 0) : 0;
       const totalUnique = Array.isArray(views) ? views.reduce((s, v) => s + (v.uniqueVisitors || 0), 0) : 0;
-      // Attach aggregated fields so sellers get visit counts alongside sales analytics
+      const totalInCarts = Array.isArray(views) ? views.reduce((s, v) => s + (v.inCartCount || 0), 0) : 0;
+      const totalFavorites = Array.isArray(views) ? views.reduce((s, v) => s + (v.favoritesCount || 0), 0) : 0;
+      // Attach aggregated fields so sellers get visit counts and engagement metrics alongside sales analytics
       return {
         ...analytics,
         productViews: totalViews,
-        productUniqueVisitors: totalUnique
+        productUniqueVisitors: totalUnique,
+        productInCarts: totalInCarts,
+        productFavorites: totalFavorites
       } as SellerAnalytics;
     } catch (err) {
       // If views fetch fails, return analytics without views (non-fatal)

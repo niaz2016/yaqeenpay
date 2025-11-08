@@ -23,7 +23,9 @@ import {
   Visibility as VisibilityIcon,
   People as PeopleIcon,
   TrendingUp as TrendingUpIcon,
-  CalendarToday as CalendarIcon
+  CalendarToday as CalendarIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Favorite as FavoriteIcon
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -47,6 +49,7 @@ const SellerProductAnalyticsPage: React.FC = () => {
   const theme = useTheme();
   const { user } = useAuth();
   const [productViews, setProductViews] = useState<ProductViewStats[]>([]);
+  const [sellerUniqueVisitors, setSellerUniqueVisitors] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +65,13 @@ const SellerProductAnalyticsPage: React.FC = () => {
     try {
       const data = await analyticsService.getSellerProductViews();
       setProductViews(data);
+      // fetch seller-level unique visitors (deduped across products)
+      try {
+        const summary = await analyticsService.getSellerSummary();
+        setSellerUniqueVisitors(summary?.totalUniqueVisitors ?? null);
+      } catch (err) {
+        console.debug('Failed to load seller summary:', err);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load product analytics');
     } finally {
@@ -110,9 +120,14 @@ const SellerProductAnalyticsPage: React.FC = () => {
 
   // Calculate total stats
   const totalViews = safeProductViews.reduce((sum, p) => sum + (p.totalViews || 0), 0);
-  const totalUniqueVisitors = safeProductViews.reduce((sum, p) => sum + (p.uniqueVisitors || 0), 0);
+  // total unique visitors deduped across products (prefer server-provided summary)
+  const totalUniqueVisitors = sellerUniqueVisitors !== null
+    ? sellerUniqueVisitors
+    : safeProductViews.reduce((sum, p) => sum + (p.uniqueVisitors || 0), 0);
   const weekViews = safeProductViews.reduce((sum, p) => sum + (p.weekViews || 0), 0);
   const monthViews = safeProductViews.reduce((sum, p) => sum + (p.monthViews || 0), 0);
+  const totalInCarts = safeProductViews.reduce((sum, p) => sum + (p.inCartCount || 0), 0);
+  const totalFavorites = safeProductViews.reduce((sum, p) => sum + (p.favoritesCount || 0), 0);
 
   return (
     <Container maxWidth="xl">
@@ -124,8 +139,8 @@ const SellerProductAnalyticsPage: React.FC = () => {
           Track your product views and engagement metrics
         </Typography>
 
-        {/* Overview Stats */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 3, mb: 4 }}>
+  {/* Overview Stats */}
+  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(6, 1fr)' }, gap: 3, mb: 4 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -139,6 +154,40 @@ const SellerProductAnalyticsPage: React.FC = () => {
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 All time
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <ShoppingCartIcon color="warning" />
+                <Typography variant="body2" color="text.secondary">
+                  In Carts
+                </Typography>
+              </Box>
+              <Typography variant="h4" color="warning.main">
+                {totalInCarts.toLocaleString()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Active carts containing your products
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <FavoriteIcon color="error" />
+                <Typography variant="body2" color="text.secondary">
+                  Favorites
+                </Typography>
+              </Box>
+              <Typography variant="h4" color="error">
+                {totalFavorites.toLocaleString()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Times products were favorited (heart)
               </Typography>
             </CardContent>
           </Card>
@@ -206,18 +255,20 @@ const SellerProductAnalyticsPage: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Product Name</strong></TableCell>
-                    <TableCell align="right"><strong>Total Views</strong></TableCell>
-                    <TableCell align="right"><strong>Unique Visitors</strong></TableCell>
-                    <TableCell align="right"><strong>Today</strong></TableCell>
-                    <TableCell align="right"><strong>This Week</strong></TableCell>
-                    <TableCell align="right"><strong>This Month</strong></TableCell>
-                    <TableCell align="right"><strong>Avg Views/Visitor</strong></TableCell>
+                        <TableCell align="right"><strong>Total Views</strong></TableCell>
+                        <TableCell align="right"><strong>Unique Visitors</strong></TableCell>
+                        <TableCell align="right"><strong>Today</strong></TableCell>
+                        <TableCell align="right"><strong>Total Views</strong></TableCell>
+                        <TableCell align="right"><strong>This Month</strong></TableCell>
+                        <TableCell align="right"><strong>In Carts</strong></TableCell>
+                        <TableCell align="right"><strong>Favorites</strong></TableCell>
+                        <TableCell align="right"><strong>Avg Views/Visitor</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {safeProductViews.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center">
+                          <TableCell colSpan={9} align="center">
                         <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
                           No product views data available yet
                         </Typography>
@@ -253,6 +304,12 @@ const SellerProductAnalyticsPage: React.FC = () => {
                           </TableCell>
                           <TableCell align="right">
                             {product.monthViews.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right">
+                            {(product.inCartCount || 0).toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right">
+                            {(product.favoritesCount || 0).toLocaleString()}
                           </TableCell>
                           <TableCell align="right">
                             {product.uniqueVisitors > 0
@@ -303,6 +360,22 @@ const SellerProductAnalyticsPage: React.FC = () => {
                             </Typography>
                             <Typography variant="h6" color="secondary">
                               {product.uniqueVisitors.toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">
+                              In Carts
+                            </Typography>
+                            <Typography variant="h6" color="warning.main">
+                              {(product.inCartCount || 0).toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">
+                              Favorites
+                            </Typography>
+                            <Typography variant="h6" color="error">
+                              {(product.favoritesCount || 0).toLocaleString()}
                             </Typography>
                           </Box>
                           <Box>

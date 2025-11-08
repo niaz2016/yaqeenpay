@@ -280,7 +280,7 @@ const SellerProductsPage: React.FC = () => {
 
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ pt: 3 }}>
+        <CardContent sx={{ pt: 1 }}>
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
             <TextField
               placeholder="Search products..."

@@ -330,10 +330,10 @@ const MarketplacePage: React.FC = () => {
         <Box sx={{ p: { xs: 0.5, sm: 2, md: 3 }, position: 'relative' }}>
             {/* Header */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', margin: '1' }}>
-                    <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+                    <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, fontSize: { xs: '1rem', sm: '1rem' } }}>
                         Marketplace
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 1 }}>
                         <TextField
                             placeholder="Search products..."
                             value={search}

@@ -84,26 +84,18 @@ const LandingPage: React.FC = () => {
     </Box>
   );
 
-  // Basic SEO: title, description, keywords, canonical, JSON-LD
+  // SEO: title, description, keywords, canonical, enhanced JSON-LD for Service, FAQ, Breadcrumbs
   useEffect(() => {
-    const title = 'YaqeenPay — Secure Escrow in Pakistan for Buyers & Sellers';
-    const description = 'YaqeenPay is a secure escrow platform in Pakistan that protects buyers and sellers. Pay with Wallet Credits, hold credits in escrow, release on delivery. 0% top-up, 0% purchase/sale, 1% withdrawal.';
+    const title = 'YaqeenPay — Secure Escrow Service in Pakistan | Buyer & Seller Protection';
+    const description = 'YaqeenPay provides secure escrow services in Pakistan — payments held in escrow until delivery confirmation. Buyer and seller protection, dispute resolution, and low fees.';
     const keywords = [
-      'escrow Pakistan',
-      'online escrow service',
-      'buyer protection Pakistan',
-      'seller protection Pakistan',
-      'secure marketplace',
-      'marketplace escrow',
-      'Wallet Credits',
-      'secure payments Pakistan',
-      'COD alternative Pakistan',
-      'escrow payments',
-      'peer-to-peer escrow',
-      'safe online transactions',
-      'fraud prevention Pakistan',
-      'protected online purchase',
+      'escrow service pakistan',
+      'escrow payments pakistan',
+      'secure escrow',
+      'buyer protection pakistan',
+      'seller protection pakistan',
       'YaqeenPay',
+      'escrow platform',
     ].join(', ');
 
     document.title = title;
@@ -124,12 +116,13 @@ const LandingPage: React.FC = () => {
     ensureMeta('og:title', title, 'property');
     ensureMeta('og:description', description, 'property');
     ensureMeta('og:type', 'website', 'property');
-    ensureMeta('twitter:card', 'summary');
+    ensureMeta('og:url', window.location.origin + '/yaqeenpay/', 'property');
+    ensureMeta('twitter:card', 'summary_large_image');
     ensureMeta('twitter:title', title);
     ensureMeta('twitter:description', description);
 
-    // Canonical URL
-    const href = window.location.origin + '/';
+    // Canonical URL (point explicitly to /yaqeenpay/)
+    const href = window.location.origin + '/yaqeenpay/';
     let linkEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!linkEl) {
       linkEl = document.createElement('link');
@@ -138,31 +131,88 @@ const LandingPage: React.FC = () => {
     }
     linkEl.setAttribute('href', href);
 
-    // JSON-LD structured data (Organization + WebSite)
-    const jsonLd = {
+    // compute aggregate rating from testimonials
+    const ratings = [5,5,5];
+    const avgRating = (ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1);
+
+    // JSON-LD structured data: Organization, Service (FinancialService), Breadcrumb, FAQ, Review
+    const org = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
+      '@id': window.location.origin + '/#organization',
       name: 'YaqeenPay',
       url: href,
+      logo: window.location.origin + '/yaqeenpay/logo.svg',
       description,
-      sameAs: [],
-      brand: {
-        '@type': 'Brand',
-        name: 'YaqeenPay'
-      }
     };
-    const jsonLdWebsite = {
+
+    const service = {
       '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: 'YaqeenPay',
+      '@type': 'FinancialService',
+      '@id': href + '#service',
+      name: 'YaqeenPay Escrow Service',
+      serviceType: 'Escrow Service',
       url: href,
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: href + '?q={search_term_string}',
-        'query-input': 'required name=search_term_string'
+      provider: { '@id': window.location.origin + '/#organization' },
+      areaServed: { '@type': 'Country', name: 'Pakistan' },
+      description,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'PKR',
+        url: href,
+      },
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: avgRating,
+        reviewCount: ratings.length.toString(),
+        bestRating: '5',
       }
     };
 
+    const breadcrumb = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin + '/' },
+        { '@type': 'ListItem', position: 2, name: 'YaqeenPay Escrow Services', item: href }
+      ]
+    };
+
+    const faq = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'How does YaqeenPay escrow work?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Buyer pays into YaqeenPay Wallet Credits which are held in escrow. Seller ships item; once buyer confirms receipt, funds are released to the seller.'
+          }
+        },
+        {
+          '@type': 'Question',
+          name: 'What fees does YaqeenPay charge?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'We aim for transparent and low fees. Registration is free; transaction fees depend on payment method and will be displayed during checkout.'
+          }
+        }
+      ]
+    };
+
+    const review = {
+      '@context': 'https://schema.org',
+      '@type': 'Review',
+      'author': { '@type': 'Person', name: 'Ahmed Khan' },
+      'datePublished': '2025-10-15',
+      'reviewBody': 'YaqeenPay gives buyers and sellers the confidence to trade with escrow protection.',
+      'reviewRating': { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+      'itemReviewed': { '@id': href + '#service' }
+    };
+
+    // add scripts
     const addJsonLd = (data: any) => {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
@@ -171,13 +221,18 @@ const LandingPage: React.FC = () => {
       return script;
     };
 
-    const s1 = addJsonLd(jsonLd);
-    const s2 = addJsonLd(jsonLdWebsite);
+    const sOrg = addJsonLd(org);
+    const sService = addJsonLd(service);
+    const sBreadcrumb = addJsonLd(breadcrumb);
+    const sFaq = addJsonLd(faq);
+    const sReview = addJsonLd(review);
 
     return () => {
-      // optional cleanup
-      s1.remove();
-      s2.remove();
+      sOrg.remove();
+      sService.remove();
+      sBreadcrumb.remove();
+      sFaq.remove();
+      sReview.remove();
     };
   }, []);
 
@@ -294,6 +349,7 @@ const LandingPage: React.FC = () => {
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center', gap: 4 }}>
             <Box sx={{ flex: 1 }}>
               <Typography
+                component="h1"
                 variant="h2"
                 sx={{
                   fontWeight: 'bold',
@@ -302,7 +358,7 @@ const LandingPage: React.FC = () => {
                   lineHeight: 1.2,
                 }}
               >
-                Safe Transactions,{' '}
+                YaqeenPay — Secure Escrow Service in Pakistan{' '}
                 <Box component="span" sx={{ color: '#ffeb3b' }}>
                   Guaranteed
                 </Box>

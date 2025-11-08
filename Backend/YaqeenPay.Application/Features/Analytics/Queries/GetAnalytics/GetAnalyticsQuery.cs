@@ -126,17 +126,17 @@ public class GetAnalyticsQueryHandler : IRequestHandler<GetAnalyticsQuery, Analy
         return new AnalyticsResponse
         {
             TotalPageViews = allViews.Count,
-            TotalUniqueVisitors = allViews.Select(v => v.VisitorId).Distinct().Count(),
+            TotalUniqueVisitors = allViews.Select(v => v.VisitorId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Count(),
             PageTypeBreakdown = pageTypeBreakdown,
             DeviceBreakdown = deviceBreakdown,
             BrowserBreakdown = browserBreakdown,
             OSBreakdown = osBreakdown,
             TodayViews = allViews.Count(v => v.ViewedAt >= today),
-            TodayUniqueVisitors = allViews.Where(v => v.ViewedAt >= today).Select(v => v.VisitorId).Distinct().Count(),
+            TodayUniqueVisitors = allViews.Where(v => v.ViewedAt >= today).Select(v => v.VisitorId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Count(),
             WeekViews = allViews.Count(v => v.ViewedAt >= weekAgo),
-            WeekUniqueVisitors = allViews.Where(v => v.ViewedAt >= weekAgo).Select(v => v.VisitorId).Distinct().Count(),
+            WeekUniqueVisitors = allViews.Where(v => v.ViewedAt >= weekAgo).Select(v => v.VisitorId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Count(),
             MonthViews = allViews.Count(v => v.ViewedAt >= monthAgo),
-            MonthUniqueVisitors = allViews.Where(v => v.ViewedAt >= monthAgo).Select(v => v.VisitorId).Distinct().Count()
+            MonthUniqueVisitors = allViews.Where(v => v.ViewedAt >= monthAgo).Select(v => v.VisitorId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().Count()
         };
     }
 }

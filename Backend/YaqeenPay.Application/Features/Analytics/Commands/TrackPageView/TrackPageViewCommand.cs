@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using YaqeenPay.Application.Common.Interfaces;
 using YaqeenPay.Application.Common.Helpers;
 using YaqeenPay.Domain.Entities;
@@ -23,11 +24,13 @@ public class TrackPageViewCommandHandler : IRequestHandler<TrackPageViewCommand,
 {
     private readonly IApplicationDbContext _context;
     private readonly IAnalyticsSettings _analyticsSettings;
+    private readonly Microsoft.Extensions.Logging.ILogger<TrackPageViewCommandHandler> _logger;
 
-    public TrackPageViewCommandHandler(IApplicationDbContext context, IAnalyticsSettings analyticsSettings)
+    public TrackPageViewCommandHandler(IApplicationDbContext context, IAnalyticsSettings analyticsSettings, Microsoft.Extensions.Logging.ILogger<TrackPageViewCommandHandler> logger)
     {
         _context = context;
         _analyticsSettings = analyticsSettings;
+        _logger = logger;
     }
 
     public async Task<bool> Handle(TrackPageViewCommand request, CancellationToken cancellationToken)
@@ -66,6 +69,7 @@ public class TrackPageViewCommandHandler : IRequestHandler<TrackPageViewCommand,
         if (recentView != null)
         {
             // Duplicate view within cooldown period - don't track
+            _logger.LogInformation("Duplicate page view suppressed for VisitorId={VisitorId}, PageType={PageType}, ProductId={ProductId}", request.VisitorId, request.PageType, request.ProductId);
             return false;
         }
 
@@ -89,7 +93,8 @@ public class TrackPageViewCommandHandler : IRequestHandler<TrackPageViewCommand,
             ViewedAt = DateTime.UtcNow
         };
 
-        _context.PageViews.Add(pageView);
+    _context.PageViews.Add(pageView);
+    _logger.LogInformation("Tracking page view: SellerId={SellerId}, ProductId={ProductId}, VisitorId={VisitorId}, PageType={PageType}", sellerId, productId, request.VisitorId, request.PageType);
 
         // If it's a product page, increment the product view count
         if (productId.HasValue)

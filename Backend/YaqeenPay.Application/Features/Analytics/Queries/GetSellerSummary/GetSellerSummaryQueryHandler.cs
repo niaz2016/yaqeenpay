@@ -19,7 +19,7 @@ public class GetSellerSummaryQueryHandler : IRequestHandler<GetSellerSummaryQuer
             return new SellerSummary { TotalUniqueVisitors = 0 };
 
         var productViewsAll = await _context.PageViews
-            .Where(p => p.PageType == "Product" && p.SellerId == sellerGuid)
+            .Where(p => p.PageType == "Product" && p.SellerId == sellerGuid && !string.IsNullOrWhiteSpace(p.VisitorId))
             .Select(p => p.VisitorId)
             .ToListAsync(cancellationToken);
 

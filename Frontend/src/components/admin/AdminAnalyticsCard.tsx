@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import analyticsService from '../../services/analyticsService';
 import type { AnalyticsData } from '../../types/analytics';
+import type { SellerSummary } from '../../types/analytics';
 
 const AdminAnalyticsCard: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -24,7 +25,15 @@ const AdminAnalyticsCard: React.FC = () => {
       try {
         setLoading(true);
         const data = await analyticsService.getAdminAnalytics();
-        setAnalytics(data);
+        // prefer server-provided deduped unique visitors
+        const summary: SellerSummary | null = await (analyticsService as any).getAdminSummary?.();
+        if (summary && typeof summary.totalUniqueVisitors === 'number') {
+          // copy and override totalUniqueVisitors
+          const overridden = { ...(data as any), totalUniqueVisitors: summary.totalUniqueVisitors } as AnalyticsData;
+          setAnalytics(overridden);
+        } else {
+          setAnalytics(data);
+        }
       } catch (err) {
         setError('Failed to load analytics');
         console.error(err);

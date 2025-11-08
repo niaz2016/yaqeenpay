@@ -1,27 +1,49 @@
 import api from './api';
 import type { ProductViewStats, AnalyticsData } from '../types/analytics';
 
-// Generate a unique visitor ID based on browser fingerprint
+// Generate a stable visitor ID and persist it in localStorage.
+// Prefer crypto.randomUUID() when available. Avoid using UA/fingerprint as the primary ID
+// because that can collapse distinct devices into the same VisitorId.
 const getVisitorId = (): string => {
-  let visitorId = localStorage.getItem('visitorId');
-  
-  if (!visitorId) {
-    // Create a simple fingerprint based on available browser info
-    const fingerprint = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset(),
-      !!window.sessionStorage,
-      !!window.localStorage
-    ].join('|');
-    
-    // Generate a hash-like ID from the fingerprint
-    visitorId = btoa(fingerprint).substring(0, 40);
-    localStorage.setItem('visitorId', visitorId);
+  let visitorId: string | null = null;
+
+  try {
+    visitorId = localStorage.getItem('visitorId');
+  } catch {
+    // localStorage might be unavailable in some environments (privacy modes)
+    visitorId = null;
   }
-  
-  return visitorId;
+
+  if (!visitorId) {
+    // Generate a strong UUID when possible
+    try {
+      if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
+        visitorId = (crypto as any).randomUUID();
+      } else if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        // Fallback: create a UUID v4 using getRandomValues
+        const buf = new Uint8Array(16);
+        crypto.getRandomValues(buf as any);
+        // Per RFC4122 v4: set bits 6-7 of clock_seq_hi_and_reserved to 01 and bits 12-15 of time_hi_and_version to 0100
+        buf[6] = (buf[6] & 0x0f) | 0x40;
+        buf[8] = (buf[8] & 0x3f) | 0x80;
+        const toHex = (n: number) => n.toString(16).padStart(2, '0');
+        visitorId = Array.from(buf).map(toHex).join('').replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/, '$1-$2-$3-$4-$5');
+      } else {
+        // Last resort: timestamp + random string
+        visitorId = `v_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      }
+
+      try {
+        localStorage.setItem('visitorId', String(visitorId));
+      } catch {
+        // Ignore storage errors; we'll still return the generated id for this session
+      }
+    } catch {
+      visitorId = 'unknown';
+    }
+  }
+
+  return visitorId ?? 'unknown';
 };
 
 interface TrackPageViewParams {
@@ -61,6 +83,18 @@ export const getAdminAnalytics = async (startDate?: Date, endDate?: Date): Promi
   if (endDate) params.endDate = endDate.toISOString();
   
   return await api.get<AnalyticsData>('/analytics/admin', { params });
+};
+
+export const getAdminSummary = async (): Promise<import('../types/analytics').SellerSummary | null> => {
+  try {
+    const resp: any = await api.get('/analytics/admin/summary');
+    const data = resp?.data !== undefined ? resp.data : resp;
+    if (data && typeof data === 'object') return data as import('../types/analytics').SellerSummary;
+    return null;
+  } catch (err) {
+    console.error('Failed to fetch admin summary:', err);
+    return null;
+  }
 };
 
 export const getSellerProductViews = async (): Promise<ProductViewStats[]> => {
@@ -139,6 +173,7 @@ const analyticsService = {
   getAdminAnalytics,
   getSellerProductViews
   , getSellerSummary, getVisitorStats
+  , getAdminSummary
 };
 
 export default analyticsService;

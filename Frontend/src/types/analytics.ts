@@ -19,6 +19,9 @@ export interface ProductViewStats {
   // Additional engagement metrics
   inCartCount?: number; // number of active carts containing this product
   favoritesCount?: number; // number of times users clicked the 'heart' (favorites)
+  // UI state toggles used by the analytics page for chart visibility (optional)
+  showViews?: boolean;
+  showUniqueVisitors?: boolean;
 }
 
 export interface AnalyticsData {

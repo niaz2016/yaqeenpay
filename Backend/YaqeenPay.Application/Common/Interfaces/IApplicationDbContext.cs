@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<ProductVariant> ProductVariants { get; }
     DbSet<ProductImage> ProductImages { get; }
     DbSet<CartItem> CartItems { get; }
+    DbSet<WishlistItem> WishlistItems { get; }
     DbSet<OrderItem> OrderItems { get; }
     // Product Reviews
     DbSet<YaqeenPay.Domain.Entities.ProductReview> ProductReviews { get; }

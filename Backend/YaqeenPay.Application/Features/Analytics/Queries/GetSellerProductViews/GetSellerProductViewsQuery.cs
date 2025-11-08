@@ -15,12 +15,17 @@ public record ProductViewStats
 {
     public string ProductId { get; init; } = string.Empty;
     public string ProductName { get; init; } = string.Empty;
+    public string? ImageUrl { get; init; }
     public int TotalViews { get; init; }
     public int UniqueVisitors { get; init; }
     public int TodayViews { get; init; }
     public int WeekViews { get; init; }
     public int MonthViews { get; init; }
     public List<DailyViewCount> DailyViews { get; init; } = new();
+    // Number of distinct users who currently have this product in their cart
+    public int InCartCount { get; init; }
+    // Number of distinct users who have this product in their wishlist/favorites
+    public int FavoritesCount { get; init; }
 }
 
 public record GetSellerProductViewsQuery : IRequest<List<ProductViewStats>>
@@ -53,9 +58,39 @@ public class GetSellerProductViewsQueryHandler : IRequestHandler<GetSellerProduc
             {
                 p.Id,
                 p.Name,
-                p.ViewCount
+                p.ViewCount,
+                PrimaryImageUrl = p.ProductImages
+                    .Where(img => img.IsPrimary && img.IsActive)
+                    .OrderBy(img => img.SortOrder)
+                    .Select(img => img.ImageUrl)
+                    .FirstOrDefault()
+                    ?? p.ProductImages
+                        .Where(img => img.IsActive)
+                        .OrderBy(img => img.SortOrder)
+                        .Select(img => img.ImageUrl)
+                        .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
+
+        // Pre-compute in-cart counts for this seller's products.
+        // We'll count distinct users who have the product in their cart (i.e. number of active carts containing the product).
+        var productIds = products.Select(p => p.Id).ToList();
+        var cartCounts = new Dictionary<Guid, int>();
+        var wishlistCounts = new Dictionary<Guid, int>();
+        if (productIds.Count > 0)
+        {
+            cartCounts = await _context.CartItems
+                .Where(ci => productIds.Contains(ci.ProductId) && ci.IsActive)
+                .GroupBy(ci => ci.ProductId)
+                .Select(g => new { ProductId = g.Key, Count = g.Select(ci => ci.UserId).Distinct().Count() })
+                .ToDictionaryAsync(x => x.ProductId, x => x.Count, cancellationToken);
+
+            wishlistCounts = await _context.WishlistItems
+                .Where(wi => productIds.Contains(wi.ProductId) && wi.IsActive)
+                .GroupBy(wi => wi.ProductId)
+                .Select(g => new { ProductId = g.Key, Count = g.Select(wi => wi.UserId).Distinct().Count() })
+                .ToDictionaryAsync(x => x.ProductId, x => x.Count, cancellationToken);
+        }
 
         // Load page views for this seller.
         // We need all-time page views to calculate "TotalViews" and "UniqueVisitors" correctly.
@@ -92,13 +127,16 @@ public class GetSellerProductViewsQueryHandler : IRequestHandler<GetSellerProduc
             {
                 ProductId = p.Id.ToString(),
                 ProductName = p.Name,
+                ImageUrl = p.PrimaryImageUrl,
                 // Use page views table as source of truth for totals (all-time)
                 TotalViews = viewsAll.Count,
                 UniqueVisitors = viewsAll.Select(v => v.VisitorId).Distinct().Count(),
                 TodayViews = viewsAll.Count(v => v.ViewedAt >= today),
                 WeekViews = viewsAll.Count(v => v.ViewedAt >= weekAgo),
                 MonthViews = viewsLast30.Count,
-                DailyViews = dailyViews
+                DailyViews = dailyViews,
+                InCartCount = cartCounts.TryGetValue(p.Id, out var c) ? c : 0,
+                FavoritesCount = wishlistCounts.TryGetValue(p.Id, out var w) ? w : 0
             };
         }).ToList();
 

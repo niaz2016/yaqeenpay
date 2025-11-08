@@ -102,6 +102,7 @@ const SellerProductAnalyticsPage: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [chartPeriod, setChartPeriod] = useState<'1d' | '1w' | '1m' | '6m' | '1y' | 'all'>('1w');
 
   // Track page view for seller analytics
   usePageViewTracking({
@@ -114,7 +115,11 @@ const SellerProductAnalyticsPage: React.FC = () => {
     setError(null);
     try {
       const data = await analyticsService.getSellerProductViews();
-      setProductViews(data);
+      // Ensure UI toggle flags exist (default to true) so charts respond to checkbox state
+      const withFlags = Array.isArray(data)
+        ? data.map(d => ({ ...d, showViews: d.showViews !== false, showUniqueVisitors: d.showUniqueVisitors !== false }))
+        : [];
+      setProductViews(withFlags);
       // fetch seller-level unique visitors (deduped across products)
       try {
         const summary = await analyticsService.getSellerSummary();
@@ -315,93 +320,11 @@ const SellerProductAnalyticsPage: React.FC = () => {
             </CardContent>
           </Card>
         </Box>
-
-        {/* Products Table
-        <Card sx={{ mb: 4 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              Product Performance Summary
-            </Typography>
-            <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell><strong>Product Name</strong></TableCell>
-                        <TableCell align="right"><strong>Total Views</strong></TableCell>
-                        <TableCell align="right"><strong>Unique Visitors</strong></TableCell>
-                        <TableCell align="right"><strong>Today</strong></TableCell>
-                        <TableCell align="right"><strong>Total Views</strong></TableCell>
-                        <TableCell align="right"><strong>This Month</strong></TableCell>
-                        <TableCell align="right"><strong>In Carts</strong></TableCell>
-                        <TableCell align="right"><strong>Favorites</strong></TableCell>
-                        <TableCell align="right"><strong>Avg Views/Visitor</strong></TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {safeProductViews.length === 0 ? (
-                    <TableRow>
-                          <TableCell colSpan={9} align="center">
-                        <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
-                          No product views data available yet
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    safeProductViews
-                      .slice() // avoid mutating state
-                      .sort((a, b) => (b.totalViews || 0) - (a.totalViews || 0))
-                      .map((product) => (
-                        <TableRow key={product.productId} hover>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight={500}>
-                              {product.productName}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">
-                            <Chip
-                              label={product.totalViews.toLocaleString()}
-                              color="primary"
-                              size="small"
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            {product.uniqueVisitors.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {product.todayViews.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {product.weekViews.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {product.monthViews.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {(product.inCartCount || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {(product.favoritesCount || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            {product.uniqueVisitors > 0
-                              ? (product.totalViews / product.uniqueVisitors).toFixed(2)
-                              : '0'}
-                          </TableCell>
-                        </TableRow>
-                      )))
-                  }
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card> */}
-
         {/* Product View Trends (Last 30 Days) - toggle between table (default) and detailed charts */}
         {productViews.length > 0 && (
           <>
             <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-              Product View Trends (Last 30 Days)
+              Products Performance 
             </Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <ToggleButtonGroup
@@ -414,19 +337,39 @@ const SellerProductAnalyticsPage: React.FC = () => {
                 <ToggleButton value="detailed">Detailed</ToggleButton>
               </ToggleButtonGroup>
 
-              <FormControl size="small">
-                <InputLabel id="rows-per-page-label">Rows</InputLabel>
-                <Select
-                  labelId="rows-per-page-label"
-                  value={rowsPerPage}
-                  label="Rows"
-                  onChange={handleRowsPerPageChange}
-                >
-                  <MenuItem value={5}>5</MenuItem>
-                  <MenuItem value={10}>10</MenuItem>
-                  <MenuItem value={20}>20</MenuItem>
-                </Select>
-              </FormControl>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small">
+                  <InputLabel id="chart-period-label">Period</InputLabel>
+                  <Select
+                  labelId="chart-period-label"
+                  value={chartPeriod}
+                  label="Period"
+                  onChange={(e) => setChartPeriod(e.target.value as typeof chartPeriod)}
+                  sx={{ minWidth: 120 }}
+                  >
+                  <MenuItem value="1d">Day</MenuItem>
+                  <MenuItem value="1w">Week</MenuItem>
+                  <MenuItem value="1m">Month</MenuItem>
+                  <MenuItem value="6m">6 Months</MenuItem>
+                  <MenuItem value="1y">1 Year</MenuItem>
+                  <MenuItem value="all">All time</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl size="small">
+                  <InputLabel id="rows-per-page-label">Rows</InputLabel>
+                  <Select
+                    labelId="rows-per-page-label"
+                    value={rowsPerPage}
+                    label="Rows"
+                    onChange={handleRowsPerPageChange}
+                  >
+                    <MenuItem value={5}>5</MenuItem>
+                    <MenuItem value={10}>10</MenuItem>
+                    <MenuItem value={20}>20</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
             </Box>
 
             {viewMode === 'table' ? (
@@ -468,7 +411,18 @@ const SellerProductAnalyticsPage: React.FC = () => {
                                 </TableCell>
                                 <TableCell>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Avatar src={resolveProductImage(product, 36)} alt={product.productName} sx={{ width: 36, height: 36 }} />
+                                          {(() => {
+                                            const imgSrc = resolveProductImage(product, 36);
+                                            return (
+                                              <Avatar
+                                                src={imgSrc}
+                                                alt={product.productName}
+                                                sx={{ width: 36, height: 36, bgcolor: imgSrc ? undefined : theme.palette.grey[200] }}
+                                              >
+                                                {!imgSrc && product.productName ? product.productName.charAt(0) : undefined}
+                                              </Avatar>
+                                            );
+                                          })()}
                                     <Typography variant="body2" fontWeight={500}>{product.productName}</Typography>
                                   </Box>
                                 </TableCell>
@@ -532,7 +486,18 @@ const SellerProductAnalyticsPage: React.FC = () => {
                         <CardContent>
                           <Box sx={{ mb: 3 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Avatar src={resolveProductImage(product, 48)} alt={product.productName} sx={{ width: 48, height: 48 }} />
+                              {(() => {
+                                const imgSrc = resolveProductImage(product, 48);
+                                return (
+                                  <Avatar
+                                    src={imgSrc}
+                                    alt={product.productName}
+                                    sx={{ width: 48, height: 48, bgcolor: imgSrc ? undefined : theme.palette.grey[100] }}
+                                  >
+                                    {!imgSrc && product.productName ? product.productName.charAt(0) : undefined}
+                                  </Avatar>
+                                );
+                              })()}
                               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>{product.productName}</Typography>
                             </Box>
                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: 2, mt: 1 }}>
@@ -602,25 +567,51 @@ const SellerProductAnalyticsPage: React.FC = () => {
                               </FormControl>
                             </Box>
                             <ResponsiveContainer width="100%" height={300}>
-                              <AreaChart data={product.dailyViews || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <defs>
-                                  <linearGradient id={`colorViews-${product.productId}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
-                                  </linearGradient>
-                                  <linearGradient id={`colorVisitors-${product.productId}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={theme.palette.secondary.main} stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor={theme.palette.secondary.main} stopOpacity={0} />
-                                  </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" tickFormatter={(date) => { const d = new Date(date); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
-                                <YAxis />
-                                <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc', borderRadius: 8 }} />
-                                <Legend />
-                                <Area type="monotone" dataKey="views" stroke={theme.palette.primary.main} fillOpacity={1} fill={`url(#colorViews-${product.productId})`} name="Views" />
-                                <Area type="monotone" dataKey="uniqueVisitors" stroke={theme.palette.secondary.main} fillOpacity={1} fill={`url(#colorVisitors-${product.productId})`} name="Unique Visitors" />
-                              </AreaChart>
+                              {(() => {
+                                const daily = product.dailyViews || [];
+                                const periodMap: Record<string, number | null> = { '1d': 1, '1w': 7, '1m': 30, '6m': 180, '1y': 365, 'all': null };
+                                const n = periodMap[chartPeriod] ?? 1;
+                                const filtered = n === null ? daily : (daily.length > n ? daily.slice(-n) : daily);
+                                return (
+                                  <AreaChart data={filtered} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <defs>
+                                      <linearGradient id={`colorViews-${product.productId}`} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0} />
+                                      </linearGradient>
+                                      <linearGradient id={`colorVisitors-${product.productId}`} x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={theme.palette.secondary.main} stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor={theme.palette.secondary.main} stopOpacity={0} />
+                                      </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" tickFormatter={(date) => { const d = new Date(date); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
+                                    <YAxis />
+                                    <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #ccc', borderRadius: 8 }} />
+                                    <Legend />
+                                    {product.showViews !== false && (
+                                      <Area
+                                        type="monotone"
+                                        dataKey="views"
+                                        stroke={theme.palette.primary.main}
+                                        fillOpacity={1}
+                                        fill={`url(#colorViews-${product.productId})`}
+                                        name="Views"
+                                      />
+                                    )}
+                                    {product.showUniqueVisitors !== false && (
+                                      <Area
+                                        type="monotone"
+                                        dataKey="uniqueVisitors"
+                                        stroke={theme.palette.secondary.main}
+                                        fillOpacity={1}
+                                        fill={`url(#colorVisitors-${product.productId})`}
+                                        name="Unique Visitors"
+                                      />
+                                    )}
+                                  </AreaChart>
+                                );
+                              })()}
                             </ResponsiveContainer>
                           </Box>
                         </CardContent>

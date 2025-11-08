@@ -10,6 +10,7 @@ export interface ProductDailyView {
 export interface ProductViewStats {
   productId: string;
   productName: string;
+  imageUrl?: string;
   totalViews: number;
   uniqueVisitors: number;
   todayViews: number;

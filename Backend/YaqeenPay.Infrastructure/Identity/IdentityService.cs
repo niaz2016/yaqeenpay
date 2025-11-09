@@ -71,6 +71,42 @@ public class IdentityService : IIdentityService
         string? lastName = null,
         string? phoneNumber = null)
     {
+        // If a user with the same email already exists, handle based on confirmation status
+        var existing = await _userManager.FindByEmailAsync(email);
+        if (existing != null)
+        {
+            // If email already confirmed, treat as duplicate registration
+            if (existing.EmailConfirmed)
+            {
+                return (Result.Failure(new[] { "Email already registered" }), Guid.Empty);
+            }
+
+            // Existing unconfirmed user: update profile fields and set/reset password
+            existing.UserName = userName;
+            existing.FirstName = firstName;
+            existing.LastName = lastName;
+            existing.PhoneNumber = phoneNumber;
+
+            var updateResult = await _userManager.UpdateAsync(existing);
+            if (!updateResult.Succeeded)
+            {
+                return (updateResult.ToApplicationResult(), existing.Id);
+            }
+
+            // If a password already exists, reset it. Otherwise add a password.
+            if (!string.IsNullOrEmpty(existing.PasswordHash))
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(existing);
+                var resetResult = await _userManager.ResetPasswordAsync(existing, token, password);
+                return (resetResult.ToApplicationResult(), existing.Id);
+            }
+            else
+            {
+                var addPwdResult = await _userManager.AddPasswordAsync(existing, password);
+                return (addPwdResult.ToApplicationResult(), existing.Id);
+            }
+        }
+
         var user = new ApplicationUser
         {
             UserName = userName,
@@ -84,6 +120,7 @@ public class IdentityService : IIdentityService
             PhoneNumberConfirmed = false,
             PhoneVerifiedAt = null
         };
+
         var result = await _userManager.CreateAsync(user, password);
         return (result.ToApplicationResult(), user.Id);
     }

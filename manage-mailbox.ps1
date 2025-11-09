@@ -49,7 +49,7 @@ function Show-Usage {
 function Test-MailserverRunning {
     $running = docker ps --filter "name=$containerName" --filter "status=running" --format "{{.Names}}"
     if ($running -ne $containerName) {
-        Write-Host "✗ Mail server is not running!" -ForegroundColor Red
+        Write-Host "Mail server is not running!" -ForegroundColor Red
         Write-Host "Start it with: docker-compose up -d mailserver" -ForegroundColor Yellow
         exit 1
     }
@@ -58,7 +58,7 @@ function Test-MailserverRunning {
 
 function Add-Mailbox {
     if (-not $Email -or -not $Password) {
-        Write-Host "✗ Email and Password are required for adding a mailbox!" -ForegroundColor Red
+        Write-Host "Email and Password are required for adding a mailbox!" -ForegroundColor Red
         Show-Usage
         exit 1
     }
@@ -67,7 +67,7 @@ function Add-Mailbox {
     docker exec $containerName setup email add $Email $Password
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Mailbox created successfully!" -ForegroundColor Green
+        Write-Host "Mailbox created successfully!" -ForegroundColor Green
         Write-Host ""
         Write-Host "Mailbox Details:" -ForegroundColor Cyan
         Write-Host "  Email: $Email" -ForegroundColor White
@@ -81,13 +81,13 @@ function Add-Mailbox {
         Write-Host "  Username: $Email" -ForegroundColor White
         Write-Host "  Password: $Password" -ForegroundColor White
     } else {
-        Write-Host "✗ Failed to create mailbox!" -ForegroundColor Red
+        Write-Host "Failed to create mailbox!" -ForegroundColor Red
     }
 }
 
 function Remove-Mailbox {
     if (-not $Email) {
-        Write-Host "✗ Email is required for deleting a mailbox!" -ForegroundColor Red
+        Write-Host "Email is required for deleting a mailbox!" -ForegroundColor Red
         Show-Usage
         exit 1
     }
@@ -99,9 +99,9 @@ function Remove-Mailbox {
     if ($confirm -eq "Y" -or $confirm -eq "y") {
         docker exec $containerName setup email del $Email
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Mailbox deleted successfully!" -ForegroundColor Green
+            Write-Host "Mailbox deleted successfully!" -ForegroundColor Green
         } else {
-            Write-Host "✗ Failed to delete mailbox!" -ForegroundColor Red
+            Write-Host "Failed to delete mailbox!" -ForegroundColor Red
         }
     } else {
         Write-Host "Cancelled." -ForegroundColor Yellow
@@ -110,7 +110,7 @@ function Remove-Mailbox {
 
 function Update-Password {
     if (-not $Email -or -not $Password) {
-        Write-Host "✗ Email and Password are required for changing password!" -ForegroundColor Red
+        Write-Host "Email and Password are required for changing password!" -ForegroundColor Red
         Show-Usage
         exit 1
     }
@@ -119,10 +119,10 @@ function Update-Password {
     docker exec $containerName setup email update $Email $Password
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Password updated successfully!" -ForegroundColor Green
+        Write-Host "Password updated successfully!" -ForegroundColor Green
         Write-Host "  New Password: $Password" -ForegroundColor White
     } else {
-        Write-Host "✗ Failed to update password!" -ForegroundColor Red
+        Write-Host "Failed to update password!" -ForegroundColor Red
     }
 }
 

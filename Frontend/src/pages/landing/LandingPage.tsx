@@ -86,15 +86,15 @@ const LandingPage: React.FC = () => {
 
   // SEO: title, description, keywords, canonical, enhanced JSON-LD for Service, FAQ, Breadcrumbs
   useEffect(() => {
-    const title = 'YaqeenPay — Secure Escrow Service in Pakistan | Buyer & Seller Protection';
-    const description = 'YaqeenPay provides secure escrow services in Pakistan — payments held in escrow until delivery confirmation. Buyer and seller protection, dispute resolution, and low fees.';
+    const title = 'TechTorio — Secure Escrow Service in Pakistan | Buyer & Seller Protection';
+    const description = 'TechTorio provides secure escrow services in Pakistan — payments held in escrow until delivery confirmation. Buyer and seller protection, dispute resolution, and low fees.';
     const keywords = [
       'escrow service pakistan',
       'escrow payments pakistan',
       'secure escrow',
       'buyer protection pakistan',
       'seller protection pakistan',
-      'YaqeenPay',
+      'TechTorio',
       'escrow platform',
     ].join(', ');
 
@@ -116,13 +116,13 @@ const LandingPage: React.FC = () => {
     ensureMeta('og:title', title, 'property');
     ensureMeta('og:description', description, 'property');
     ensureMeta('og:type', 'website', 'property');
-    ensureMeta('og:url', window.location.origin + '/yaqeenpay/', 'property');
+    ensureMeta('og:url', window.location.origin + '/escrow-market/', 'property');
     ensureMeta('twitter:card', 'summary_large_image');
     ensureMeta('twitter:title', title);
     ensureMeta('twitter:description', description);
 
-    // Canonical URL (point explicitly to /yaqeenpay/)
-    const href = window.location.origin + '/yaqeenpay/';
+    // Canonical URL (point explicitly to /escrow-market/)
+    const href = window.location.origin + '/escrow-market/';
     let linkEl = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!linkEl) {
       linkEl = document.createElement('link');
@@ -140,9 +140,9 @@ const LandingPage: React.FC = () => {
       '@context': 'https://schema.org',
       '@type': 'Organization',
       '@id': window.location.origin + '/#organization',
-      name: 'YaqeenPay',
+      name: 'TechTorio',
       url: href,
-      logo: window.location.origin + '/yaqeenpay/logo.svg',
+      logo: window.location.origin + '/escrow-market/logo.svg',
       description,
     };
 
@@ -150,7 +150,7 @@ const LandingPage: React.FC = () => {
       '@context': 'https://schema.org',
       '@type': 'FinancialService',
       '@id': href + '#service',
-      name: 'YaqeenPay Escrow Service',
+      name: 'TechTorio Escrow Service',
       serviceType: 'Escrow Service',
       url: href,
       provider: { '@id': window.location.origin + '/#organization' },
@@ -175,7 +175,7 @@ const LandingPage: React.FC = () => {
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: window.location.origin + '/' },
-        { '@type': 'ListItem', position: 2, name: 'YaqeenPay Escrow Services', item: href }
+        { '@type': 'ListItem', position: 2, name: 'TechTorio Escrow Services', item: href }
       ]
     };
 
@@ -185,15 +185,15 @@ const LandingPage: React.FC = () => {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'How does YaqeenPay escrow work?',
+          name: 'How does TechTorio escrow work?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Buyer pays into YaqeenPay Wallet Credits which are held in escrow. Seller ships item; once buyer confirms receipt, funds are released to the seller.'
+            text: 'Buyer pays into TechTorio Wallet Credits which are held in escrow. Seller ships item; once buyer confirms receipt, funds are released to the seller.'
           }
         },
         {
           '@type': 'Question',
-          name: 'What fees does YaqeenPay charge?',
+          name: 'What fees does TechTorio charge?',
           acceptedAnswer: {
             '@type': 'Answer',
             text: 'We aim for transparent and low fees. Registration is free; transaction fees depend on payment method and will be displayed during checkout.'
@@ -207,7 +207,7 @@ const LandingPage: React.FC = () => {
       '@type': 'Review',
       'author': { '@type': 'Person', name: 'Ahmed Khan' },
       'datePublished': '2025-10-15',
-      'reviewBody': 'YaqeenPay gives buyers and sellers the confidence to trade with escrow protection.',
+      'reviewBody': 'TechTorio gives buyers and sellers the confidence to trade with escrow protection.',
       'reviewRating': { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
       'itemReviewed': { '@id': href + '#service' }
     };
@@ -300,7 +300,7 @@ const LandingPage: React.FC = () => {
       name: 'Ahmed Khan',
       role: 'Electronics Seller',
       rating: 5,
-      comment: 'YaqeenPay has transformed my online business. Buyers trust me more knowing their payments are protected with escrow.',
+      comment: 'TechTorio has transformed my online business. Buyers trust me more knowing their payments are protected with escrow.',
       avatar: 'AK',
     },
     {
@@ -358,7 +358,7 @@ const LandingPage: React.FC = () => {
                   lineHeight: 1.2,
                 }}
               >
-                YaqeenPay — Secure Escrow Service in Pakistan{' '}
+                TechTorio — Secure Escrow Service in Pakistan{' '}
                 <Box component="span" sx={{ color: '#ffeb3b' }}>
                   Guaranteed
                 </Box>
@@ -495,7 +495,7 @@ const LandingPage: React.FC = () => {
                 fontSize: { xs: '2rem', md: '2.75rem' },
               }}
             >
-              Why Choose YaqeenPay?
+              Why Choose TechTorio?
             </Typography>
             <Typography
               variant="h6"
@@ -633,7 +633,7 @@ const LandingPage: React.FC = () => {
               Escrow is a trusted middle step between a buyer and a seller. The buyer pays into escrow first. Those Wallet Credits are securely held — not paid to the seller yet — while the seller ships the item or completes the service. When the buyer confirms delivery or the acceptance period passes without dispute, the escrowed Wallet Credits are released to the seller.
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.8 }}>
-              This flow reduces fraud and protects both sides: the buyer doesn’t lose money to non‑delivery, and the seller knows payment is reserved before shipping. With YaqeenPay, your balance is represented as Wallet Credits which are held and released through the escrow process.
+              This flow reduces fraud and protects both sides: the buyer doesn’t lose money to non‑delivery, and the seller knows payment is reserved before shipping. With TechTorio, your balance is represented as Wallet Credits which are held and released through the escrow process.
             </Typography>
           </Box>
           <Box sx={{ flex: 1 }}>
@@ -648,7 +648,7 @@ const LandingPage: React.FC = () => {
                   • Clear rules for release, refunds, and disputes
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Note: YaqeenPay is a technology platform and not a bank or EMI. Balances are shown as Wallet Credits. See Terms for details.
+                  Note: TechTorio is a technology platform and not a bank or EMI. Balances are shown as Wallet Credits. See Terms for details.
                 </Typography>
               </CardContent>
             </Card>
@@ -726,7 +726,7 @@ const LandingPage: React.FC = () => {
                 </Typography>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>Are you a bank?</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  No. YaqeenPay is a technology platform. Balances are represented as Wallet Credits. See our Terms for details.
+                  No. TechTorio is a technology platform. Balances are represented as Wallet Credits. See our Terms for details.
                 </Typography>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>What are the fees?</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -812,7 +812,7 @@ const LandingPage: React.FC = () => {
                 
                 <Box>
                   <Typography variant="subtitle2" color="success.main" sx={{ mb: 1 }}>
-                    ✅ YaqeenPay Escrow
+                    ✅ TechTorio Escrow
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Credits held safely → Item delivered → Credits released → 100% Protected
@@ -907,7 +907,7 @@ const LandingPage: React.FC = () => {
                 maxWidth: 600,
               }}
             >
-              Join thousands of satisfied users who trust YaqeenPay for their online transactions
+              Join thousands of satisfied users who trust TechTorio for their online transactions
             </Typography>
             
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

@@ -63,7 +63,7 @@ cd "D:\Work Repos\AI\yaqeenpay\Frontend"
 
 # Create a test build info file
 @"
-VITE_GOOGLE_CLIENT_ID=968347595085-lguh8fnb8vuvtj6j1tdh65h5sv5ph77n.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=600351246339-3bb6irmsm0c55agiqgunq8p05nscm2jt.apps.googleusercontent.com
 "@ | Out-File -FilePath ".env.local" -Encoding utf8
 
 # Rebuild

@@ -12,7 +12,7 @@ export async function mobileGoogleSignIn(clientId: string): Promise<string> {
   }
 
   const redirectUri = 'yaqeenpay://auth-callback/google';
-  const base = 'https://techtorio.online/yaqeenpay/google-mobile.html';
+  const base = 'https://techtorio.online/escrow-market/google-mobile.html';
   const authUrl = `${base}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
   return new Promise<string>(async (resolve, reject) => {

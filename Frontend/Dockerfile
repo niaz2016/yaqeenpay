@@ -15,9 +15,9 @@ RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
 # Copy source code
 COPY . .
 
-# Allow overriding the base path when building the production bundle (default /yaqeenpay/)
+# Allow overriding the base path when building the production bundle (default /escrow-market/)
 # Frontend needs full path since browser resolves absolute paths from domain root
-ARG VITE_BASE_PATH=/yaqeenpay/
+ARG VITE_BASE_PATH=/escrow-market/
 ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 
 # Build the application

@@ -366,8 +366,8 @@ const ProductDetailPage: React.FC<{}> = () => {
       : rawDescription;
     const productDescription = truncateText(extendedDescription, 155);
     const productImage = product.images && product.images.length > 0
-      ? (normalizeImageUrl(product.images[0]?.imageUrl || product.images[0]?.ImageUrl || '') || 'https://techtorio.online/yaqeenpay/logo.svg')
-      : 'https://techtorio.online/yaqeenpay/logo.svg';
+      ? (normalizeImageUrl(product.images[0]?.imageUrl || product.images[0]?.ImageUrl || '') || 'https://techtorio.online/escrow-market/logo.svg')
+      : 'https://techtorio.online/escrow-market/logo.svg';
     const productUrl = window.location.href;
 
     // Update document title
@@ -487,7 +487,7 @@ const ProductDetailPage: React.FC<{}> = () => {
         seller: {
           '@type': 'Organization',
           name: product.seller?.businessName || 'YaqeenPay Seller',
-          url: 'https://techtorio.online/yaqeenpay'
+          url: 'https://techtorio.online/escrow-market'
         },
         shippingDetails: {
           '@type': 'OfferShippingDetails',
@@ -584,18 +584,18 @@ const ProductDetailPage: React.FC<{}> = () => {
         {
           '@type': 'ListItem',
           name: 'Home',
-          item: 'https://techtorio.online/yaqeenpay/'
+          item: 'https://techtorio.online/escrow-market/'
         },
         {
           '@type': 'ListItem',
           name: 'Marketplace',
-          item: 'https://techtorio.online/yaqeenpay/marketplace'
+          item: 'https://techtorio.online/escrow-market/marketplace'
         },
         product.category?.name
           ? {
             '@type': 'ListItem',
             name: product.category.name,
-            item: `https://techtorio.online/yaqeenpay/marketplace?category=${product.category.id}`
+            item: `https://techtorio.online/escrow-market/marketplace?category=${product.category.id}`
           }
           : null,
         {
@@ -636,7 +636,7 @@ const ProductDetailPage: React.FC<{}> = () => {
       isPartOf: {
         '@type': 'WebSite',
         name: 'YaqeenPay',
-        url: 'https://techtorio.online/yaqeenpay/'
+        url: 'https://techtorio.online/escrow-market/'
       },
       speakable: {
         '@type': 'SpeakableSpecification',

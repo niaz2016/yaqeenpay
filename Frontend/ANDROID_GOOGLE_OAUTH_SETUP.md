@@ -57,7 +57,7 @@ Open `Frontend/.env.mobile` and update:
 ```bash
 # Google OAuth - Use WEB client ID for mobile Google Sign-In
 # The Android client ID is used for backend verification
-VITE_GOOGLE_CLIENT_ID=968347595085-lguh8fnb8vuvtj6j1tdh65h5sv5ph77n.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=600351246339-3bb6irmsm0c55agiqgunq8p05nscm2jt.apps.googleusercontent.com
 
 # Or try the new Android client ID if web doesn't work:
 # VITE_GOOGLE_CLIENT_ID=[Your new Android Client ID]
@@ -88,7 +88,7 @@ This provides native Google Sign-In for Android/iOS.
 
 ## Current Status
 
-- **Web Client ID**: `968347595085-lguh8fnb8vuvtj6j1tdh65h5sv5ph77n.apps.googleusercontent.com`
+- **Web Client ID**: `600351246339-3bb6irmsm0c55agiqgunq8p05nscm2jt.apps.googleusercontent.com`
 - **Package Name**: `com.yaqeenpay.app`
 - **SHA-1**: Not yet obtained (run `gradlew signingReport`)
 

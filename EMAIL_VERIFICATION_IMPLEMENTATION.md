@@ -2,7 +2,7 @@
 
 ## Overview
 
-Users must now verify their email address before they can log in to YaqeenPay. This prevents fake registrations and ensures valid contact information.
+Users must now verify their email address before they can log in to TechTorio. This prevents fake registrations and ensures valid contact information.
 
 ## How It Works
 
@@ -64,7 +64,7 @@ When user attempts to login:
 **What Happens:**
 - User account created (but can't login yet)
 - Verification email sent automatically
-- Email contains link: `https://techtorio.online/yaqeenpay/verify-email?token=XYZ&userId=ABC`
+- Email contains link: `https://techtorio.online/techtorio/verify-email?token=XYZ&userId=ABC`
 
 ### Verify Email (NEW)
 **POST** `/api/auth/verify-email`
@@ -142,19 +142,19 @@ When user attempts to login:
 
 The verification email sent to users includes:
 
-**Subject:** Verify Your YaqeenPay Email Address
+**Subject:** Verify Your TechTorio Email Address
 
 **Content:**
 - Welcome message with user's name
 - Prominent "Verify Email Address" button
 - Backup verification link (if button doesn't work)
 - Security note about not requesting verification
-- Professional YaqeenPay branding
+- Professional TechTorio branding
 - Footer with support information
 
 **Link Format:**
 ```
-https://techtorio.online/yaqeenpay/verify-email?token=<URL_ENCODED_TOKEN>&userId=<USER_GUID>
+https://techtorio.online/techtorio/verify-email?token=<URL_ENCODED_TOKEN>&userId=<USER_GUID>
 ```
 
 ## Database Changes
@@ -424,7 +424,7 @@ WHERE "Email" = 'user@example.com';
 ### Check Email Sending Logs
 
 ```bash
-docker logs yaqeenpay-backend | grep "verification email"
+docker logs techtorio-backend | grep "verification email"
 ```
 
 ### Common Issues

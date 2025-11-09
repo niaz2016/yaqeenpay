@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.yaqeenpay.app',
-  appName: 'YaqeenPay',
+  appId: 'com.techtorio.app',
+  appName: 'TechTorio',
   webDir: 'dist',
   server: {
     // For mobile apps, use production configuration

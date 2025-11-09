@@ -110,10 +110,10 @@ public async Task<IActionResult> SubmitDocument(SubmitKycDocumentCommand command
 
 ### Before Testing - Deploy Changes
 ```powershell
-cd "d:\Work Repos\AI\yaqeenpay\Backend"
-dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o ./publish
+cd "d:\Work Repos\AI\techtorio\Backend"
+dotnet publish TechTorio.API/TechTorio.API.csproj -c Release -o ./publish
 scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@techtorio.online:/opt/techtorio/backend/
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart yaqeenpay"
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart techtorio"
 ```
 
 ### Test Cases
@@ -193,7 +193,7 @@ ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo
 ```bash
 # Watch logs in real-time
 ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
-sudo journalctl -u yaqeenpay -f
+sudo journalctl -u techtorio -f
 
 # Look for:
 # - "An unhandled exception occurred" - Shows full error details
@@ -288,12 +288,12 @@ If issues persist:
 # Revert to previous version
 ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
 cd /opt/techtorio/backend
-sudo systemctl stop yaqeenpay
+sudo systemctl stop techtorio
 
 # Restore previous backup (if available)
 # Or redeploy previous git commit
 
-sudo systemctl start yaqeenpay
+sudo systemctl start techtorio
 ```
 
 ---

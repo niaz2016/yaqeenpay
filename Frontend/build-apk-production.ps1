@@ -1,7 +1,7 @@
-# YaqeenPay Android APK Build Script for Production
+# TechTorio Android APK Build Script for Production
 # This script builds the Android APK configured to connect to the production backend
 
-Write-Host "=== YaqeenPay Android APK Production Build ===" -ForegroundColor Cyan
+Write-Host "=== TechTorio Android APK Production Build ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Check prerequisites
@@ -182,8 +182,8 @@ if (Test-Path $apkPath) {
     Write-Host "  Size: $([math]::Round($apkSize, 2)) MB" -ForegroundColor Gray
     
     # Copy to root for easy access
-    Copy-Item $apkPath "YaqeenPay-production.apk" -Force
-    Write-Host "checkmark Copied to: YaqeenPay-production.apk" -ForegroundColor Green
+    Copy-Item $apkPath "TechTorio-production.apk" -Force
+    Write-Host "checkmark Copied to: TechTorio-production.apk" -ForegroundColor Green
     
     # Step 8: Restore production .env
     Write-Host ""
@@ -195,7 +195,7 @@ if (Test-Path $apkPath) {
     Write-Host ""
     Write-Host "=== Build Complete ===" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "checkmark APK Location: YaqeenPay-production.apk" -ForegroundColor Green
+    Write-Host "checkmark APK Location: TechTorio-production.apk" -ForegroundColor Green
     Write-Host "checkmark APK Size: $([math]::Round($apkSize, 2)) MB" -ForegroundColor Green
     Write-Host ""
     Write-Host "Backend Configuration:" -ForegroundColor Yellow
@@ -211,7 +211,7 @@ if (Test-Path $apkPath) {
     Write-Host "  4. Test SMS reading wallet and marketplace" -ForegroundColor Gray
     Write-Host ""
     Write-Host "To install on device:" -ForegroundColor Yellow
-    Write-Host "  adb install -r YaqeenPay-production.apk" -ForegroundColor Gray
+    Write-Host "  adb install -r TechTorio-production.apk" -ForegroundColor Gray
     Write-Host ""
 } else {
     Write-Host "X APK not found at expected path" -ForegroundColor Red

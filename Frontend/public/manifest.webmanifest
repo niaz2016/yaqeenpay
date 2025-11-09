@@ -1,5 +1,5 @@
 {
-  "name": "TechTorio - YaqeenPay",
+  "name": "TechTorio - TechTorio",
   "short_name": "TechTorio",
   "start_url": "/escrow-market/?source=pwa",
   "scope": "/escrow-market/",
@@ -7,7 +7,7 @@
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",
-  "description": "TechTorio YaqeenPay - Secure Escrow Platform for Pakistan",
+  "description": "TechTorio TechTorio - Secure Escrow Platform for Pakistan",
   "categories": ["finance", "shopping"],
   "icons": [
     {

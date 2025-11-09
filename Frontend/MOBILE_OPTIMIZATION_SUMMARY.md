@@ -1,7 +1,7 @@
-# Mobile Optimization Summary - YaqeenPay Frontend
+# Mobile Optimization Summary - TechTorio Frontend
 
 ## Overview
-This document summarizes the mobile optimization changes made to the YaqeenPay Android application to address three main issues:
+This document summarizes the mobile optimization changes made to the TechTorio Android application to address three main issues:
 1. Registration page too wide for mobile screens
 2. Profile page tabs that can't be scrolled on mobile
 3. Grey notch/status bar color not matching the app's brand color
@@ -157,7 +157,7 @@ plugins: {
 - [ ] Verify tab labels are visible and appropriately sized
 
 ### Status Bar
-- [ ] Verify status bar color matches YaqeenPay blue (#1976d2) on Android
+- [ ] Verify status bar color matches TechTorio blue (#1976d2) on Android
 - [ ] Check navigation bar color (should also be blue)
 - [ ] Test on devices with notches/cutouts
 - [ ] Verify color consistency across all app screens
@@ -170,7 +170,7 @@ plugins: {
 - **md**: ≥ 900px (Tablets landscape, small laptops)
 
 ### Color Scheme
-- Primary: `#1976d2` (YaqeenPay Blue)
+- Primary: `#1976d2` (TechTorio Blue)
 - Primary Dark: `#115293`
 - Accent: `#1976d2`
 

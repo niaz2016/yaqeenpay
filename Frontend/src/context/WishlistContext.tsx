@@ -11,7 +11,7 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
-const WISHLIST_STORAGE_KEY = 'yaqeenpay_wishlist';
+const WISHLIST_STORAGE_KEY = 'techtorio_wishlist';
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<ProductDetail[]>([]);

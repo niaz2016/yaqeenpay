@@ -109,7 +109,7 @@ cd android
 adb install app/build/outputs/apk/debug/app-debug.apk
 
 # Check logs if still failing
-adb logcat | grep -i "yaqeenpay"
+adb logcat | grep -i "techtorio"
 ```
 
 ## Alternative: Using ngrok for Testing
@@ -193,7 +193,7 @@ grep -r "VITE_API_URL" dist/
 curl http://192.168.43.48:7137/api/health
 
 # Check Android logs
-adb logcat | grep -E "yaqeenpay|http|fetch|network"
+adb logcat | grep -E "techtorio|http|fetch|network"
 
 # List all Android devices
 adb devices

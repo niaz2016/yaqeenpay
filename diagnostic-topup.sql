@@ -1,4 +1,4 @@
--- YaqeenPay Wallet Topup Diagnostic Script
+-- TechTorio Wallet Topup Diagnostic Script
 -- Run this to check the state of your topup system
 
 -- 1. Check recent topup locks

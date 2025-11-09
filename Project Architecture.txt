@@ -10,10 +10,10 @@ Version: 1.1 (Aligned with refined Story v1.1)
 
 1. Technology Stack (MVP)
 Backend: ASP.NET Core 9 with Clean Architecture (multiple projects/layers):
-  • YaqeenPay.Domain - Core business logic and entities
-  • YaqeenPay.Application - Application services, CQRS commands/queries (MediatR)
-  • YaqeenPay.Infrastructure - External systems integration, persistence implementation
-  • YaqeenPay.API - ASP.NET Core API controllers, minimal APIs, and presentation logic
+  • TechTorio.Domain - Core business logic and entities
+  • TechTorio.Application - Application services, CQRS commands/queries (MediatR)
+  • TechTorio.Infrastructure - External systems integration, persistence implementation
+  • TechTorio.API - ASP.NET Core API controllers, minimal APIs, and presentation logic
 Auth & Identity: ASP.NET Identity extended with GUID v7 primary keys (ordered for index locality) + JWT (Access) + Refresh Tokens. OTP verification service (phone/email) pluggable.
 Persistence: PostgreSQL 16 (Schemas: auth, core, ledger). Use EF Core with migrations. Consider Dapper for hot read models later.
 Background Processing: Hangfire (preferred) OR Quartz.NET (for delayed release timers, withdrawal settlements, reconciliation jobs). Hangfire storage in PostgreSQL.
@@ -74,27 +74,27 @@ KYC review queue, manual ledger adjustments (only via command that writes compen
 The solution follows Clean Architecture principles with strict dependency rules (inner layers know nothing about outer layers):
 
 4.1 Project Structure
-YaqeenPay.Domain (Core Layer):
+TechTorio.Domain (Core Layer):
 • Contains: Entities, Value Objects, Domain Events, Domain Services, Exceptions, Interfaces (Repositories, Domain Services)
 • Dependencies: None (pure C# with no external dependencies)
 • Principles: Rich domain model, encapsulated business rules, immutable where possible
 • Examples: Escrow, LedgerEntry, Money (value object), EscrowStatus (enum), IEscrowRepository
 
-YaqeenPay.Application (Service Layer):
+TechTorio.Application (Service Layer):
 • Contains: Command/Query handlers (CQRS via MediatR), DTOs, Interfaces for Infrastructure, Validation
-• Dependencies: YaqeenPay.Domain, MediatR, FluentValidation
+• Dependencies: TechTorio.Domain, MediatR, FluentValidation
 • Principles: Thin orchestration layer, transaction boundaries, input validation
 • Examples: CreateEscrowCommand, GetWalletBalanceQuery, TransferToEscrowCommandHandler
 
-YaqeenPay.Infrastructure (Implementation Layer):
+TechTorio.Infrastructure (Implementation Layer):
 • Contains: Database context, Repository implementations, External services, Identity implementation
-• Dependencies: YaqeenPay.Domain, YaqeenPay.Application, EF Core, ASP.NET Identity, Redis, etc.
+• Dependencies: TechTorio.Domain, TechTorio.Application, EF Core, ASP.NET Identity, Redis, etc.
 • Principles: Implementation of interfaces defined in inner layers, infrastructure concerns
 • Examples: AppDbContext, EscrowRepository, JwtService, NotificationService
 
-YaqeenPay.API (Presentation Layer):
+TechTorio.API (Presentation Layer):
 • Contains: Controllers, API models, Filters, Middleware configurations
-• Dependencies: YaqeenPay.Application, YaqeenPay.Infrastructure (for DI registration only)
+• Dependencies: TechTorio.Application, TechTorio.Infrastructure (for DI registration only)
 • Principles: Thin controllers, focused on HTTP concerns, minimal business logic
 • Examples: AuthController, EscrowController, ErrorHandlingMiddleware
 
@@ -105,7 +105,7 @@ Common patterns across layers:
 • Infrastructure: EF Core Repositories, PostgreSQL Migrations, Redis Cache, External PSP Clients, Notification Providers, JWT Issuer service.
 
 4.2 Cross-Cutting Concerns
-YaqeenPay.Shared (Optional):
+TechTorio.Shared (Optional):
 • Contains: Common utilities, constants, extension methods used across all layers
 • Dependencies: Minimal framework dependencies
 • Examples: DateTimeProvider, GuidV7Generator, Constants
@@ -193,28 +193,28 @@ Phase 3: Extract Notification service if throughput demands.
 
 10. Development Workflow & Tooling
 • Solution Structure:
-  - YaqeenPay.sln (main solution file)
+  - TechTorio.sln (main solution file)
   - src/ (all source code)
-    - YaqeenPay.Domain/
-    - YaqeenPay.Application/
-    - YaqeenPay.Infrastructure/
-    - YaqeenPay.API/
-    - YaqeenPay.Shared/ (optional)
+    - TechTorio.Domain/
+    - TechTorio.Application/
+    - TechTorio.Infrastructure/
+    - TechTorio.API/
+    - TechTorio.Shared/ (optional)
   - tests/ (all test projects)
-    - YaqeenPay.Domain.Tests/
-    - YaqeenPay.Application.Tests/
-    - YaqeenPay.Infrastructure.Tests/
-    - YaqeenPay.API.Tests/
-    - YaqeenPay.IntegrationTests/
+    - TechTorio.Domain.Tests/
+    - TechTorio.Application.Tests/
+    - TechTorio.Infrastructure.Tests/
+    - TechTorio.API.Tests/
+    - TechTorio.IntegrationTests/
 
 • Project Setup:
-  - Create projects: `dotnet new classlib -o src/YaqeenPay.Domain` (repeat for each project)
-  - Create solution: `dotnet new sln -n YaqeenPay`
-  - Add projects: `dotnet sln add src/YaqeenPay.Domain/YaqeenPay.Domain.csproj` (repeat for each)
-  - Add references: `dotnet add src/YaqeenPay.Application/YaqeenPay.Application.csproj reference src/YaqeenPay.Domain/YaqeenPay.Domain.csproj`
+  - Create projects: `dotnet new classlib -o src/TechTorio.Domain` (repeat for each project)
+  - Create solution: `dotnet new sln -n TechTorio`
+  - Add projects: `dotnet sln add src/TechTorio.Domain/TechTorio.Domain.csproj` (repeat for each)
+  - Add references: `dotnet add src/TechTorio.Application/TechTorio.Application.csproj reference src/TechTorio.Domain/TechTorio.Domain.csproj`
 
 • Migrations: EF Core migrations in Infrastructure project with custom DbContext factory.
-  - `dotnet ef migrations add <Name> --project src/YaqeenPay.Infrastructure --startup-project src/YaqeenPay.API`
+  - `dotnet ef migrations add <Name> --project src/TechTorio.Infrastructure --startup-project src/TechTorio.API`
   - Enforced PR review for migration changes
 
 • Code Quality: 

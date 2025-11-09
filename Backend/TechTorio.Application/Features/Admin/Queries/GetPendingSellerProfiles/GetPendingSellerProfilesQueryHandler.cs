@@ -1,0 +1,79 @@
+using MediatR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using TechTorio.Application.Common.Interfaces;
+using TechTorio.Application.Features.Admin.Common;
+using TechTorio.Domain.Entities.Identity;
+using TechTorio.Domain.Enums;
+using UserRoleEnum = TechTorio.Domain.Enums.UserRole;
+
+namespace TechTorio.Application.Features.Admin.Queries.GetPendingSellerProfiles;
+
+public class GetPendingSellerProfilesQueryHandler : IRequestHandler<GetPendingSellerProfilesQuery, List<AdminBusinessProfileDto>>
+{
+    private readonly IApplicationDbContext _dbContext;
+    private readonly ICurrentUserService _currentUserService;
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public GetPendingSellerProfilesQueryHandler(
+        IApplicationDbContext dbContext,
+        ICurrentUserService currentUserService,
+        UserManager<ApplicationUser> userManager)
+    {
+        _dbContext = dbContext;
+        _currentUserService = currentUserService;
+        _userManager = userManager;
+    }
+
+    public async Task<List<AdminBusinessProfileDto>> Handle(GetPendingSellerProfilesQuery request, CancellationToken cancellationToken)
+    {
+        var adminId = _currentUserService.UserId;
+        if (adminId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("User is not authenticated");
+        }
+
+        var admin = await _userManager.FindByIdAsync(adminId.ToString());
+        if (admin == null || !await _userManager.IsInRoleAsync(admin, UserRoleEnum.Admin.ToString()))
+        {
+            throw new UnauthorizedAccessException("User is not authorized for this action");
+        }
+
+        var pendingProfiles = await _dbContext.BusinessProfiles
+            .Where(bp => bp.VerificationStatus == SellerVerificationStatus.Pending)
+            .Include(bp => bp.User)
+            .OrderByDescending(bp => bp.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return [.. pendingProfiles.Select(bp => new AdminBusinessProfileDto
+        {
+            Id = bp.Id,
+            UserId = bp.UserId,
+            UserEmail = bp.User != null ? bp.User.Email ?? string.Empty : string.Empty,
+            UserFullName = bp.User != null ? ($"{(bp.User.FirstName ?? "").Trim()} {(bp.User.LastName ?? "").Trim()}").Trim() : string.Empty,
+            BusinessName = bp.BusinessName,
+            BusinessType = bp.BusinessType,
+            BusinessCategory = bp.BusinessCategory,
+            Description = bp.Description,
+            Website = bp.Website,
+            PhoneNumber = bp.PhoneNumber,
+            Address = bp.Address,
+            City = bp.City,
+            State = bp.State,
+            Country = bp.Country,
+            PostalCode = bp.PostalCode,
+            TaxId = bp.TaxId,
+            VerificationStatus = bp.VerificationStatus,
+            RejectionReason = bp.RejectionReason,
+            VerifiedAt = bp.VerifiedAt,
+            VerifiedBy = bp.VerifiedBy,
+            SubmissionDate = bp.CreatedAt,
+            UserKycStatus = bp.User != null ? bp.User.KycStatus : TechTorio.Domain.Enums.KycStatus.Pending,
+            User = bp.User != null ? new UserDto {
+                FirstName = bp.User.FirstName ?? string.Empty,
+                LastName = bp.User.LastName ?? string.Empty,
+                Email = bp.User.Email ?? string.Empty
+            } : new UserDto()
+        })];
+    }
+}

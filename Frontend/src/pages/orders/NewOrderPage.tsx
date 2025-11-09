@@ -366,7 +366,7 @@ const NewOrderPage: React.FC = () => {
         <DialogTitle>KYC Verification Required</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            You need to complete KYC verification to start selling on YaqeenPay.
+            You need to complete KYC verification to start selling on TechTorio.
           </Alert>
           <Typography variant="body1" paragraph>
             To create orders as a seller and receive payments, you must first verify your identity through our KYC (Know Your Customer) process.

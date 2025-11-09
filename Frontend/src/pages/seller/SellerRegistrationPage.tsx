@@ -207,7 +207,7 @@ const UserRegistrationPage: React.FC = () => {
           Become a Seller
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          Complete the registration process to start selling on YaqeenPay
+          Complete the registration process to start selling on TechTorio
         </Typography>
 
         {/* top-right toast for error/success */}

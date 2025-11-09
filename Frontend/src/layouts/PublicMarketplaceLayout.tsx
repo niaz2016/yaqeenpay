@@ -19,7 +19,7 @@ const PublicMarketplaceLayout: React.FC<PublicMarketplaceLayoutProps> = ({ child
             variant="h6"
             sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}
           >
-            YaqeenPay
+            TechTorio
           </Typography>
           <Button component={RouterLink} to="/auth/login" color="primary">
             Login
@@ -36,7 +36,7 @@ const PublicMarketplaceLayout: React.FC<PublicMarketplaceLayoutProps> = ({ child
       </Box>
       <Box component="footer" sx={{ py: 3, backgroundColor: 'grey.100', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          © {new Date().getFullYear()} YaqeenPay. Browse the marketplace freely.
+          © {new Date().getFullYear()} TechTorio. Browse the marketplace freely.
         </Typography>
       </Box>
     </Box>

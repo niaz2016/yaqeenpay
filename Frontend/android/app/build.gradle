@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.yaqeenpay.app"
+    namespace "com.techtorio.app"
     compileSdk rootProject.ext.compileSdkVersion
     
     compileOptions {
@@ -10,7 +10,7 @@ android {
     }
     
     defaultConfig {
-        applicationId "com.yaqeenpay.app"
+        applicationId "com.techtorio.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

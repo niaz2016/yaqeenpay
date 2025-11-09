@@ -55,7 +55,7 @@
 Run this command to start the mail server:
 
 ```powershell
-cd "d:\Work Repos\AI\yaqeenpay"
+cd "d:\Work Repos\AI\techtorio"
 docker compose up -d mailserver
 ```
 
@@ -191,7 +191,7 @@ docker exec -it techtorio-mailserver setup email update customer@techtorio.onlin
 ```
 
 ### Automate Billing:
-- Integrate with your YaqeenPay escrow system
+- Integrate with your TechTorio escrow system
 - Create subscriptions
 - Auto-suspend accounts if payment fails
 

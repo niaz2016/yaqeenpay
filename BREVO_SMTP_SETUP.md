@@ -1,4 +1,4 @@
-# BREVO SMTP SETUP GUIDE - Sending Emails from YaqeenPay
+# BREVO SMTP SETUP GUIDE - Sending Emails from TechTorio
 
 ## Step 1: Create Free Brevo Account
 
@@ -7,7 +7,7 @@
 3. Fill in:
    - Email: your-email@gmail.com
    - Password: (create strong password)
-   - Company name: Techtorio / YaqeenPay
+   - Company name: Techtorio / TechTorio
 4. Verify your email
 
 ## Step 2: Get SMTP Credentials
@@ -38,7 +38,7 @@
 
 ## Step 4: Your Brevo SMTP Settings
 
-Once you have the credentials, you'll configure your YaqeenPay backend with:
+Once you have the credentials, you'll configure your TechTorio backend with:
 
 ```json
 {
@@ -48,7 +48,7 @@ Once you have the credentials, you'll configure your YaqeenPay backend with:
     "SmtpUsername": "your-email@gmail.com",
     "SmtpPassword": "YOUR_BREVO_SMTP_KEY_HERE",
     "SenderEmail": "noreply@techtorio.online",
-    "SenderName": "YaqeenPay",
+    "SenderName": "TechTorio",
     "EnableSsl": true
   }
 }
@@ -112,7 +112,7 @@ $Credential = New-Object System.Management.Automation.PSCredential($Username, $P
 
 Send-MailMessage -From "noreply@techtorio.online" `
                  -To "your-test-email@gmail.com" `
-                 -Subject "Test from YaqeenPay" `
+                 -Subject "Test from TechTorio" `
                  -Body "This is a test email via Brevo SMTP" `
                  -SmtpServer $SMTPServer `
                  -Port $SMTPPort `

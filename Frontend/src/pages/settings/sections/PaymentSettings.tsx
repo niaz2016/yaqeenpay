@@ -45,7 +45,7 @@ const currencies = [
 ];
 
 const paymentMethods = [
-  { value: 'wallet', label: 'YaqeenPay Wallet', icon: <WalletIcon />, enabled: true },
+  { value: 'wallet', label: 'TechTorio Wallet', icon: <WalletIcon />, enabled: true },
   { value: 'jazzcash', label: 'JazzCash', icon: <CreditCardIcon />, enabled: true },
   { value: 'easypaisa', label: 'EasyPaisa', icon: <CreditCardIcon />, enabled: true },
   { value: 'bank', label: 'Bank Transfer', icon: <BankIcon />, enabled: false },

@@ -2,7 +2,7 @@
 # This script builds the latest backend and frontend images and updates the running containers
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "YaqeenPay - Build & Deploy to Production" -ForegroundColor Cyan
+Write-Host "TechTorio - Build & Deploy to Production" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -23,7 +23,7 @@ docker-compose down
 Write-Host ""
 Write-Host "Step 2: Building Backend image..." -ForegroundColor Yellow
 Write-Host "This may take a few minutes..." -ForegroundColor Gray
-docker build -t yaqeenpay-backend:latest ./Backend
+docker build -t techtorio-backend:latest ./Backend
 if ($LASTEXITCODE -ne 0) {
     Write-Host "✗ Backend build failed!" -ForegroundColor Red
     exit 1
@@ -33,7 +33,7 @@ Write-Host "✓ Backend image built successfully" -ForegroundColor Green
 Write-Host ""
 Write-Host "Step 3: Building Frontend image..." -ForegroundColor Yellow
 Write-Host "This may take a few minutes..." -ForegroundColor Gray
-docker build -t yaqeenpay-frontend:latest ./Frontend
+docker build -t techtorio-frontend:latest ./Frontend
 if ($LASTEXITCODE -ne 0) {
     Write-Host "✗ Frontend build failed!" -ForegroundColor Red
     exit 1
@@ -50,7 +50,7 @@ Start-Sleep -Seconds 10
 
 # Check backend health
 Write-Host "Checking backend status..." -ForegroundColor Gray
-$backendStatus = docker inspect --format='{{.State.Status}}' yaqeenpay-backend
+$backendStatus = docker inspect --format='{{.State.Status}}' techtorio-backend
 if ($backendStatus -eq "running") {
     Write-Host "✓ Backend is running" -ForegroundColor Green
 } else {
@@ -59,7 +59,7 @@ if ($backendStatus -eq "running") {
 
 # Check frontend health
 Write-Host "Checking frontend status..." -ForegroundColor Gray
-$frontendStatus = docker inspect --format='{{.State.Status}}' yaqeenpay-frontend
+$frontendStatus = docker inspect --format='{{.State.Status}}' techtorio-frontend
 if ($frontendStatus -eq "running") {
     Write-Host "✓ Frontend is running" -ForegroundColor Green
 } else {
@@ -74,12 +74,12 @@ Write-Host "========================================" -ForegroundColor Cyan
 # Get container info
 Write-Host ""
 Write-Host "Running Containers:" -ForegroundColor Yellow
-docker ps --filter "name=yaqeenpay" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker ps --filter "name=techtorio" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Image Information:" -ForegroundColor Yellow
-docker images --filter "reference=yaqeenpay-*" --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}"
+docker images --filter "reference=techtorio-*" --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedAt}}\t{{.Size}}"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
@@ -91,8 +91,8 @@ Write-Host "  Swagger: http://localhost/api/swagger" -ForegroundColor White
 Write-Host ""
 Write-Host "Useful Commands:" -ForegroundColor Yellow
 Write-Host "  View logs:        docker-compose logs -f" -ForegroundColor White
-Write-Host "  Backend logs:     docker logs -f yaqeenpay-backend" -ForegroundColor White
-Write-Host "  Frontend logs:    docker logs -f yaqeenpay-frontend" -ForegroundColor White
+Write-Host "  Backend logs:     docker logs -f techtorio-backend" -ForegroundColor White
+Write-Host "  Frontend logs:    docker logs -f techtorio-frontend" -ForegroundColor White
 Write-Host "  Restart:          docker-compose restart" -ForegroundColor White
 Write-Host "  Stop:             docker-compose down" -ForegroundColor White
 

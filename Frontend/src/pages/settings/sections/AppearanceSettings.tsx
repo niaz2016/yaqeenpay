@@ -172,7 +172,7 @@ const AppearanceSettings: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Choose how YaqeenPay looks and feels to you.
+          Choose how TechTorio looks and feels to you.
         </Typography>
 
         <Box sx={{ 
@@ -410,7 +410,7 @@ const AppearanceSettings: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Options to make YaqeenPay more accessible and comfortable to use.
+          Options to make TechTorio more accessible and comfortable to use.
         </Typography>
 
         <Stack spacing={2}>

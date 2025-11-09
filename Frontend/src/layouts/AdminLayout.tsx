@@ -143,7 +143,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <TechTorioLogo size="small" showText={false} sx={{ '& circle': { fill: '#fff' }, '& rect': { fill: '#1976d2' }, '& circle:last-child': { fill: '#ffa726' } }} />
           </Box>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            YaqeenPay Admin Dashboard
+            TechTorio Admin Dashboard
           </Typography>
           <IconButton
             size="large"

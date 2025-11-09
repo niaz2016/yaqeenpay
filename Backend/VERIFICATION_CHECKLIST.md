@@ -17,21 +17,21 @@
 
 ### Before Testing
 Review these files to understand the flow:
-1. `YaqeenPay.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
-2. `YaqeenPay.Application/Features/Orders/PAYMENT_FLOW_VISUAL_GUIDE.md`
+1. `TechTorio.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
+2. `TechTorio.Application/Features/Orders/PAYMENT_FLOW_VISUAL_GUIDE.md`
 3. `PAYMENT_FLOW_FIX_SUMMARY.md`
 
 ### Key Code Files to Review
-1. `YaqeenPay.Application/Features/Orders/Commands/PayForOrder/PayForOrderCommand.cs`
+1. `TechTorio.Application/Features/Orders/Commands/PayForOrder/PayForOrderCommand.cs`
    - Check comments explaining freeze operation
    - Verify only one freeze call exists
 
-2. `YaqeenPay.Application/Features/Orders/Commands/ConfirmDelivery/ConfirmDeliveryCommand.cs`
+2. `TechTorio.Application/Features/Orders/Commands/ConfirmDelivery/ConfirmDeliveryCommand.cs`
    - Check XML documentation at top
    - Verify comments explain transfer (not freeze)
    - Confirm no freeze operations exist
 
-3. `YaqeenPay.Domain/Entities/Wallet.cs`
+3. `TechTorio.Domain/Entities/Wallet.cs`
    - Review `FreezeAmount()` method
    - Review `TransferFrozenToDebit()` method
    - Understand the difference

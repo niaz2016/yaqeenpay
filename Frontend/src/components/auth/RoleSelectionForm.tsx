@@ -17,6 +17,7 @@ import {
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import type { UserRole } from '../../types/roles';
+import TechTorioLogo from '../common/TechTorioLogo';
 
 interface RoleSelectionFormProps {
   onRoleSelect: (role: UserRole) => void;
@@ -29,22 +30,21 @@ const RoleSelectionForm: React.FC<RoleSelectionFormProps> = ({
 }) => {
   return (
     <Paper elevation={3} sx={{ p: 1, maxWidth: '100vh', mx: 'auto' }}>
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Join YaqeenPay
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+        <TechTorioLogo sx={{ mb: 1 }} />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1, textAlign: 'center' }}>
           Already have an account?{' '}
-          <Button 
-            component={Link}
-            to="/auth/login" 
-            variant="text" 
-            size="small"
+          <Button
+        component={Link}
+        to="/auth/login"
+        variant="text"
+        size="small"
+        sx={{ pl: 0 }}
           >
-            Sign In
+        Sign In
           </Button>
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center' }}>
           Choose how you want to use our platform
         </Typography>
       </Box>

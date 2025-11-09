@@ -1,4 +1,4 @@
-# Product Images Fix for Mobile - YaqeenPay Frontend
+# Product Images Fix for Mobile - TechTorio Frontend
 
 ## Issue Description
 Product images were not loading on mobile devices (both mobile browser and APK application), while they worked fine on desktop browsers.
@@ -108,7 +108,7 @@ The `normalizeImageUrl()` function in `src/utils/image.ts` handles:
 
 ### APK Location
 ```
-d:\Work Repos\AI\yaqeenpay\Frontend\android\app\build\outputs\apk\debug\app-debug.apk
+d:\Work Repos\AI\techtorio\Frontend\android\app\build\outputs\apk\debug\app-debug.apk
 ```
 
 ### Build Commands Used
@@ -186,7 +186,7 @@ http://192.168.1.101:7137/uploads/products/{filename}
 
 2. **Clear app data/cache** (if needed):
    ```powershell
-   adb shell pm clear com.yaqeenpay.app
+   adb shell pm clear com.techtorio.app
    ```
 
 3. **Monitor logs:**

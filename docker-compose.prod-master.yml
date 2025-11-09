@@ -20,8 +20,8 @@ services:
       - ./gateway/html:/usr/share/nginx/html/gateway:ro
       - nginx-logs:/var/log/nginx
     depends_on:
-      - yaqeenpay-backend
-      - yaqeenpay-frontend
+      - techtorio-backend
+      - techtorio-frontend
     networks:
       - techtorio-network
     restart: unless-stopped
@@ -74,21 +74,21 @@ services:
       retries: 5
 
   # ============================================
-  # YaqeenPay - Backend API
+  # TechTorio - Backend API
   # ============================================
-  yaqeenpay-backend:
+  techtorio-backend:
     build: 
       context: ./Backend
       dockerfile: Dockerfile
-    container_name: yaqeenpay-api
+    container_name: techtorio-api
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=yaqeenpay;Username=${DB_USER:-techtorio_admin};Password=${DB_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=techtorio;Username=${DB_USER:-techtorio_admin};Password=${DB_PASSWORD}
       - Redis__Connection=redis:6379,password=${REDIS_PASSWORD}
       - JwtSettings__Secret=${JWT_SECRET}
       - JwtSettings__Issuer=https://api.techtorio.online
-      - JwtSettings__Audience=https://yaqeenpay.techtorio.online
+      - JwtSettings__Audience=https://techtorio.techtorio.online
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,18 +104,18 @@ services:
       retries: 3
 
   # ============================================
-  # YaqeenPay - Frontend Web App
+  # TechTorio - Frontend Web App
   # ============================================
-  yaqeenpay-frontend:
+  techtorio-frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
-    container_name: yaqeenpay-web
+    container_name: techtorio-web
     environment:
       - NODE_ENV=production
       - VITE_API_URL=https://api.techtorio.online
     depends_on:
-      - yaqeenpay-backend
+      - techtorio-backend
     networks:
       - techtorio-network
     restart: unless-stopped

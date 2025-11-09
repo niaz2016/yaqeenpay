@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# YaqeenPay deployment script for a host with Nginx already installed.
+# TechTorio deployment script for a host with Nginx already installed.
 # - Pulls images from a Docker registry
 # - Starts backend bound to 127.0.0.1:5000
 # - Extracts frontend static files from the image to /opt/techtorio/escrow-market
@@ -19,7 +19,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Derived image names (configurable via REGISTRY / TAG above). Use the frontend image name
 # that matches the local build naming convention (note the hyphen).
-: "${FRONTEND_IMAGE_NAME:=${REGISTRY}/yaqeenpay-frontend:${TAG}}"
+: "${FRONTEND_IMAGE_NAME:=${REGISTRY}/techtorio-frontend:${TAG}}"
 
 # Ensure target directories exist
 sudo mkdir -p /opt/techtorio/escrow-market

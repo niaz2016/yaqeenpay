@@ -1,6 +1,6 @@
-# YaqeenPay Docker Deployment Guide
+# TechTorio Docker Deployment Guide
 
-This guide explains how to containerize and deploy the YaqeenPay application using Docker and Docker Compose.
+This guide explains how to containerize and deploy the TechTorio application using Docker and Docker Compose.
 
 ## 🚀 Quick Start
 
@@ -46,7 +46,7 @@ If you temporarily need direct backend access (e.g., debugging Swagger UI origin
 ## 📁 Project Structure
 
 ```
-yaqeenpay/
+techtorio/
 ├── Backend/
 │   ├── Dockerfile                 # Backend container configuration
 │   ├── .dockerignore             # Files to exclude from build
@@ -168,11 +168,11 @@ docker ps
 curl http://localhost:3000
 
 # Backend health (inside network)
-docker exec yaqeenpay-backend curl -f http://localhost:8080/health
+docker exec techtorio-backend curl -f http://localhost:8080/health
 
 # View detailed container information
-docker inspect yaqeenpay-frontend
-docker inspect yaqeenpay-backend
+docker inspect techtorio-frontend
+docker inspect techtorio-backend
 ```
 
 ## 🔒 Production Considerations
@@ -239,12 +239,12 @@ services:
 4. **Container Logs**
   ```bash
   # View specific container logs
-  docker logs yaqeenpay-frontend
-  docker logs yaqeenpay-backend
+  docker logs techtorio-frontend
+  docker logs techtorio-backend
    
   # Follow logs in real-time
-  docker logs -f yaqeenpay-frontend
-  docker logs -f yaqeenpay-backend
+  docker logs -f techtorio-frontend
+  docker logs -f techtorio-backend
   ```
 
 ### Performance Issues
@@ -253,7 +253,7 @@ services:
 docker stats
 
 # Check container processes
-docker exec yaqeenpay-backend ps aux
+docker exec techtorio-backend ps aux
 ```
 
 ## 📚 Additional Commands
@@ -261,24 +261,24 @@ docker exec yaqeenpay-backend ps aux
 ### Image Management
 ```bash
 # List images
-docker images | grep yaqeenpay
+docker images | grep techtorio
 
 # Remove old images
 docker image prune
 
 # Tag image for different registry
-docker tag localhost:5000/yaqeenpay-frontend:latest your-registry.com/yaqeenpay-frontend:v1.0.0
+docker tag localhost:5000/techtorio-frontend:latest your-registry.com/techtorio-frontend:v1.0.0
 ```
 
 ### Container Management
 ```bash
 # Execute commands in running container
-docker exec -it yaqeenpay-backend /bin/bash
-docker exec -it yaqeenpay-frontend /bin/sh
+docker exec -it techtorio-backend /bin/bash
+docker exec -it techtorio-frontend /bin/sh
 
 # Copy files from/to container
-docker cp file.txt yaqeenpay-backend:/app/
-docker cp yaqeenpay-backend:/app/logs ./logs
+docker cp file.txt techtorio-backend:/app/
+docker cp techtorio-backend:/app/logs ./logs
 ```
 
 ### Registry Operations
@@ -287,10 +287,10 @@ docker cp yaqeenpay-backend:/app/logs ./logs
 docker login your-registry.com
 
 # Push specific tag
-docker push your-registry.com/yaqeenpay-frontend:v1.0.0
+docker push your-registry.com/techtorio-frontend:v1.0.0
 
 # Pull specific tag
-docker pull your-registry.com/yaqeenpay-backend:v1.0.0
+docker pull your-registry.com/techtorio-backend:v1.0.0
 ```
 
 ## 🤝 Contributing
@@ -302,4 +302,4 @@ docker pull your-registry.com/yaqeenpay-backend:v1.0.0
 
 ## 📝 License
 
-This Docker configuration is part of the YaqeenPay project. See the main project license for details.
+This Docker configuration is part of the TechTorio project. See the main project license for details.

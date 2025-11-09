@@ -31,7 +31,7 @@ const AuthLayout: React.FC = () => {
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             <Link component={RouterLink} to="/" color="inherit" underline="none">
-              YaqeenPay
+              TechTorio
             </Link>
           </Typography>
           {/* On mobile apps we hide the header links and rely on app navigation */}
@@ -75,7 +75,7 @@ const AuthLayout: React.FC = () => {
           }}
         >
           <Typography variant="body2" color="text.secondary">
-            © {new Date().getFullYear()} YaqeenPay. All rights reserved.
+            © {new Date().getFullYear()} TechTorio. All rights reserved.
           </Typography>
         </Box>
       )}

@@ -22,6 +22,7 @@ import { registerSchema } from '../../utils/validationSchemas';
 import { useAuth } from '../../context/AuthContext';
 import type { z } from 'zod';
 import EmailOtpVerification from './EmailOtpVerification';
+import TechTorioLogo from '../common/TechTorioLogo';
 
 type BuyerRegisterFormData = z.infer<typeof registerSchema>;
 
@@ -124,8 +125,8 @@ const BuyerRegisterForm: React.FC<BuyerRegisterFormProps> = ({ onBack }) => {
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
           Buyer Registration
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Join YaqeenPay to start shopping securely
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+          Join <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', mx: 0.5 }}><TechTorioLogo sx={{ fontSize: '1.2rem', height: '1.2em', width: 'auto' }} /></Box> to start shopping securely
         </Typography>
       </Box>
 

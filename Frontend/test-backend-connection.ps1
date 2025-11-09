@@ -78,7 +78,7 @@ if ($port) {
     } else {
         Write-Host "   ⚠️  No firewall rule found for port $port" -ForegroundColor Yellow
         Write-Host "   You may need to add a firewall rule:" -ForegroundColor White
-        Write-Host "   netsh advfirewall firewall add rule name=`"YaqeenPay Backend`" dir=in action=allow protocol=TCP localport=$port" -ForegroundColor Cyan
+        Write-Host "   netsh advfirewall firewall add rule name=`"TechTorio Backend`" dir=in action=allow protocol=TCP localport=$port" -ForegroundColor Cyan
     }
 } else {
     Write-Host "   ⚠️  Could not extract port from URL" -ForegroundColor Yellow

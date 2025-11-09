@@ -11,7 +11,7 @@ After thorough code review, the implementation was **CORRECT** - funds were NOT 
 ## Changes Made
 
 ### 1. Enhanced ConfirmDeliveryCommandHandler
-**File:** `YaqeenPay.Application/Features/Orders/Commands/ConfirmDelivery/ConfirmDeliveryCommand.cs`
+**File:** `TechTorio.Application/Features/Orders/Commands/ConfirmDelivery/ConfirmDeliveryCommand.cs`
 
 #### Changes:
 - ? Added comprehensive XML documentation explaining the complete 3-stage flow
@@ -46,7 +46,7 @@ After thorough code review, the implementation was **CORRECT** - funds were NOT 
 ```
 
 ### 2. Enhanced PayForOrderCommandHandler
-**File:** `YaqeenPay.Application/Features/Orders/Commands/PayForOrder/PayForOrderCommand.cs`
+**File:** `TechTorio.Application/Features/Orders/Commands/PayForOrder/PayForOrderCommand.cs`
 
 #### Changes:
 - ? Added detailed comments explaining this is the **ONLY** place funds are frozen
@@ -68,14 +68,14 @@ After thorough code review, the implementation was **CORRECT** - funds were NOT 
 ```
 
 ### 3. Enhanced Order Entity
-**File:** `YaqeenPay.Domain/Entities/Order.cs`
+**File:** `TechTorio.Domain/Entities/Order.cs`
 
 #### Changes:
 - ? Updated `CompleteOrder()` comment to clarify wallet transfer happens in handler
 - ? Made it clear that `IsAmountFrozen = false` is just a flag update, not a wallet operation
 
 ### 4. Created Comprehensive Documentation
-**File:** `YaqeenPay.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
+**File:** `TechTorio.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
 
 #### Contents:
 - ? Complete explanation of the 3-stage payment flow
@@ -125,7 +125,7 @@ Funds are frozen **ONCE** during payment and **NEVER** frozen again during deliv
 
 ## Next Steps
 
-1. ? Review the documentation: `YaqeenPay.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
+1. ? Review the documentation: `TechTorio.Application/Features/Orders/PAYMENT_FLOW_DOCUMENTATION.md`
 2. ? Test the complete flow to verify it works as expected
 3. ? Share documentation with the team
 4. ? Consider adding integration tests that verify wallet balances at each stage

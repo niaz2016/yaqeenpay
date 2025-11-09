@@ -1,6 +1,6 @@
-# YaqeenPay Frontend
+# TechTorio Frontend
 
-This is the frontend application for YaqeenPay, an escrow payment platform. It's built with React.js and TypeScript.
+This is the frontend application for TechTorio, an escrow payment platform. It's built with React.js and TypeScript.
 
 ## Technology Stack
 

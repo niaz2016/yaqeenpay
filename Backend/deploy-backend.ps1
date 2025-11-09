@@ -8,12 +8,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  YaqeenPay Backend Deployment" -ForegroundColor Cyan
+Write-Host "  TechTorio Backend Deployment" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Configuration
-$BackendPath = "D:\Work Repos\AI\yaqeenpay\Backend"
+$BackendPath = "D:\Work Repos\AI\techtorio\Backend"
 $PublishPath = "$BackendPath\publish"
 $SSHKey = "C:\Users\Precision\Downloads\firstKey.pem"
 $ServerUser = "ubuntu"
@@ -24,7 +24,7 @@ $ServerPath = "/opt/techtorio/backend/"
 Write-Host "[1/4] Building backend..." -ForegroundColor Yellow
 Set-Location $BackendPath
 
-dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o ".\publish" --nologo
+dotnet publish TechTorio.API/TechTorio.API.csproj -c Release -o ".\publish" --nologo
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Build failed!" -ForegroundColor Red
@@ -129,7 +129,7 @@ Write-Host ""
 # Step 4: Restart API Service
 Write-Host "[4/4] Restarting API service..." -ForegroundColor Yellow
 
-ssh -i "$SSHKey" "${ServerUser}@${ServerIP}" "sudo systemctl restart yaqeenpay"
+ssh -i "$SSHKey" "${ServerUser}@${ServerIP}" "sudo systemctl restart techtorio"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Service restarted successfully" -ForegroundColor Green
@@ -138,7 +138,7 @@ if ($LASTEXITCODE -eq 0) {
     # Wait a moment and check service status
     Start-Sleep -Seconds 2
     Write-Host "Checking service status..." -ForegroundColor Yellow
-    ssh -i "$SSHKey" "${ServerUser}@${ServerIP}" "sudo systemctl status yaqeenpay --no-pager | head -n 10"
+    ssh -i "$SSHKey" "${ServerUser}@${ServerIP}" "sudo systemctl status techtorio --no-pager | head -n 10"
 } else {
     Write-Host "❌ Service restart failed!" -ForegroundColor Red
     exit 1

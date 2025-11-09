@@ -1,12 +1,12 @@
 services:
   backend:
-    image: ${REGISTRY:-registry.dev.tekmobile.online}/yaqeenpaybakend:${TAG:-latest}
-    container_name: yaqeenpay-backend
+    image: ${REGISTRY:-registry.dev.tekmobile.online}/techtoriobakend:${TAG:-latest}
+    container_name: techtorio-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
-      - JwtSettings__Issuer=${JWT_ISSUER:-YaqeenPay}
-      - JwtSettings__Audience=${JWT_AUDIENCE:-YaqeenPayClient}
+      - JwtSettings__Issuer=${JWT_ISSUER:-TechTorio}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-TechTorioClient}
       - JwtSettings__KeyId=${JWT_KEY_ID:-prod-1}
       - "JwtSettings__PrivateKey=${JWT_PRIVATE_KEY:?JWT_PRIVATE_KEY_BASE64_REQUIRED}"
       - "JwtSettings__PublicKey=${JWT_PUBLIC_KEY:?JWT_PUBLIC_KEY_BASE64_REQUIRED}"
@@ -15,7 +15,7 @@ services:
     ports:
       - "${BACKEND_PORT:-5000}:8080"
     networks:
-      - yaqeenpay-network
+      - techtorio-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -25,14 +25,14 @@ services:
       start_period: 40s
 
   frontend:
-    image: ${REGISTRY:-registry.dev.tekmobile.online}/yaqeenpayfrontend:${TAG:-latest}
-    container_name: yaqeenpay-frontend
+    image: ${REGISTRY:-registry.dev.tekmobile.online}/techtoriofrontend:${TAG:-latest}
+    container_name: techtorio-frontend
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:5000/api}
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     networks:
-      - yaqeenpay-network
+      - techtorio-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost || exit 1"]
@@ -42,5 +42,5 @@ services:
       start_period: 40s
 
 networks:
-  yaqeenpay-network:
+  techtorio-network:
     driver: bridge

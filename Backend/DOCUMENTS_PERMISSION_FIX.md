@@ -76,7 +76,7 @@ If uploading manually, these directories will be preserved on the server.
 
 ### Check Service User
 ```bash
-ssh -i "key.pem" ubuntu@techtorio.online "systemctl show yaqeenpay | grep '^User='"
+ssh -i "key.pem" ubuntu@techtorio.online "systemctl show techtorio | grep '^User='"
 # Output: User=www-data
 ```
 
@@ -106,7 +106,7 @@ stat /opt/techtorio/backend/Documents
 ```bash
 sudo chown -R www-data:www-data /opt/techtorio/backend/Documents
 sudo chmod -R 755 /opt/techtorio/backend/Documents
-sudo systemctl restart yaqeenpay
+sudo systemctl restart techtorio
 ```
 
 ### If Service Can't Write to Subdirectories

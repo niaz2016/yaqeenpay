@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yaqeenpay-static-v1';
+const CACHE_NAME = 'techtorio-static-v1';
 const PRECACHE_URLS = [
   '/',
   '/index.html',

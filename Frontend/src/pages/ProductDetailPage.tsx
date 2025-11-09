@@ -134,7 +134,7 @@ const ProductDetailPage: React.FC<{}> = () => {
     if (isHdmiProduct && bandwidth) points.add(`${bandwidth} bandwidth ensures zero lag for PS5, Xbox Series X, and high-refresh PC gaming.`);
     if (isHdmiProduct && cableLength) points.add(`Reliable signal up to ${cableLength} meters with triple-layer shielding.`);
     if (product.brand) points.add(`${product.brand} accessory with local warranty and replacement support in Pakistan.`);
-    points.add(`Secure payment protection with escrow by YaqeenPay - funds held safely until delivery confirmed.`);
+    points.add(`Secure payment protection with escrow by TechTorio - funds held safely until delivery confirmed.`);
     return Array.from(points);
   }, [isHdmiProduct, product]);
 
@@ -356,11 +356,11 @@ const ProductDetailPage: React.FC<{}> = () => {
 
     // Set product-specific meta tags
     const productTitle = isHdmiProduct
-      ? `${product.name} Price in Pakistan | HDMI Cable Online | YaqeenPay`
-      : `${product.name} Price in Pakistan | Buy Online | YaqeenPay`;
+      ? `${product.name} Price in Pakistan | HDMI Cable Online | TechTorio`
+      : `${product.name} Price in Pakistan | Buy Online | TechTorio`;
     const rawDescription = product.description
       ? product.description
-      : `Buy ${product.name} in Pakistan with secure escrow payment. Latest price Rs ${product.effectivePrice}. ${product.isInStock ? 'In stock now' : 'Order with fast restock alerts'}. Safe online shopping at YaqeenPay.`;
+      : `Buy ${product.name} in Pakistan with secure escrow payment. Latest price Rs ${product.effectivePrice}. ${product.isInStock ? 'In stock now' : 'Order with fast restock alerts'}. Safe online shopping at TechTorio.`;
     const extendedDescription = isHdmiProduct
       ? `${rawDescription} Compatible with 4K TVs, PS5, Xbox Series X, and home theatres.`
       : rawDescription;
@@ -393,12 +393,12 @@ const ProductDetailPage: React.FC<{}> = () => {
       setMetaTag('og:image:height', '630', true),
       setMetaTag('og:image:alt', product.name, true),
       setMetaTag('og:locale', 'en_PK', true),
-      setMetaTag('og:site_name', 'YaqeenPay', true),
+      setMetaTag('og:site_name', 'TechTorio', true),
       setMetaTag('product:price:amount', (product.effectivePrice ?? 0).toString(), true),
       setMetaTag('product:price:currency', 'PKR', true),
       setMetaTag('product:availability', product.isInStock ? 'in stock' : 'out of stock', true),
       setMetaTag('product:condition', 'new', true),
-      setMetaTag('product:brand', product.seller?.businessName || 'YaqeenPay', true),
+      setMetaTag('product:brand', product.seller?.businessName || 'TechTorio', true),
       setMetaTag('product:category', product.category?.name || 'General', true),
 
       // Twitter Card tags
@@ -466,7 +466,7 @@ const ProductDetailPage: React.FC<{}> = () => {
       cableType: product.attributes?.type || product.attributes?.Type,
       brand: {
         '@type': 'Brand',
-        name: product.brand || product.seller?.businessName || 'YaqeenPay'
+        name: product.brand || product.seller?.businessName || 'TechTorio'
       },
       additionalProperty: Object.entries(product.attributes || {})
         .filter(([key]) => !['gtin', 'GTIN', 'mpn', 'MPN', 'material', 'Material', 'type', 'Type'].includes(key))
@@ -486,7 +486,7 @@ const ProductDetailPage: React.FC<{}> = () => {
         itemCondition: 'https://schema.org/NewCondition',
         seller: {
           '@type': 'Organization',
-          name: product.seller?.businessName || 'YaqeenPay Seller',
+          name: product.seller?.businessName || 'TechTorio Seller',
           url: 'https://techtorio.online/escrow-market'
         },
         shippingDetails: {
@@ -635,7 +635,7 @@ const ProductDetailPage: React.FC<{}> = () => {
       inLanguage: 'en-PK',
       isPartOf: {
         '@type': 'WebSite',
-        name: 'YaqeenPay',
+        name: 'TechTorio',
         url: 'https://techtorio.online/escrow-market/'
       },
       speakable: {
@@ -652,13 +652,13 @@ const ProductDetailPage: React.FC<{}> = () => {
 
     return () => {
       // Cleanup meta tags and restore defaults
-      document.title = 'YaqeenPay - Secure Escrow Services in Pakistan';
+      document.title = 'TechTorio - Secure Escrow Services in Pakistan';
 
       // Restore default meta tags
-      setMetaTag('title', 'YaqeenPay - Secure Escrow Services in Pakistan | Safe Online Shopping & Payment Protection');
-      setMetaTag('description', "YaqeenPay is Pakistan's trusted escrow service platform providing secure payment protection for online shopping, freelancing, and business transactions. Buy and sell safely with buyer and seller protection, dispute resolution, and secure payment escrow in Pakistan.");
+      setMetaTag('title', 'TechTorio - Secure Escrow Services in Pakistan | Safe Online Shopping & Payment Protection');
+      setMetaTag('description', "TechTorio is Pakistan's trusted escrow service platform providing secure payment protection for online shopping, freelancing, and business transactions. Buy and sell safely with buyer and seller protection, dispute resolution, and secure payment escrow in Pakistan.");
       setMetaTag('og:type', 'website', true);
-      setMetaTag('og:title', 'YaqeenPay - Secure Escrow Services in Pakistan', true);
+      setMetaTag('og:title', 'TechTorio - Secure Escrow Services in Pakistan', true);
       setMetaTag('og:description', "Pakistan's trusted escrow service platform for secure online transactions. Buy and sell safely with payment protection, dispute resolution, and buyer-seller protection.", true);
 
       // Remove product-specific OG tags
@@ -1348,7 +1348,7 @@ const ProductDetailPage: React.FC<{}> = () => {
               <Link component={RouterLink} to={`/marketplace?category=${product.category.id}`} underline="hover" color="primary">
                 {product.category.name}
               </Link>{' '}
-              or explore related cables and adapters on YaqeenPay Marketplace.
+              or explore related cables and adapters on TechTorio Marketplace.
             </Typography>
           )}
 

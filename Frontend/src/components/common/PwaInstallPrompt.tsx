@@ -132,7 +132,7 @@ const PwaInstallPrompt: React.FC<Props> = ({ position = 'bottom' }) => {
         sx={{ width: '100%' }}
       >
         <Box>
-          Install YaqeenPay on your phone for a faster, app-like experience.
+          Install TechTorio on your phone for a faster, app-like experience.
         </Box>
       </Alert>
     </Snackbar>

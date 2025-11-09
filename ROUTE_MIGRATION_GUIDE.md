@@ -1,10 +1,10 @@
-# Route Migration Guide: /yaqeenpay/ → /escrow-market/
+# Route Migration Guide: /techtorio/ → /escrow-market/
 
-This guide documents the complete migration from `techtorio.online/yaqeenpay/` to `techtorio.online/escrow-market/`.
+This guide documents the complete migration from `techtorio.online/techtorio/` to `techtorio.online/escrow-market/`.
 
 ## Overview
 
-All public-facing routes have been updated from `/yaqeenpay/` to `/escrow-market/` while maintaining backward compatibility through 301 redirects. Internal project names (Docker images, database, backend namespaces) remain unchanged.
+All public-facing routes have been updated from `/techtorio/` to `/escrow-market/` while maintaining backward compatibility through 301 redirects. Internal project names (Docker images, database, backend namespaces) remain unchanged.
 
 ## Files Modified
 
@@ -14,7 +14,7 @@ All public-facing routes have been updated from `/yaqeenpay/` to `/escrow-market
 - ✅ `Frontend/src/pages/landing/LandingPage.tsx` - Updated SEO meta tags and JSON-LD
 - ✅ `Frontend/index.html` - Updated all meta tags and JSON-LD schemas
 - ✅ `Frontend/public/manifest.webmanifest` - Updated PWA paths and shortcuts
-- ✅ `Frontend/Dockerfile` - Updated `VITE_BASE_PATH` from `/yaqeenpay/` to `/escrow-market/`
+- ✅ `Frontend/Dockerfile` - Updated `VITE_BASE_PATH` from `/techtorio/` to `/escrow-market/`
 
 ### Gateway Files
 - ✅ `gateway/html/sitemap.xml` - Updated sitemap URL
@@ -24,7 +24,7 @@ All public-facing routes have been updated from `/yaqeenpay/` to `/escrow-market
 - ✅ `nginx/proxy.conf` - Updated Docker compose proxy configuration
 
 ### Deployment Scripts
-- ✅ `deploy/deploy-yaqeenpay.sh` - Updated target directory from `/opt/techtorio/yaqeenpay` to `/opt/techtorio/escrow-market`
+- ✅ `deploy/deploy-techtorio.sh` - Updated target directory from `/opt/techtorio/techtorio` to `/opt/techtorio/escrow-market`
 
 ## Deployment Steps
 
@@ -44,10 +44,10 @@ docker compose -f docker-compose.deploy.yml build frontend
 
 ```bash
 # Tag the image
-docker tag yaqeenpayfrontend:latest localhost:5000/yaqeenpayfrontend:latest
+docker tag techtoriofrontend:latest localhost:5000/techtoriofrontend:latest
 
 # Push to registry
-docker push localhost:5000/yaqeenpayfrontend:latest
+docker push localhost:5000/techtoriofrontend:latest
 ```
 
 ### 3. Backup Production Nginx Configs
@@ -79,7 +79,7 @@ sudo nginx -t
 ```bash
 # On production server
 cd /path/to/deploy
-sudo ./deploy-yaqeenpay.sh
+sudo ./deploy-techtorio.sh
 ```
 
 The script will:
@@ -95,13 +95,13 @@ Check that the new path works:
 curl -I https://techtorio.online/escrow-market/
 # Should return 200 OK
 
-curl -I https://techtorio.online/yaqeenpay/
+curl -I https://techtorio.online/techtorio/
 # Should return 301 redirect to /escrow-market/
 ```
 
 Test in browser:
 - Visit `https://techtorio.online/escrow-market/` - should load frontend
-- Visit `https://techtorio.online/yaqeenpay/` - should redirect to `/escrow-market/`
+- Visit `https://techtorio.online/techtorio/` - should redirect to `/escrow-market/`
 - Check product links: `https://techtorio.online/escrow-market/products/{uuid}/`
 
 ### 7. Update Google Search Console
@@ -111,7 +111,7 @@ Test in browser:
    - `https://techtorio.online/escrow-market/`
    - Main product pages
 3. Monitor 301 redirects in Coverage report
-4. Old `/yaqeenpay/` URLs will gradually update to new paths
+4. Old `/techtorio/` URLs will gradually update to new paths
 
 ### 8. Monitor Error Logs
 
@@ -133,18 +133,18 @@ If issues occur, rollback is straightforward:
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-2. Previous frontend files should still exist at `/opt/techtorio/yaqeenpay/` unless manually deleted
+2. Previous frontend files should still exist at `/opt/techtorio/techtorio/` unless manually deleted
 
 3. Rebuild with old path:
    ```bash
    cd Frontend
-   docker build --build-arg VITE_BASE_PATH=/yaqeenpay/ -t yaqeenpayfrontend:rollback .
+   docker build --build-arg VITE_BASE_PATH=/techtorio/ -t techtoriofrontend:rollback .
    ```
 
 ## Important Notes
 
 ### What Changed
-- ✅ Public URLs: `/yaqeenpay/` → `/escrow-market/`
+- ✅ Public URLs: `/techtorio/` → `/escrow-market/`
 - ✅ Nginx location blocks updated with 301 redirects
 - ✅ Deploy target directory: `/opt/techtorio/escrow-market/`
 - ✅ All frontend source code absolute paths
@@ -152,9 +152,9 @@ If issues occur, rollback is straightforward:
 - ✅ SEO meta tags and JSON-LD schemas
 
 ### What Did NOT Change
-- ❌ Docker image names (`yaqeenpayfrontend`, `yaqeenpaybackend`)
+- ❌ Docker image names (`techtoriofrontend`, `techtoriobackend`)
 - ❌ Docker compose service names
-- ❌ Backend C# namespaces (`YaqeenPay.Domain`, etc.)
+- ❌ Backend C# namespaces (`TechTorio.Domain`, etc.)
 - ❌ Database name
 - ❌ Environment variables (except `VITE_BASE_PATH`)
 - ❌ API endpoints (`/api/...` paths unchanged)
@@ -185,7 +185,7 @@ grep "location /escrow-market/" nginx/techtorio.conf
 **Solution:** Ensure redirect block comes BEFORE main location block:
 ```nginx
 # CORRECT order:
-location ~ ^/yaqeenpay(/.*)?$ {
+location ~ ^/techtorio(/.*)?$ {
     return 301 /escrow-market$1;
 }
 
@@ -209,7 +209,7 @@ After 30 days of successful operation:
 
 1. **Remove old static files:**
    ```bash
-   sudo rm -rf /opt/techtorio/yaqeenpay/
+   sudo rm -rf /opt/techtorio/techtorio/
    ```
 
 2. **Archive old nginx configs:**

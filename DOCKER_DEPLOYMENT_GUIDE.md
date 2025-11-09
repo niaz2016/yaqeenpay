@@ -52,12 +52,12 @@ This script:
 ## Docker Images
 
 ### Current Images
-- **Backend**: `yaqeenpay-backend:latest`
+- **Backend**: `techtorio-backend:latest`
   - .NET 8 Runtime
   - ASP.NET Core API
   - Port: 8080 (internal)
   
-- **Frontend**: `yaqeenpay-frontend:latest`
+- **Frontend**: `techtorio-frontend:latest`
   - Node 20 Alpine (build)
   - Nginx Alpine (runtime)
   - Port: 80
@@ -69,15 +69,15 @@ This script:
 
 Check container status:
 ```powershell
-docker ps --filter "name=yaqeenpay"
+docker ps --filter "name=techtorio"
 ```
 
 Expected output:
 ```
 NAMES                STATUS              PORTS
-yaqeenpay-backend    Up X minutes       8080/tcp
-yaqeenpay-frontend   Up X minutes       80/tcp
-yaqeenpay-postgres   Up X minutes       5432/tcp
+techtorio-backend    Up X minutes       8080/tcp
+techtorio-frontend   Up X minutes       80/tcp
+techtorio-postgres   Up X minutes       5432/tcp
 ```
 
 ## Accessing the Application
@@ -88,9 +88,9 @@ yaqeenpay-postgres   Up X minutes       5432/tcp
 - **Swagger**: http://localhost/api/swagger
 
 ### Production Server
-- **Frontend**: https://techtorio.online/yaqeenpay
-- **API**: https://techtorio.online/yaqeenpay/api
-- **Swagger**: https://techtorio.online/yaqeenpay/api/swagger
+- **Frontend**: https://techtorio.online/techtorio
+- **API**: https://techtorio.online/techtorio/api
+- **Swagger**: https://techtorio.online/techtorio/api/swagger
 
 ## Troubleshooting
 
@@ -103,25 +103,25 @@ docker-compose logs -f
 
 Backend only:
 ```powershell
-docker logs -f yaqeenpay-backend
+docker logs -f techtorio-backend
 ```
 
 Frontend only:
 ```powershell
-docker logs -f yaqeenpay-frontend
+docker logs -f techtorio-frontend
 ```
 
 Database only:
 ```powershell
-docker logs -f yaqeenpay-postgres
+docker logs -f techtorio-postgres
 ```
 
 ### Container Not Starting
 
 Check container status:
 ```powershell
-docker inspect yaqeenpay-backend
-docker inspect yaqeenpay-frontend
+docker inspect techtorio-backend
+docker inspect techtorio-frontend
 ```
 
 ### Rebuild Without Cache
@@ -170,10 +170,10 @@ docker-compose up -d
 ### Build Images
 ```powershell
 # Backend
-docker build -t yaqeenpay-backend:latest ./Backend
+docker build -t techtorio-backend:latest ./Backend
 
 # Frontend  
-docker build -t yaqeenpay-frontend:latest ./Frontend
+docker build -t techtorio-frontend:latest ./Frontend
 ```
 
 ### Start/Stop Containers
@@ -218,7 +218,7 @@ curl http://localhost
 
 ### Database Health
 ```powershell
-docker exec yaqeenpay-postgres pg_isready -U postgres
+docker exec techtorio-postgres pg_isready -U postgres
 ```
 
 ## Production Deployment
@@ -226,12 +226,12 @@ docker exec yaqeenpay-postgres pg_isready -U postgres
 ### Push to Registry (If Using)
 ```powershell
 # Tag images
-docker tag yaqeenpay-backend:latest your-registry/yaqeenpay-backend:latest
-docker tag yaqeenpay-frontend:latest your-registry/yaqeenpay-frontend:latest
+docker tag techtorio-backend:latest your-registry/techtorio-backend:latest
+docker tag techtorio-frontend:latest your-registry/techtorio-frontend:latest
 
 # Push images
-docker push your-registry/yaqeenpay-backend:latest
-docker push your-registry/yaqeenpay-frontend:latest
+docker push your-registry/techtorio-backend:latest
+docker push your-registry/techtorio-frontend:latest
 ```
 
 ### Deploy to Production Server

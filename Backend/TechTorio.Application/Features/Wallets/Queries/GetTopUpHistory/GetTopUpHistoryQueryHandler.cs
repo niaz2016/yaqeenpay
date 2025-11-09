@@ -1,0 +1,80 @@
+using MediatR;
+using TechTorio.Application.Common.Interfaces;
+using TechTorio.Application.Common.Models;
+using TechTorio.Domain.Interfaces;
+
+namespace TechTorio.Application.Features.Wallets.Queries.GetTopUpHistory
+{
+    public class GetTopUpHistoryQueryHandler : IRequestHandler<GetTopUpHistoryQuery, PaginatedList<TopUpDto>>
+    {
+        private readonly IWalletService _walletService;
+        private readonly ICurrentUserService _currentUserService;
+        private readonly ITopUpRepository _topUpRepository;
+
+        public GetTopUpHistoryQueryHandler(
+            IWalletService walletService,
+            ICurrentUserService currentUserService,
+            ITopUpRepository topUpRepository)
+        {
+            _walletService = walletService;
+            _currentUserService = currentUserService;
+            _topUpRepository = topUpRepository;
+        }
+
+        public async Task<PaginatedList<TopUpDto>> Handle(GetTopUpHistoryQuery request, CancellationToken cancellationToken)
+        {
+            var userId = _currentUserService.UserId;
+            
+            // Get total count
+            var totalCount = await _topUpRepository.GetTopUpCountByUserIdAsync(userId);
+            
+            // Get top-ups
+            var topUps = await _topUpRepository.GetByUserIdAsync(
+                userId,
+                request.PageNumber,
+                request.PageSize);
+
+            // Apply server-side filtering if requested
+            if (!string.IsNullOrWhiteSpace(request.Status))
+            {
+                if (Enum.TryParse<TechTorio.Domain.Enums.TopUpStatus>(request.Status, true, out var parsedStatus))
+                {
+                    topUps = topUps.Where(t => t.Status == parsedStatus);
+                }
+            }
+            if (request.DateFrom.HasValue)
+            {
+                topUps = topUps.Where(t => t.RequestedAt >= request.DateFrom.Value);
+            }
+            if (request.DateTo.HasValue)
+            {
+                topUps = topUps.Where(t => t.RequestedAt <= request.DateTo.Value);
+            }
+
+            // Map to DTOs
+            var topUpDtos = topUps.Select(t => new TopUpDto
+            {
+                Id = t.Id,
+                UserId = t.UserId,
+                WalletId = t.WalletId,
+                Amount = t.Amount.Amount,
+                Currency = t.Amount.Currency,
+                Channel = t.Channel,
+                Status = t.Status,
+                ExternalReference = t.ExternalReference,
+                RequestedAt = t.RequestedAt,
+                ConfirmedAt = t.ConfirmedAt,
+                FailedAt = t.FailedAt,
+                FailureReason = t.FailureReason
+            }).ToList();
+
+            // Update totalCount to reflect filtered results
+            var filteredCount = topUpDtos.Count;
+            return new PaginatedList<TopUpDto>(
+                topUpDtos,
+                filteredCount,
+                request.PageNumber,
+                request.PageSize);
+        }
+    }
+}

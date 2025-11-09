@@ -113,7 +113,7 @@ const RegisterForm: React.FC = () => {
   return (
     <Paper elevation={3} sx={{ p: 4, maxWidth: 600, width: '100%', mx: 'auto' }}>
       <Typography variant="h5" component="h1" gutterBottom align="center">
-        Create Your YaqeenPay Account
+        Create Your TechTorio Account
       </Typography>
 
       {error && (

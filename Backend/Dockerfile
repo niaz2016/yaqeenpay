@@ -5,14 +5,14 @@ WORKDIR /src
 
 # Copy solution and NuGet config early to leverage layer caching
 COPY NuGet.Config ./
-COPY YaqeenPay.sln ./
+COPY TechTorio.sln ./
 
 # Copy project files
-COPY YaqeenPay.API/*.csproj ./YaqeenPay.API/
-COPY YaqeenPay.Application/*.csproj ./YaqeenPay.Application/
-COPY YaqeenPay.Domain/*.csproj ./YaqeenPay.Domain/
-COPY YaqeenPay.Infrastructure/*.csproj ./YaqeenPay.Infrastructure/
-COPY YaqeenPay.Shared/*.csproj ./YaqeenPay.Shared/
+COPY TechTorio.API/*.csproj ./TechTorio.API/
+COPY TechTorio.Application/*.csproj ./TechTorio.Application/
+COPY TechTorio.Domain/*.csproj ./TechTorio.Domain/
+COPY TechTorio.Infrastructure/*.csproj ./TechTorio.Infrastructure/
+COPY TechTorio.Shared/*.csproj ./TechTorio.Shared/
 
 # Prevent usage of host-specific fallback package folders
 ENV NUGET_PACKAGES=/root/.nuget/packages \
@@ -27,10 +27,10 @@ RUN dotnet restore --configfile NuGet.Config -p:RestoreFallbackFolders=
 COPY . .
 
 # Build the application (explicitly specify solution to avoid MSB1011)
-RUN dotnet build YaqeenPay.sln -c Release --no-restore
+RUN dotnet build TechTorio.sln -c Release --no-restore
 
 # Publish the application (output to /app/publish)
-RUN dotnet publish YaqeenPay.API/YaqeenPay.API.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish TechTorio.API/TechTorio.API.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
@@ -57,4 +57,4 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 # Start the application
-ENTRYPOINT ["dotnet", "YaqeenPay.API.dll"]
+ENTRYPOINT ["dotnet", "TechTorio.API.dll"]

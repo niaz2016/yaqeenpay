@@ -148,7 +148,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               fontWeight: 'bold',
             }}
           >
-            YaqeenPay
+            TechTorio
           </Typography>
           {/* Hide welcome text on mobile to save space */}
           {!forceMobile && (

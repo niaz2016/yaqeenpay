@@ -248,7 +248,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
       </DialogTitle>
       <DialogContent>
         <Alert severity="info" sx={{ mb: 2 }}>
-          YaqeenPay needs access to certain device features to provide the best payment experience. 
+          TechTorio needs access to certain device features to provide the best payment experience. 
           Your privacy and security are our top priority.
         </Alert>
 
@@ -330,7 +330,7 @@ export const PermissionRequestDialog: React.FC<PermissionRequestDialogProps> = (
 
           {criticalGranted ? (
             <Alert severity="success" sx={{ mb: 2 }}>
-              ✅ All critical permissions granted! You can now use all features of YaqeenPay.
+              ✅ All critical permissions granted! You can now use all features of TechTorio.
             </Alert>
           ) : (
             <Alert severity="warning" sx={{ mb: 2 }}>

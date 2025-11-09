@@ -237,7 +237,7 @@ public async Task<IActionResult> ApplyForSellerRole(ApplyForSellerRoleCommand co
 3. **Monitor logs for detailed errors:**
 ```bash
 ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online
-sudo journalctl -u yaqeenpay -f
+sudo journalctl -u techtorio -f
 ```
 
 ## Related Fixes

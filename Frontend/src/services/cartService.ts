@@ -25,7 +25,7 @@ export interface CartSummary {
 }
 
 class CartService {
-  private readonly CART_KEY = 'yaqeenpay_cart';
+  private readonly CART_KEY = 'techtorio_cart';
 
   // Get all cart items
   getCartItems(): CartItem[] {

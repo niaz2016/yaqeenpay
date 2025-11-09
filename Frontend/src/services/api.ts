@@ -123,7 +123,7 @@ class ApiService {
           .filter((err: string) => 
             err && 
             !err.startsWith('at ') && 
-            !err.includes('YaqeenPay.') &&
+            !err.includes('TechTorio.') &&
             !err.includes('.cs:line')
           );
         if (meaningfulErrors.length > 0) {
@@ -136,7 +136,7 @@ class ApiService {
           .filter((err: string) => 
             err && 
             !err.startsWith('at ') && 
-            !err.includes('YaqeenPay.') &&
+            !err.includes('TechTorio.') &&
             !err.includes('.cs:line')
           );
         if (meaningfulErrors.length > 0) {

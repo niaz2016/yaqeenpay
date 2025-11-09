@@ -166,8 +166,8 @@ const MarketplacePage: React.FC = () => {
         const itemListSchema = {
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            name: 'YaqeenPay Marketplace Products',
-            description: 'Browse and purchase products from verified sellers on YaqeenPay marketplace',
+            name: 'TechTorio Marketplace Products',
+            description: 'Browse and purchase products from verified sellers on TechTorio marketplace',
             url: href,
             numberOfItems: products.length,
             itemListElement: products.slice(0, 10).map((product, index) => ({
@@ -183,7 +183,7 @@ const MarketplacePage: React.FC = () => {
                     availability: product.isInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
                     seller: {
                         '@type': 'Organization',
-                        name: product.seller?.businessName || 'YaqeenPay Seller'
+                        name: product.seller?.businessName || 'TechTorio Seller'
                     }
                 },
                 url: `${window.location.origin}/product/${product.id}`

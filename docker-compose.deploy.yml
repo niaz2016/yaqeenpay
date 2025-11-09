@@ -2,19 +2,19 @@ version: "3.8"
 
 # Deployment compose for host Nginx reverse proxy
 # - Backend published only on 127.0.0.1:5000 (proxied by host Nginx at /api/)
-# - Frontend image pulled for artifact extraction to /opt/techtorio/yaqeenpay (served by host Nginx at /yaqeenpay/)
+# - Frontend image pulled for artifact extraction to /opt/techtorio/techtorio (served by host Nginx at /techtorio/)
 # - Uses a single bridge network for inter-container needs if expanded later
 
 services:
   backend:
-    image: ${REGISTRY:-localhost:5000}/yaqeenpaybackend:${TAG:-latest}
-    container_name: yaqeenpay-backend
+    image: ${REGISTRY:-localhost:5000}/techtoriobackend:${TAG:-latest}
+    container_name: techtorio-backend
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
       # JWT config
-      - JwtSettings__Issuer=${JWT_ISSUER:-YaqeenPay}
-      - JwtSettings__Audience=${JWT_AUDIENCE:-YaqeenPayClient}
+      - JwtSettings__Issuer=${JWT_ISSUER:-TechTorio}
+      - JwtSettings__Audience=${JWT_AUDIENCE:-TechTorioClient}
       - JwtSettings__KeyId=${JWT_KEY_ID:-prod-1}
       - JwtSettings__PrivateKey=${JWT_PRIVATE_KEY}
       - JwtSettings__PublicKey=${JWT_PUBLIC_KEY}
@@ -27,7 +27,7 @@ services:
       # Expose app Documents to host so Nginx can serve /documents if desired
       - /opt/techtorio/backend/Documents:/app/Documents
     networks:
-      - yaqeenpay-network
+      - techtorio-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -36,20 +36,20 @@ services:
       retries: 3
       start_period: 40s
 
-  # Frontend is not exposed publicly by Compose; assets are copied to host and served by host Nginx at /yaqeenpay/
+  # Frontend is not exposed publicly by Compose; assets are copied to host and served by host Nginx at /techtorio/
   # Keeping this service allows us to pull the image and optionally run locally for checks if needed.
   frontend:
-    image: ${REGISTRY:-localhost:5000}/yaqeenpayfrontend:${TAG:-latest}
-    container_name: yaqeenpay-frontend
+    image: ${REGISTRY:-localhost:5000}/techtoriofrontend:${TAG:-latest}
+    container_name: techtorio-frontend
     environment:
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://techtorio.online/api}
     # Uncomment to test containerized serving on localhost if needed
     # ports:
     #   - "127.0.0.1:${FRONTEND_PORT:-3001}:80"
     networks:
-      - yaqeenpay-network
+      - techtorio-network
     restart: "no"
 
 networks:
-  yaqeenpay-network:
+  techtorio-network:
     driver: bridge

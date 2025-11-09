@@ -1,4 +1,4 @@
-# Ngrok Setup for YaqeenPay Development
+# Ngrok Setup for TechTorio Development
 
 ## Installation
 
@@ -78,7 +78,7 @@ ngrok http https://localhost:7137
 
 ### Start Frontend Development Server
 ```bash
-cd d:\Work\ Repos\AI\yaqeenpay\Frontend
+cd d:\Work\ Repos\AI\techtorio\Frontend
 npm run dev
 # This should start on http://localhost:3000
 ```

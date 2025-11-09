@@ -1,4 +1,4 @@
-package com.yaqeenpay.app.plugins;
+package com.techtorio.app.plugins;
 
 import android.Manifest;
 import android.content.Intent;

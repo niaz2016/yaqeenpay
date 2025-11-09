@@ -1,7 +1,7 @@
 # Landing Page Implementation
 
 ## Overview
-The landing page introduces YaqeenPay’s escrow service to new visitors in a clear, educational, and trust‑building manner. It explains how Wallet Credits and escrow work, why it’s safer than direct payments, and guides users to start with confidence. The copy is compliant (non‑bank language), professional, and SEO‑friendly.
+The landing page introduces TechTorio’s escrow service to new visitors in a clear, educational, and trust‑building manner. It explains how Wallet Credits and escrow work, why it’s safer than direct payments, and guides users to start with confidence. The copy is compliant (non‑bank language), professional, and SEO‑friendly.
 
 ## Features Implemented
 
@@ -14,7 +14,7 @@ The landing page introduces YaqeenPay’s escrow service to new visitors in a cl
 - **Trust Indicators**: Statistics showing 10K+ transactions, 99.9% success rate, 24/7 support
 - **Visual Element**: Protective shield mockup with security messaging
 
-### 2. Why Choose YaqeenPay
+### 2. Why Choose TechTorio
 Four key feature cards highlighting:
 - **Secure Escrow**: Wallet Credits securely held in escrow until obligations fulfilled
 - **Verified Users**: Identity verification for added security
@@ -31,7 +31,7 @@ Step-by-step process visualization:
 ### 4. What is Escrow? (Educational)
 - Explains escrow in simple terms with Wallet Credits: buyer pays into escrow, credits are held, seller ships, buyer confirms, credits release
 - Benefits highlighted: payment certainty for sellers, delivery assurance for buyers, clear rules for refunds/disputes
-- Compliance note: YaqeenPay is a technology platform, not a bank/EMI; balances shown as Wallet Credits
+- Compliance note: TechTorio is a technology platform, not a bank/EMI; balances shown as Wallet Credits
 
 ### 5. Popular Use Cases
 - Marketplace deals (electronics, fashion, collectibles)
@@ -42,7 +42,7 @@ Step-by-step process visualization:
 ### 6. Benefits
 - **Educational Content**: Explains why escrow services matter
 - **Benefit List**: Buyer & Seller protection, transparent fees (0% top‑up, 0% purchase/sale, 1% withdrawal), secure Wallet Credits, real‑time notifications, mobile‑friendly, multiple load options
-- **Comparison Table**: Traditional payment vs YaqeenPay escrow
+- **Comparison Table**: Traditional payment vs TechTorio escrow
 
 ### 7. Testimonials
 Three user testimonials representing different user types:

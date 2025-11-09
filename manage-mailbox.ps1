@@ -1,4 +1,4 @@
-# Mailbox Management Script for YaqeenPay Mail Server
+# Mailbox Management Script for TechTorio Mail Server
 # This script helps you create, list, and manage email accounts
 
 param(
@@ -17,7 +17,7 @@ $containerName = "techtorio-mailserver"
 
 function Show-Usage {
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "YaqeenPay Mailbox Management" -ForegroundColor Cyan
+    Write-Host "TechTorio Mailbox Management" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Usage:" -ForegroundColor White

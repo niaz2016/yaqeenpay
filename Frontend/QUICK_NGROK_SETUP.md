@@ -17,7 +17,7 @@ Run this command with your actual auth token:
 ### Frontend Server (Terminal 1)
 ```powershell
 # Make sure you're in the Frontend directory
-cd "D:\Work Repos\AI\yaqeenpay\Frontend"
+cd "D:\Work Repos\AI\techtorio\Frontend"
 npm run dev
 # Should start on http://localhost:3000
 ```
@@ -29,13 +29,13 @@ Make sure your .NET backend is running on https://localhost:7137
 
 ### For Frontend (Terminal 3)
 ```powershell
-cd "D:\Work Repos\AI\yaqeenpay\Frontend"
+cd "D:\Work Repos\AI\techtorio\Frontend"
 .\ngrok.exe http 3000
 ```
 
 ### For Backend (Terminal 4) - Run this in a separate terminal
 ```powershell
-cd "D:\Work Repos\AI\yaqeenpay\Frontend"
+cd "D:\Work Repos\AI\techtorio\Frontend"
 .\ngrok.exe http https://localhost:7137
 ```
 

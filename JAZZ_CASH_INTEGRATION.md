@@ -1,7 +1,7 @@
 # Jazz Cash Payment Integration Documentation
 
 ## Overview
-This document describes the Jazz Cash payment gateway integration implemented for YaqeenPay. The integration supports multiple payment methods including Mobile Account, Voucher payments, Direct Pay, and card-based transactions.
+This document describes the Jazz Cash payment gateway integration implemented for TechTorio. The integration supports multiple payment methods including Mobile Account, Voucher payments, Direct Pay, and card-based transactions.
 
 ## Architecture
 

@@ -1,12 +1,12 @@
 import logger from '../utils/logger';
 
 /**
- * Local Storage Service for YaqeenPay
+ * Local Storage Service for TechTorio
  * Provides safe and consistent localStorage operations with error handling
  */
 
 export class StorageService {
-  private static readonly PREFIX = 'yaqeenpay_';
+  private static readonly PREFIX = 'techtorio_';
 
   /**
    * Get item from localStorage with error handling
@@ -47,7 +47,7 @@ export class StorageService {
   }
 
   /**
-   * Clear all YaqeenPay data from localStorage
+   * Clear all TechTorio data from localStorage
    */
   static clearAll(): boolean {
     try {

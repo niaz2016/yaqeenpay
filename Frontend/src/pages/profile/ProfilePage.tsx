@@ -597,7 +597,7 @@ const ProfilePage: React.FC = () => {
               Notification Settings
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Manage how you receive notifications and communications from YaqeenPay.
+              Manage how you receive notifications and communications from TechTorio.
             </Typography>
 
             <Box sx={{ mt: 3 }}>

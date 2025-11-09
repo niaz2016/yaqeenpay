@@ -419,7 +419,7 @@ const LoginForm: React.FC = () => {
       </Box>
       
       <Typography variant="h5" component="h1" gutterBottom align="center">
-        Login to YaqeenPay
+        Login to TechTorio
       </Typography>
       
       {successMessage && (

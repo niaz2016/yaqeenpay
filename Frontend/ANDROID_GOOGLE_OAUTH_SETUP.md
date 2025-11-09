@@ -12,7 +12,7 @@ Google OAuth configured for web (techtorio.online) doesn't work in Android apps 
 
 For **debug builds** (development):
 ```powershell
-cd "D:\Work Repos\AI\yaqeenpay\Frontend\android"
+cd "D:\Work Repos\AI\techtorio\Frontend\android"
 .\gradlew signingReport
 ```
 
@@ -36,8 +36,8 @@ Copy the **SHA1** value.
 3. Click **"Create Credentials"** → **"OAuth client ID"**
 4. Select **"Android"** as application type
 5. Fill in:
-   - **Name**: YaqeenPay Android App
-   - **Package name**: `com.yaqeenpay.app`
+   - **Name**: TechTorio Android App
+   - **Package name**: `com.techtorio.app`
    - **SHA-1 certificate fingerprint**: [Paste the SHA-1 from Step 1]
 6. Click **"Create"**
 
@@ -66,7 +66,7 @@ VITE_GOOGLE_CLIENT_ID=600351246339-3bb6irmsm0c55agiqgunq8p05nscm2jt.apps.googleu
 ### Step 5: Rebuild APK
 
 ```powershell
-cd "D:\Work Repos\AI\yaqeenpay\Frontend"
+cd "D:\Work Repos\AI\techtorio\Frontend"
 .\build-mobile-apk.ps1
 ```
 
@@ -89,7 +89,7 @@ This provides native Google Sign-In for Android/iOS.
 ## Current Status
 
 - **Web Client ID**: `600351246339-3bb6irmsm0c55agiqgunq8p05nscm2jt.apps.googleusercontent.com`
-- **Package Name**: `com.yaqeenpay.app`
+- **Package Name**: `com.techtorio.app`
 - **SHA-1**: Not yet obtained (run `gradlew signingReport`)
 
 ## Next Steps

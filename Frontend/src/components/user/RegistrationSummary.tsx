@@ -196,7 +196,7 @@ const RegistrationSummary: React.FC<RegistrationSummaryProps> = ({
 					</ListItem>
 					<ListItem>
 						<Typography variant="body2">
-							4. Start selling on YaqeenPay with full seller privileges
+							4. Start selling on TechTorio with full seller privileges
 						</Typography>
 					</ListItem>
 				</List>

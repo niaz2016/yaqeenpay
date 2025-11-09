@@ -1,7 +1,7 @@
-# YaqeenPay Mobile APK Build Script
+# TechTorio Mobile APK Build Script
 # This script ensures proper environment configuration for mobile builds
 
-Write-Host "=== YaqeenPay Mobile APK Build Script ===" -ForegroundColor Cyan
+Write-Host "=== TechTorio Mobile APK Build Script ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Step 1: Check Java
@@ -71,7 +71,7 @@ Write-Host "  APK build successful!" -ForegroundColor Green
 
 # Step 9: Copy APK
 Write-Host "`nStep 8: Copying APK..." -ForegroundColor Yellow
-Copy-Item android\app\build\outputs\apk\debug\app-debug.apk YaqeenPay-production.apk -Force
+Copy-Item android\app\build\outputs\apk\debug\app-debug.apk TechTorio-production.apk -Force
 Write-Host "  APK copied!" -ForegroundColor Green
 
 # Step 10: Restore production environment
@@ -84,9 +84,9 @@ Write-Host "  Production environment restored!" -ForegroundColor Green
 
 # Final summary
 Write-Host "`n=== BUILD COMPLETE ===" -ForegroundColor Green
-$apkInfo = Get-Item YaqeenPay-production.apk
+$apkInfo = Get-Item TechTorio-production.apk
 Write-Host "File: $($apkInfo.Name)" -ForegroundColor Cyan
 Write-Host "Size: $([math]::Round($apkInfo.Length/1MB,2)) MB" -ForegroundColor Cyan
 Write-Host "Time: $($apkInfo.LastWriteTime)" -ForegroundColor Cyan
 Write-Host "`nInstall command:" -ForegroundColor Yellow
-Write-Host 'adb install -r "D:\Work Repos\AI\yaqeenpay\Frontend\YaqeenPay-production.apk"' -ForegroundColor White
+Write-Host 'adb install -r "D:\Work Repos\AI\techtorio\Frontend\TechTorio-production.apk"' -ForegroundColor White

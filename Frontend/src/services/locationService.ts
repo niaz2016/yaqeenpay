@@ -142,7 +142,7 @@ export class LocationService {
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
         {
           headers: {
-            'User-Agent': 'YaqeenPay-Mobile-App'
+            'User-Agent': 'TechTorio-Mobile-App'
           }
         }
       );

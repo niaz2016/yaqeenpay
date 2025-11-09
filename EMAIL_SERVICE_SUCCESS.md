@@ -2,7 +2,7 @@
 
 ## Summary
 
-Your YaqeenPay backend is now fully configured to send emails via Brevo SMTP relay. All 4 email types tested successfully!
+Your TechTorio backend is now fully configured to send emails via Brevo SMTP relay. All 4 email types tested successfully!
 
 ## Configuration Details
 
@@ -52,7 +52,7 @@ All accessible via `https://techtorio.online/api/EmailTest/`
    { 
      "ToEmail": "user@example.com",
      "UserName": "John Doe",
-     "ResetLink": "https://techtorio.online/yaqeenpay/reset-password?token=xyz"
+     "ResetLink": "https://techtorio.online/techtorio/reset-password?token=xyz"
    }
    ```
 
@@ -97,7 +97,7 @@ Use `test-email.ps1` to quickly test emails:
 All emails are professionally designed with:
 - Responsive HTML design
 - Plain text alternatives
-- YaqeenPay branding
+- TechTorio branding
 - Mobile-friendly layout
 - Inline CSS for maximum compatibility
 
@@ -192,7 +192,7 @@ curl https://techtorio.online/api/Diagnostics/email-config
 
 ### View Backend Logs
 ```powershell
-docker logs yaqeenpay-backend --tail 50
+docker logs techtorio-backend --tail 50
 ```
 
 ## Brevo Dashboard

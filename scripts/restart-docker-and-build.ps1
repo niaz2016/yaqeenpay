@@ -9,7 +9,7 @@ Run as Administrator in PowerShell. Usage:
 #>
 
 param(
-    [string]$RepoRoot = 'D:\Work Repos\AI\yaqeenpay',
+    [string]$RepoRoot = 'D:\Work Repos\AI\techtorio',
     [int]$WaitSeconds = 180
 )
 
@@ -93,7 +93,7 @@ Write-Output "[6/8] Building frontend (logged to $logDir\frontend.log)"
 Push-Location -Path (Join-Path $RepoRoot 'Frontend')
 $frontendLog = Join-Path $logDir 'frontend.log'
 try {
-    docker build -t yaqeenpay-frontend:dev -f .\Dockerfile --progress=plain . 2>&1 | Tee-Object -FilePath $frontendLog
+    docker build -t techtorio-frontend:dev -f .\Dockerfile --progress=plain . 2>&1 | Tee-Object -FilePath $frontendLog
 } catch {
     Write-Output "Frontend build command exited with non-zero status. See $frontendLog"
 }
@@ -104,7 +104,7 @@ Write-Output "[7/8] Building backend (logged to $logDir\backend.log)"
 Push-Location -Path (Join-Path $RepoRoot 'Backend')
 $backendLog = Join-Path $logDir 'backend.log'
 try {
-    docker build -t yaqeenpay-backend:dev -f .\Dockerfile --progress=plain . 2>&1 | Tee-Object -FilePath $backendLog
+    docker build -t techtorio-backend:dev -f .\Dockerfile --progress=plain . 2>&1 | Tee-Object -FilePath $backendLog
 } catch {
     Write-Output "Backend build command exited with non-zero status. See $backendLog"
 }

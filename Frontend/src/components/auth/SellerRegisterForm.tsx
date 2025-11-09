@@ -500,7 +500,7 @@ const SellerRegisterForm: React.FC<SellerRegisterFormProps> = ({ onBack }) => {
           Seller Registration
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-          Join YaqeenPay as a trusted seller
+          Join TechTorio as a trusted seller
         </Typography>
       </Box>
 

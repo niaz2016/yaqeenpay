@@ -1,4 +1,4 @@
-// Debug helper for YaqeenPay authentication
+// Debug helper for TechTorio authentication
 // Run this in your browser console
 
 function inspectAuth() {

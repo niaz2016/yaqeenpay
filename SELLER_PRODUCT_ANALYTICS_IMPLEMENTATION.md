@@ -6,7 +6,7 @@ Implemented comprehensive product view analytics for sellers at `/seller/analyti
 ## Features Implemented
 
 ### 1. Backend Enhancements
-**File**: `Backend/YaqeenPay.Application/Features/Analytics/Queries/GetSellerProductViews/GetSellerProductViewsQuery.cs`
+**File**: `Backend/TechTorio.Application/Features/Analytics/Queries/GetSellerProductViews/GetSellerProductViewsQuery.cs`
 
 - Added `DailyViewCount` record to provide time-series data
 - Enhanced `ProductViewStats` to include daily view breakdown (last 30 days)
@@ -147,7 +147,7 @@ interface ProductViewStats {
 ## Files Modified
 
 ### Backend
-1. `Backend/YaqeenPay.Application/Features/Analytics/Queries/GetSellerProductViews/GetSellerProductViewsQuery.cs`
+1. `Backend/TechTorio.Application/Features/Analytics/Queries/GetSellerProductViews/GetSellerProductViewsQuery.cs`
 
 ### Frontend
 1. `Frontend/package.json` - Added recharts dependency
@@ -197,7 +197,7 @@ interface ProductViewStats {
 
 ## Deployment Notes
 
-1. Build backend: `dotnet build Backend/YaqeenPay.API/YaqeenPay.API.csproj`
+1. Build backend: `dotnet build Backend/TechTorio.API/TechTorio.API.csproj`
 2. Install frontend dependencies: `cd Frontend && npm install --legacy-peer-deps`
 3. No database migrations required (existing PageViews table used)
 4. Clear browser cache if experiencing chart rendering issues

@@ -8,17 +8,17 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  YaqeenPay Frontend Deployment" -ForegroundColor Cyan
+Write-Host "  TechTorio Frontend Deployment" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Configuration
-$FrontendPath = "D:\Work Repos\AI\yaqeenpay\Frontend"
+$FrontendPath = "D:\Work Repos\AI\techtorio\Frontend"
 $DistPath = "$FrontendPath\dist"
 $SSHKey = "C:\Users\Precision\Downloads\firstKey.pem"
 $ServerUser = "ubuntu"
 $ServerIP = "techtorio.online"
-$ServerPath = "/opt/techtorio/yaqeenpay/"
+$ServerPath = "/opt/techtorio/techtorio/"
 
 # Step 1: Build Frontend
 Write-Host "[1/3] Building frontend..." -ForegroundColor Yellow
@@ -115,7 +115,7 @@ try {
         Write-Host ""
         Write-Host " Deployment completed successfully!" -ForegroundColor Green
         Write-Host ""
-        Write-Host "Your app is live at: https://techtorio.online/yaqeenpay/" -ForegroundColor Cyan
+        Write-Host "Your app is live at: https://techtorio.online/techtorio/" -ForegroundColor Cyan
     } else {
         Write-Host " Upload failed!" -ForegroundColor Red
         exit 1

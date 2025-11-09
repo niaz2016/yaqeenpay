@@ -1,3 +1,3 @@
 -- Completely drop and recreate the database
-DROP DATABASE IF EXISTS "YaqeenPay";
-CREATE DATABASE "YaqeenPay";
+DROP DATABASE IF EXISTS "TechTorio";
+CREATE DATABASE "TechTorio";

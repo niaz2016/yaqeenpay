@@ -163,7 +163,7 @@ const NotificationSettings: React.FC = () => {
           />
         </Box>
         <Typography variant="body2" color="text.secondary">
-          Configure how you want to receive notifications from YaqeenPay.
+          Configure how you want to receive notifications from TechTorio.
         </Typography>
       </Paper>
 

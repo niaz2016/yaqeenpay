@@ -1,7 +1,7 @@
-# PowerShell script to rebuild APK for YaqeenPay
+# PowerShell script to rebuild APK for TechTorio
 # This ensures clean build with correct environment variables
 
-Write-Host "🔧 YaqeenPay APK Rebuild Script" -ForegroundColor Cyan
+Write-Host "🔧 TechTorio APK Rebuild Script" -ForegroundColor Cyan
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host ""
 

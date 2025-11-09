@@ -1,7 +1,7 @@
 # Backend Performance Optimizations Applied
 
 ## Summary
-Comprehensive performance optimizations applied to YaqeenPay backend API to improve response times and reduce server load.
+Comprehensive performance optimizations applied to TechTorio backend API to improve response times and reduce server load.
 
 ## Optimizations Implemented
 
@@ -176,7 +176,7 @@ curl -I -H "Authorization: Bearer <token>" \
 
 ### 1. Build and Test Locally
 ```powershell
-cd "d:\Work Repos\AI\yaqeenpay\Backend"
+cd "d:\Work Repos\AI\techtorio\Backend"
 dotnet build
 dotnet test
 ```
@@ -190,16 +190,16 @@ dotnet publish -c Release -o ./publish
 scp -i "C:\Users\Precision\Downloads\firstKey.pem" -r ./publish/* ubuntu@techtorio.online:/opt/techtorio/backend/
 
 # Restart service
-ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart yaqeenpay"
+ssh -i "C:\Users\Precision\Downloads\firstKey.pem" ubuntu@techtorio.online "sudo systemctl restart techtorio"
 ```
 
 ### 3. Verify on Server
 ```bash
 # Check service status
-sudo systemctl status yaqeenpay
+sudo systemctl status techtorio
 
 # Check logs
-sudo journalctl -u yaqeenpay -f
+sudo journalctl -u techtorio -f
 
 # Test API
 curl https://techtorio.online/api/health
@@ -269,7 +269,7 @@ If issues occur:
 ## Support
 
 For issues or questions:
-- Check logs: `sudo journalctl -u yaqeenpay -f`
+- Check logs: `sudo journalctl -u techtorio -f`
 - Review error messages in browser DevTools
 - Test individual endpoints with curl/Postman
 

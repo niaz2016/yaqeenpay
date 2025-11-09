@@ -1,5 +1,5 @@
 # ================================================================
-# YAQEENPAY MAIL SERVER - QUICK START GUIDE
+# techtorio MAIL SERVER - QUICK START GUIDE
 # ================================================================
 
 ## ✅ COMPLETED SETUP
@@ -260,7 +260,7 @@ webmail:
   ports:
     - "8082:80"
   networks:
-    - yaqeenpay-network
+    - techtorio-network
 ```
 
 Then access at: `http://localhost:8082`
@@ -303,15 +303,15 @@ docker exec techtorio-mailserver du -sh /var/mail-state
 mkdir mailserver-backup
 
 # Backup mail data
-docker run --rm -v yaqeenpay_mailserver_data:/data -v ${PWD}/mailserver-backup:/backup alpine tar czf /backup/mail-data-backup.tar.gz /data
+docker run --rm -v techtorio_mailserver_data:/data -v ${PWD}/mailserver-backup:/backup alpine tar czf /backup/mail-data-backup.tar.gz /data
 
 # Backup configuration
-docker run --rm -v yaqeenpay_mailserver_config:/config -v ${PWD}/mailserver-backup:/backup alpine tar czf /backup/mail-config-backup.tar.gz /config
+docker run --rm -v techtorio_mailserver_config:/config -v ${PWD}/mailserver-backup:/backup alpine tar czf /backup/mail-config-backup.tar.gz /config
 ```
 
 ### Restore from Backup
 ```powershell
-docker run --rm -v yaqeenpay_mailserver_data:/data -v ${PWD}/mailserver-backup:/backup alpine tar xzf /backup/mail-data-backup.tar.gz -C /
+docker run --rm -v techtorio_mailserver_data:/data -v ${PWD}/mailserver-backup:/backup alpine tar xzf /backup/mail-data-backup.tar.gz -C /
 ```
 
 ---

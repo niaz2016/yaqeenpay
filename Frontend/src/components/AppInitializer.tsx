@@ -126,7 +126,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
       >
         <CircularProgress color="inherit" size={60} sx={{ mb: 2 }} />
         <Typography variant="h6" sx={{ mb: 1 }}>
-          YaqeenPay
+          TechTorio
         </Typography>
         <Typography variant="body2" sx={{ opacity: 0.8 }}>
           Initializing secure payment platform...
@@ -151,7 +151,7 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
           }}
         >
           <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold' }}>
-            YaqeenPay
+            TechTorio
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.8 }}>
             Secure • Fast • Reliable

@@ -1,4 +1,4 @@
-package com.yaqeenpay.app;
+package com.techtorio.app;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -7,8 +7,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
-import com.yaqeenpay.app.plugins.SmsReaderPlugin;
-import com.yaqeenpay.app.plugins.PermissionManagerPlugin;
+import com.techtorio.app.plugins.SmsReaderPlugin;
+import com.techtorio.app.plugins.PermissionManagerPlugin;
 
 public class MainActivity extends BridgeActivity {
     
@@ -60,7 +60,7 @@ public class MainActivity extends BridgeActivity {
             // Log permission results
             for (int i = 0; i < permissions.length; i++) {
                 boolean granted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
-                android.util.Log.d("YaqeenPay", "Permission " + permissions[i] + " granted: " + granted);
+                android.util.Log.d("TechTorio", "Permission " + permissions[i] + " granted: " + granted);
             }
         }
     }

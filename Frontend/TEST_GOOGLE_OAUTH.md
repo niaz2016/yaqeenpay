@@ -3,7 +3,7 @@
 ## Step 1: Install Latest APK
 
 ```powershell
-adb install -r "D:\Work Repos\AI\yaqeenpay\Frontend\YaqeenPay-production.apk"
+adb install -r "D:\Work Repos\AI\techtorio\Frontend\TechTorio-production.apk"
 ```
 
 ## Step 2: Connect Chrome DevTools
@@ -59,7 +59,7 @@ Before Google OAuth, test if password login works (after backend CORS fix):
 If console shows "Google Client ID: Missing", run this:
 
 ```powershell
-cd "D:\Work Repos\AI\yaqeenpay\Frontend"
+cd "D:\Work Repos\AI\techtorio\Frontend"
 
 # Create a test build info file
 @"

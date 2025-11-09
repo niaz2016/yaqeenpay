@@ -11,7 +11,7 @@ export async function mobileGoogleSignIn(clientId: string): Promise<string> {
     throw new Error('Mobile Google Sign-In is only available on native platforms');
   }
 
-  const redirectUri = 'yaqeenpay://auth-callback/google';
+  const redirectUri = 'techtorio://auth-callback/google';
   const base = 'https://techtorio.online/escrow-market/google-mobile.html';
   const authUrl = `${base}?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
@@ -28,7 +28,7 @@ export async function mobileGoogleSignIn(clientId: string): Promise<string> {
       try {
         if (!data || !data.url) return;
         const url = new URL(data.url);
-        if (url.protocol !== 'yaqeenpay:') return;
+        if (url.protocol !== 'techtorio:') return;
         if (url.host !== 'auth-callback') return;
         if (url.pathname !== '/google') return;
         const credential = url.searchParams.get('credential');

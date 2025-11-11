@@ -56,22 +56,34 @@ interface TrackPageViewParams {
 export const trackPageView = async (params: TrackPageViewParams): Promise<void> => {
   try {
     const visitorId = getVisitorId();
-
-    const response = await api.post('/analytics/track', {
+    const payload = {
       pageUrl: params.pageUrl,
       pageType: params.pageType,
       productId: params.productId,
       sellerId: params.sellerId,
       visitorId: visitorId
-    });
+    };
+    
+    console.log('[Analytics] trackPageView - Sending payload:', payload);
+
+    const response = await api.post('/analytics/track', payload);
 
     const responseData = response as { data: { success: boolean } };
 
     if (!responseData.data.success) {
-      console.error('Page view tracking failed:', responseData.data);
+      console.error('[Analytics] Tracking returned success=false. This usually means:', 
+        '\n1. Cooldown active (viewed same page within 1 minute)', 
+        '\n2. Visitor ID is in excluded list',
+        '\nResponse:', responseData.data);
+    } else {
+      console.log('[Analytics] ✓ Page view tracked successfully');
     }
   } catch (error: any) {
-    console.error('Page view tracking failed with error:', error.response?.data || error.message);
+    console.error('[Analytics] ✗ API error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
   }
 };
 

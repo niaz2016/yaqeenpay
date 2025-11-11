@@ -43,12 +43,12 @@ namespace TechTorio.Infrastructure.Services.Sms
             var normalized = NormalizePakistaniPhone(phoneNumber) ?? throw new InvalidOperationException($"Invalid recipient phone provided: '{phoneNumber}'");
 
             // Ensure special characters in the action path are safely URL-encoded
-            var baseUrl = (_options.BaseUrl ?? "https://trigger.macrodroid.com").TrimEnd('/');
+            var baseUrl = (_options.BaseUrl ?? "http://100.92.135.232:8080").TrimEnd('/');
             var keySegment = (_options.Key ?? string.Empty).Trim();
             var actionRaw = (_options.Action ?? string.Empty).Trim();
             var actionSegment = Uri.EscapeDataString(actionRaw);
 
-            var url = $"{baseUrl}/{keySegment}/{actionSegment}?{_options.OtpParamName}={Uri.EscapeDataString(otp)}&{_options.ReceiverParamName}={Uri.EscapeDataString(normalized)}";
+            var url = $"{baseUrl}/{actionSegment}?{_options.OtpParamName}={Uri.EscapeDataString(otp)}&{_options.ReceiverParamName}={Uri.EscapeDataString(normalized)}";
 
             var client = _httpClientFactory.CreateClient();
             var resp = await client.GetAsync(url, cancellationToken);

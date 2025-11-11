@@ -71,7 +71,7 @@ const TopUpForm: React.FC<Props> = ({ submitting }) => {
   const [backgroundVerifying, setBackgroundVerifying] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const POLL_INTERVAL_MS = 4000; // 4s
-  const POLL_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes lock extension window
+  const POLL_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes lock extension window
 
   // Fetch current balance on component mount
   React.useEffect(() => {

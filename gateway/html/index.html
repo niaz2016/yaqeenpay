@@ -49,60 +49,72 @@
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/styles.css" />
-  <!-- Consolidated Schema.org JSON-LD (Organization, Service, Reviews) -->
   <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://techtorio.online/#organization",
-            "name": "Escrow Service",
-            "url": "https://techtorio.online",
-            "logo": "https://techtorio.online/logo.svg",
-            "description": "Secure escrow services and marketplace in Pakistan providing payment protection, dispute resolution, and local support.",
-            "address": {
-              "@type": "PostalAddress",
-              "streetAddress": "Online Services",
-              "addressLocality": "Islamabad",
-              "postalCode": "45500",
-              "addressCountry": "PK"
-            },
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "email": "support@techtorio.online",
-              "contactType": "Customer Support",
-              "areaServed": "PK"
-            }
-          },
-
-          {
-            "@type": "Service",
-            "@id": "https://techtorio.online/#service-escrow",
-            "name": "Escrow Service",
-            "url": "https://techtorio.online/",
-            "description": "Escrow payment protection for buyers and sellers in Pakistan. Funds are held securely until delivery confirmation and dispute resolution is available when needed.",
-            "provider": { "@id": "https://techtorio.online/#organization" }
-          },
-
-          {
-            "@type": "Review",
-            "@id": "https://techtorio.online/#review-1",
-            "itemReviewed": {
-              "@id": "https://techtorio.online/#service-escrow"
-            },
-            "author": { "@type": "Person", "name": "Ahmed Khan" },
-            "datePublished": "2025-10-15",
-            "reviewRating": {
-              "@type": "Rating",
-              "ratingValue": "5",
-              "bestRating": "5"
-            },
-            "reviewBody": "Excellent escrow service with timely dispute resolution and reliable support."
-          }
-        ]
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://techtorio.online/#organization",
+      "name": "Techtorio Escrow Services",
+      "url": "https://techtorio.online",
+      "logo": "https://techtorio.online/logo.svg",
+      "description": "Techtorio provides trusted escrow services in Pakistan — ensuring secure online payments, fraud protection, and transparent transactions for buyers and sellers.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Online Escrow & Payment Protection Services",
+        "addressLocality": "Islamabad",
+        "addressRegion": "Islamabad Capital Territory",
+        "postalCode": "45500",
+        "addressCountry": "PK"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "support@techtorio.online",
+        "contactType": "Customer Support",
+        "areaServed": "PK",
+        "availableLanguage": ["English", "Urdu"]
       }
-    </script>
+    },
+    {
+      "@type": "Service",
+      "@id": "https://techtorio.online/#service-escrow",
+      "serviceType": "Online Escrow Payment Protection",
+      "name": "Escrow Services for Online Buyers and Sellers",
+      "url": "https://techtorio.online/",
+      "provider": { "@id": "https://techtorio.online/#organization" },
+      "areaServed": {
+        "@type": "Country",
+        "name": "Pakistan"
+      },
+      "audience": {
+        "@type": "Audience",
+        "audienceType": ["Online buyers", "Sellers", "Freelancers", "Businesses"]
+      },
+      "description": "Techtorio is Pakistan’s trusted online escrow platform offering secure transactions, payment holding, and dispute resolution between buyers and sellers. Perfect for e-commerce, freelancers, and digital service payments.",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "PKR",
+        "price": "0.00",
+        "category": "Financial Services",
+        "availability": "https://schema.org/InStock"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://techtorio.online/#website",
+      "url": "https://techtorio.online",
+      "name": "Techtorio - Secure Escrow & Payment Protection",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://techtorio.online/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ]
+}
+</script>
+
 </head>
 
 <body>
@@ -119,7 +131,7 @@
         <nav class="nav">
           <a href="/escrow-market/" class="nav__link">Escrow Services</a>
           <a href="#features" class="nav__link">Features</a>
-          <a href="/privacy" class="nav__link">Privacy Policy</a>
+          <a href="/escrow-market/privacy" class="nav__link">Privacy Policy</a>
           <a href="mailto:mmaxhillh@gmail.com" class="nav__link">Contact</a>
         </nav>
       </div>
@@ -400,8 +412,8 @@
             reserved.
           </p>
         </div>
-        <a href="https://techtorio.online/privacy" rel="noopener">Privacy Policy</a>
-        <a href="https://techtorio.online/terms" rel="noopener">Terms of Service</a>
+        <a href="https://techtorio.online/escrow-market/privacy" rel="noopener">Privacy Policy</a>
+        <a href="https://techtorio.online/escrow-market/terms" rel="noopener">Terms of Service</a>
         <a href="mailto:mmaxhillh@gmail.com">Contact</a>
         </nav>
       </div>

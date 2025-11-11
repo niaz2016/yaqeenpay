@@ -54,7 +54,7 @@ const TopUpQrModal: React.FC<Props> = ({ open, submitting, onClose }) => {
   const [paymentClaimed, setPaymentClaimed] = useState(false);
   const [polling, setPolling] = useState(false);
   const POLL_INTERVAL_MS = 4000; // 4s
-  const POLL_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes lock extension window
+  const POLL_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes lock extension window
   
   const currentBalanceRef = useRef(currentBalance);
   currentBalanceRef.current = currentBalance;

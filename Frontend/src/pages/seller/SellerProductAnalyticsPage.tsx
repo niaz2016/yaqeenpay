@@ -264,7 +264,7 @@ const SellerProductAnalyticsPage: React.FC = () => {
                 {totalFavorites.toLocaleString()}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Times products were favorited (heart)
+                People favourited your products
               </Typography>
             </CardContent>
           </Card>
@@ -334,9 +334,8 @@ const SellerProductAnalyticsPage: React.FC = () => {
                 size="small"
               >
                 <ToggleButton value="table">Table</ToggleButton>
-                <ToggleButton value="detailed">Detailed</ToggleButton>
+                <ToggleButton value="detailed">Graph</ToggleButton>
               </ToggleButtonGroup>
-
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <FormControl size="small">
                   <InputLabel id="chart-period-label">Period</InputLabel>

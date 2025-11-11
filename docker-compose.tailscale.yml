@@ -1,0 +1,51 @@
+# docker-compose override to run Tailscale as a sidecar for local/dev
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
+# Notes:
+# - Create a file `.env.local` with TAILSCALE_AUTHKEY and ANDROIDSMS_SECRET or export them in your environment.
+# - On Docker Desktop (Windows) this requires Docker Engine that supports privileged containers and /dev/net/tun.
+# - Prefer host-level tailscaled on Linux for production.
+
+version: "3.8"
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: techtorio-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    pid: "host"
+    environment:
+      - TAILSCALE_AUTHKEY=${TAILSCALE_AUTHKEY}
+    command: >
+      sh -c "tailscaled --state=/var/lib/tailscale/tailscaled.state & sleep 1; \
+             tailscale up --authkey=${TAILSCALE_AUTHKEY} --hostname=techtorio-backend --accept-routes || tail -f /var/lib/tailscale/tailscaled.state"
+    restart: unless-stopped
+
+  # Option A: keep backend separate but dependent on tailscale; backend will reach tailscale IPs
+  backend:
+    depends_on:
+      - tailscale
+    environment:
+      - AndroidSms__BaseUrl=http://100.92.135.232:8080
+      - AndroidSms__SecretKey=${ANDROIDSMS_SECRET}
+    restart: unless-stopped
+
+# Option B: put backend in the same network namespace as tailscale (Linux only)
+# Uncomment the following lines and remove the `backend` service network config in your main compose
+# to run the backend in the same network namespace as the tailscale container.
+# backend:
+#   network_mode: "service:tailscale"
+#   environment:
+#     - AndroidSms__BaseUrl=http://100.92.135.232:8080
+#     - AndroidSms__SecretKey=${ANDROIDSMS_SECRET}
+#   depends_on:
+#     - tailscale
+#   restart: unless-stopped
+
+volumes:
+  tailscale-state:

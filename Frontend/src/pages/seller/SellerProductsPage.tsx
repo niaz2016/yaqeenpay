@@ -37,6 +37,7 @@ import analyticsService from '../../services/analyticsService';
 import TopRightToast from '../../components/TopRightToast';
 import type { Category as ServiceCategory } from '../../services/categoryService';
 import CategorySelector from '../../components/CategorySelector';
+import TrackProductView from './TrackProductView';
 
 interface Product {
   id: string;
@@ -371,7 +372,11 @@ const SellerProductsPage: React.FC = () => {
           gap: 3 
         }}>
           {products.map(product => (
-            <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Card key={product.id} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                {/* Track seller's own product view for analytics */}
+                {product.status === 'Active' && (
+                  <TrackProductView productId={product.id} sellerId={product.category?.id} />
+                )}
               <CardMedia
                 component="img"
                 height="200"

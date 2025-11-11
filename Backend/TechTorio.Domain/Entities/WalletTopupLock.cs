@@ -9,7 +9,7 @@ namespace TechTorio.Domain.Entities
         public Guid UserId { get; private set; }
         public Money Amount { get; private set; } = null!;
         public DateTime LockedAt { get; private set; }
-        public DateTime ExpiresAt { get; private set; } = DateTime.UtcNow.AddMinutes(2);
+    public DateTime ExpiresAt { get; private set; } = DateTime.UtcNow.AddMinutes(3);
         public TopupLockStatus Status { get; private set; }
         public string? TransactionReference { get; private set; }
 
@@ -73,8 +73,8 @@ namespace TechTorio.Domain.Entities
                 throw new InvalidOperationException("Can only mark awaiting confirmation from Locked or AwaitingConfirmation states");
             if (IsExpired()) throw new InvalidOperationException("Cannot extend expired lock");
             Status = TopupLockStatus.AwaitingConfirmation;
-            // Cap extension to +2 minutes from now (business rule)
-            var cap = DateTime.UtcNow.AddMinutes(Math.Min(extendMinutes, 2));
+            // Cap extension to +3 minutes from now (business rule)
+            var cap = DateTime.UtcNow.AddMinutes(Math.Min(extendMinutes, 3));
             if (cap > ExpiresAt)
             {
                 typeof(WalletTopupLock).GetProperty("ExpiresAt")!.SetValue(this, cap);

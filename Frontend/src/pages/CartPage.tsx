@@ -57,7 +57,7 @@ const CartPage: React.FC = () => {
     if (newQuantity < 1) return;
 
     try {
-      const success = cartService.updateQuantity(itemId, newQuantity);
+      const success = await cartService.updateQuantity(itemId, newQuantity);
       if (success) {
         fetchCart(); // Refresh cart display
       } else {
@@ -71,7 +71,7 @@ const CartPage: React.FC = () => {
 
   const removeItem = async (itemId: string) => {
     try {
-      const success = cartService.removeFromCart(itemId);
+      const success = await cartService.removeFromCart(itemId);
       if (success) {
         fetchCart(); // Refresh cart display
       } else {

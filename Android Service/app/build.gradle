@@ -1,0 +1,61 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Read the keystore properties
+Properties keystoreProperties = new Properties()
+if (rootProject.file("keystore.properties").exists()) {
+    rootProject.file("keystore.properties").withReader('UTF-8') { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
+android {
+    namespace 'com.techtorio.smswebhook'
+    compileSdk 34
+
+    signingConfigs {
+        release {
+            if (keystoreProperties.size() > 0) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.techtorio.smswebhook"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false // Disabled to prevent Play Protect warnings for personal use
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
+    // SignalR Java client for persistent connection to backend
+    implementation 'com.microsoft.signalr:signalr:6.0.5'
+    // Gson for JSON parsing of incoming payloads
+    implementation 'com.google.code.gson:gson:2.10.1'
+}

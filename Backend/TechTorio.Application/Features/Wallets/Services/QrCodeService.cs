@@ -17,22 +17,22 @@ namespace TechTorio.Application.Features.Wallets.Services
             _configuration = configuration;
         }
 
-        /// <summary>
         ///  0002020102120202000424 PK79HABB0164030042945446 05 03 100   0712 051020251230 1004 DEC3
         ///  0002020102120202000424 PK79HABB0164030042945446 05 03 100   0712 151020251159 1004 CF51	    100	    15102025
         ///  0002020102120202000424 PK79HABB0164030042945446 05 04 9999  0712 151020251159 1004 D815	    9999	15102025
         ///  0002020102120202000424 PK79HABB0164030042945446 05 04 1000  0712 151020251159 1004 24E7	    1000	15102025
         ///  0002020102120202000424 PK79HABB0164030042945446 05 03 500   0712 031120251159 1004 7070	    500	    03112025
         ///  0002020102120202000424 PK79HABB0164030042945446 05 05 10000 0712 151020251159 1004 BAEE	    10000	15102025
-        /// </summary>
-        /// <param name="transactionReference"></param>
-        /// <param name="amount"></param>
-        /// <param name="baseUrl"></param>
-        /// <returns></returns>
+        ///  0002020102120202000424 PK37HABB0014167901035003 05 03 888   0712 111020250206 1004 EBD0        888     11102025 0206    
 
         public Task<string> GenerateQrImageAsync(string transactionReference, decimal amount, string? baseUrl = null)
         {
-            DateTime expiry = DateTime.Now.AddMinutes(2);
+            // Get current time in Pakistan Standard Time
+            TimeZoneInfo pakistanTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Pakistan Standard Time");
+            DateTime pakistanNow = TimeZoneInfo.ConvertTime(DateTime.Now, pakistanTimeZone);
+            
+            // Set expiry to end of the previous day (23:59) plus 2 minutes in Pakistan time
+            DateTime expiry = pakistanNow.AddMinutes(2);
             string qrString = GenerateQrString(amount, expiry);
             // Here you would generate the QR image using qrString and return its path or base64
             // For now, just return the QR string as a placeholder

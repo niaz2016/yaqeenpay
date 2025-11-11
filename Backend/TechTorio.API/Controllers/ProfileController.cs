@@ -164,10 +164,11 @@ public class ProfileController : ApiControllerBase
             // Mark that we're sending an SMS now
             await _otpService.GenerateOtpAsync(smsCooldownKey, length: 1, expirySeconds: 60);
             
-            // Enqueue SMS via outbox
+            // Enqueue SMS via outbox with proper OTP message template
+            // Template uses {varOTP} placeholder which will be replaced with actual OTP by the Android app
             await _outboxService.EnqueueAsync(
                 type: "sms",
-                payload: new { to = phoneNumber, template = "PHONE_VERIFY", code = otp });
+                payload: new { to = phoneNumber, template = "Your TechTorio verification code is {varOTP}. Do not share this code with anyone.", code = otp });
         }
 
         // Mask phone for response

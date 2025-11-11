@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using TechTorio.Application.Common.Interfaces;
+using TechTorio.Infrastructure.Services.Sms;
 using TechTorio.Application.Common.Models;
 using TechTorio.Domain.Entities.Identity;
 using TechTorio.Domain.Interfaces;
@@ -292,10 +293,18 @@ public static class DependencyInjection
         // Register OutboxService for notifications
         services.AddScoped<IOutboxService, OutboxService>();
         services.Configure<Services.OutboxDispatcherOptions>(configuration.GetSection("OutboxDispatcher"));
-        services.Configure<Services.MacroDroidOptions>(configuration.GetSection("MacroDroid"));
-    services.AddHttpClient(); // default client for external calls (MacroDroid)
-    services.AddScoped<TechTorio.Application.Common.Interfaces.ISmsSender, TechTorio.Infrastructure.Services.Sms.MacroDroidSmsSender>();
-    services.AddHostedService<Services.OutboxDispatcherService>();
+        
+    // SMS Service Configuration - Use Composite sender (SignalR push preferred, fallback to Android HTTP)
+    services.Configure<Services.AndroidSmsOptions>(configuration.GetSection("AndroidSms"));
+    services.AddHttpClient(); // default client for external calls (Android SMS Service)
+
+    // Device registry and device push service are implemented in API project; register a placeholder here
+    // The API project will register a concrete IDeviceRegistry and IDevicePushService when building the web host.
+    // Register AndroidSmsSender so CompositeSmsSender can use it as a fallback.
+    services.AddScoped<AndroidSmsSender>();
+    services.AddScoped<TechTorio.Application.Common.Interfaces.ISmsSender, TechTorio.Infrastructure.Services.Sms.CompositeSmsSender>();
+        
+        services.AddHostedService<Services.OutboxDispatcherService>();
 
         // Redis & OTP - Use in-memory OTP service if Redis is disabled in configuration
         var useInMemoryOtp = configuration["Redis:UseInMemory"] == "true";

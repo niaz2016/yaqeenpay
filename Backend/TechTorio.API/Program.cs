@@ -1,6 +1,8 @@
 using Microsoft.OpenApi.Models;
 using TechTorio.API.Middleware;
 using TechTorio.API.Services;
+using TechTorio.API.Hubs;
+using TechTorio.Application.Common.Interfaces;
 using TechTorio.Application;
 using TechTorio.Infrastructure;
 using TechTorio.Infrastructure.Identity;
@@ -13,6 +15,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Register SignalR and device push/registry services used for device persistent connections (SignalR)
+builder.Services.AddSignalR();
+// DeviceConnectionManager keeps runtime mappings - singleton so connections remain tracked
+builder.Services.AddSingleton<TechTorio.Application.Common.Interfaces.IDeviceRegistry, TechTorio.API.Services.DeviceConnectionManager>();
+builder.Services.AddScoped<TechTorio.Application.Common.Interfaces.IDevicePushService, TechTorio.API.Services.SignalRDevicePushService>();
 
 // Add Memory Cache for AdminConfigurationService
 builder.Services.AddMemoryCache();
@@ -163,6 +171,33 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Enable response compression
 app.UseResponseCompression();
 
+// Diagnostic middleware: log incoming negotiate requests so we can see method/headers
+// This helps diagnose cases where POST->GET conversion happens (redirects/proxy issues).
+app.Use(async (context, next) =>
+{
+    try
+    {
+        var path = context.Request.Path.Value ?? string.Empty;
+        if (path.StartsWith("/hubs/device", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/hubs/device", StringComparison.OrdinalIgnoreCase))
+        {
+            var logger = app.Logger;
+            logger.LogInformation("SignalR diagnostic - incoming request: {Method} {Path}", context.Request.Method, context.Request.Path);
+            // Log a few helpful headers
+            if (context.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+                logger.LogInformation("SignalR diagnostic - X-Forwarded-Proto: {Value}", context.Request.Headers["X-Forwarded-Proto"].ToString());
+            if (context.Request.Headers.ContainsKey("X-Forwarded-For"))
+                logger.LogInformation("SignalR diagnostic - X-Forwarded-For: {Value}", context.Request.Headers["X-Forwarded-For"].ToString());
+            if (context.Request.Headers.ContainsKey("Upgrade"))
+                logger.LogInformation("SignalR diagnostic - Upgrade: {Value}", context.Request.Headers["Upgrade"].ToString());
+            if (context.Request.Headers.ContainsKey("Connection"))
+                logger.LogInformation("SignalR diagnostic - Connection: {Value}", context.Request.Headers["Connection"].ToString());
+        }
+    }
+    catch { /* swallow logging errors to avoid interfering with request processing */ }
+    await next();
+});
+
 app.UseCors("AllowAll");
 
 app.UseAuthentication();
@@ -199,6 +234,13 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.MapControllers();
+
+// Map SignalR hubs
+app.MapHub<DeviceHub>("/hubs/device");
+// Also map under /api/hubs/device as some reverse-proxy setups forward to an '/api' prefix.
+// This is a low-risk, backward compatible fallback so clients that connect to
+// https://example.com/api/hubs/device will succeed even when the app is hosted at root.
+app.MapHub<DeviceHub>("/api/hubs/device");
 
 // Lightweight health endpoint for Docker healthcheck
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));

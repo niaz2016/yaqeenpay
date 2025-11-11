@@ -55,6 +55,22 @@ public class TrackPageViewCommandHandler : IRequestHandler<TrackPageViewCommand,
         {
             sellerId = parsedSellerId;
         }
+        
+        // If SellerId is not provided but ProductId is, look up the SellerId from the product
+        // This ensures seller analytics work even if the frontend doesn't send SellerId
+        if (sellerId == null && productId.HasValue)
+        {
+            var product = await _context.Products
+                .Where(p => p.Id == productId.Value)
+                .Select(p => new { p.SellerId })
+                .FirstOrDefaultAsync(cancellationToken);
+            
+            if (product != null)
+            {
+                sellerId = product.SellerId;
+                _logger.LogInformation("SellerId not provided by client, looked up from product: SellerId={SellerId}, ProductId={ProductId}", sellerId, productId);
+            }
+        }
 
         // Check for duplicate view within cooldown period
         var recentView = await _context.PageViews

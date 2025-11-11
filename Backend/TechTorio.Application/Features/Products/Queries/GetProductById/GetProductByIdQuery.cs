@@ -68,19 +68,19 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, A
                 Name = product.Category.Name,
                 Description = product.Category.Description
             },
-            Seller = product.Seller.BusinessProfile != null ? new GetSellerProducts.SellerDto
+            Seller = new GetSellerProducts.SellerDto
             {
                 Id = product.Seller.Id,
-                BusinessName = product.Seller.BusinessProfile.BusinessName,
+                BusinessName = product.Seller.BusinessProfile?.BusinessName ?? string.Empty,
                 PhoneNumber = product.Seller.PhoneNumber ?? string.Empty
-            } : null,
-            Images = product.ProductImages.Select(img => new GetSellerProducts.ProductImageDto
+            },
+            Images = [.. product.ProductImages.Select(img => new GetSellerProducts.ProductImageDto
             {
                 ImageUrl = img.ImageUrl,
                 AltText = img.AltText ?? string.Empty,
                 SortOrder = img.SortOrder,
                 IsPrimary = img.IsPrimary
-            }).ToList(),
+            })],
             Attributes = product.Attributes?.ToDictionary(kvp => kvp.Key, kvp => kvp.Value) ?? new Dictionary<string, string>(),
             Tags = product.Tags?.ToList() ?? new List<string>(),
             Brand = product.Brand,

@@ -1,5 +1,8 @@
 // Cart service for managing shopping cart functionality
-// Uses localStorage until backend cart API is implemented
+// Syncs with backend API when user is logged in, uses localStorage for guests
+
+import api from './api';
+import authService from './authService';
 
 export interface CartItem {
   id: string;
@@ -41,7 +44,7 @@ class CartService {
   }
 
   // Add item to cart
-  addToCart(product: {
+  async addToCart(product: {
     id: string;
     name: string;
     price: number;
@@ -50,7 +53,7 @@ class CartService {
     sku: string;
     images?: Array<{ imageUrl?: string; ImageUrl?: string; isPrimary?: boolean; IsPrimary?: boolean }>;
     seller?: { id: string; businessName: string; phoneNumber?: string };
-  }, quantity: number = 1): boolean {
+  }, quantity: number = 1): Promise<boolean> {
     try {
       const items = this.getCartItems();
       
@@ -92,8 +95,22 @@ class CartService {
         items.push(cartItem);
       }
       
-      // Save updated cart
+      // Save to localStorage first (works for both logged in and guest)
       localStorage.setItem(this.CART_KEY, JSON.stringify(items));
+      
+      // If user is logged in, also sync to backend
+      if (authService.isAuthenticated()) {
+        try {
+          await api.post('/api/cart/add', {
+            productId: product.id,
+            quantity: quantity
+          });
+          console.log('[CartService] Synced to backend successfully');
+        } catch (backendError) {
+          console.error('[CartService] Failed to sync to backend:', backendError);
+          // Don't fail the operation - localStorage update succeeded
+        }
+      }
       
       // Dispatch cart update event for UI components to listen
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
@@ -108,12 +125,24 @@ class CartService {
   }
 
   // Remove item from cart
-  removeFromCart(cartItemId: string): boolean {
+  async removeFromCart(cartItemId: string): Promise<boolean> {
     try {
       const items = this.getCartItems();
+      const itemToRemove = items.find(item => item.id === cartItemId);
       const updatedItems = items.filter(item => item.id !== cartItemId);
       
+      // Update localStorage
       localStorage.setItem(this.CART_KEY, JSON.stringify(updatedItems));
+      
+      // If user is logged in and we found the item, also remove from backend
+      if (authService.isAuthenticated() && itemToRemove) {
+        try {
+          await api.delete(`/api/cart/items/${itemToRemove.productId}`);
+          console.log('[CartService] Removed from backend successfully');
+        } catch (backendError) {
+          console.error('[CartService] Failed to remove from backend:', backendError);
+        }
+      }
       
       // Dispatch cart update event
       window.dispatchEvent(new CustomEvent('cartUpdated', { 
@@ -128,10 +157,10 @@ class CartService {
   }
 
   // Update item quantity
-  updateQuantity(cartItemId: string, newQuantity: number): boolean {
+  async updateQuantity(cartItemId: string, newQuantity: number): Promise<boolean> {
     try {
       if (newQuantity <= 0) {
-        return this.removeFromCart(cartItemId);
+        return await this.removeFromCart(cartItemId);
       }
       
       const items = this.getCartItems();
@@ -144,8 +173,23 @@ class CartService {
           return false;
         }
         
+        const oldQuantity = items[itemIndex].quantity;
         items[itemIndex].quantity = newQuantity;
         localStorage.setItem(this.CART_KEY, JSON.stringify(items));
+        
+        // If user is logged in, sync to backend
+        if (authService.isAuthenticated()) {
+          try {
+            const quantityDiff = newQuantity - oldQuantity;
+            await api.post('/api/cart/add', {
+              productId: items[itemIndex].productId,
+              quantity: quantityDiff
+            });
+            console.log('[CartService] Quantity update synced to backend');
+          } catch (backendError) {
+            console.error('[CartService] Failed to sync quantity update:', backendError);
+          }
+        }
         
         // Dispatch cart update event
         window.dispatchEvent(new CustomEvent('cartUpdated', { 
@@ -161,9 +205,19 @@ class CartService {
   }
 
   // Clear entire cart
-  clearCart(): void {
+  async clearCart(): Promise<void> {
     try {
       localStorage.removeItem(this.CART_KEY);
+      
+      // If user is logged in, also clear backend cart
+      if (authService.isAuthenticated()) {
+        try {
+          await api.delete('/api/cart/clear');
+          console.log('[CartService] Backend cart cleared successfully');
+        } catch (backendError) {
+          console.error('[CartService] Failed to clear backend cart:', backendError);
+        }
+      }
       
       // Dispatch cart update event
       window.dispatchEvent(new CustomEvent('cartUpdated', { 

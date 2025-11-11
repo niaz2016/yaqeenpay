@@ -27,6 +27,8 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=TechTorio;Username=postgres;Password=L-v11wK8XyIadp4g;Port=5432;Pooling=true;MinPoolSize=5;MaxPoolSize=100;CommandTimeout=60;Timeout=60;
       - FRONTEND_URL=https://techtorio.online
+      - AndroidSms__BaseUrl=http://100.92.135.232:8080
+      - AndroidSms__SecretKey=HpV9etXRFDvopdCiNpHXOpFf5x1pnThhyX42F8ZnZF1mJkdc6kV/nHWmdOGHJfjYXxmdkXWYnXYeCZsWc9qIQqMTs9QmB/Ir
     dns:
       - 8.8.8.8
       - 8.8.4.4

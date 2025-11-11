@@ -264,7 +264,7 @@ const MarketplacePage: React.FC = () => {
     const handleAddToCart = async (product: ProductDetail) => {
         try {
 
-            const success = cartService.addToCart(
+            const success = await cartService.addToCart(
                 {
                     id: product.id,
                     name: product.name,

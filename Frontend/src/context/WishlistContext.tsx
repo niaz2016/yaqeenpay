@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ProductDetail } from '../types/product';
+import api from '../services/api';
+import authService from '../services/authService';
 
 interface WishlistContextType {
   items: ProductDetail[];
@@ -37,14 +39,35 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addToWishlist = useCallback((product: ProductDetail) => {
     setItems(currentItems => {
       if (!currentItems.some(item => item.id === product.id)) {
-        return [...currentItems, product];
+        // Add to local state first
+        const updatedItems = [...currentItems, product];
+        
+        // Sync to backend if logged in
+        if (authService.isAuthenticated()) {
+          api.post('/api/wishlist/add', { productId: product.id })
+            .then(() => console.log('[Wishlist] Synced to backend successfully'))
+            .catch(err => console.error('[Wishlist] Failed to sync to backend:', err));
+        }
+        
+        return updatedItems;
       }
       return currentItems;
     });
   }, []);
 
   const removeFromWishlist = useCallback((productId: string) => {
-    setItems(currentItems => currentItems.filter(item => item.id !== productId));
+    setItems(currentItems => {
+      const updatedItems = currentItems.filter(item => item.id !== productId);
+      
+      // Sync to backend if logged in
+      if (authService.isAuthenticated()) {
+        api.delete(`/api/wishlist/items/${productId}`)
+          .then(() => console.log('[Wishlist] Removed from backend successfully'))
+          .catch(err => console.error('[Wishlist] Failed to remove from backend:', err));
+      }
+      
+      return updatedItems;
+    });
   }, []);
 
   const isInWishlist = useCallback((productId: string) => {
@@ -53,6 +76,13 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const clearWishlist = useCallback(() => {
     setItems([]);
+    
+    // Sync to backend if logged in
+    if (authService.isAuthenticated()) {
+      api.delete('/api/wishlist/clear')
+        .then(() => console.log('[Wishlist] Backend wishlist cleared successfully'))
+        .catch(err => console.error('[Wishlist] Failed to clear backend wishlist:', err));
+    }
   }, []);
 
   const value = {

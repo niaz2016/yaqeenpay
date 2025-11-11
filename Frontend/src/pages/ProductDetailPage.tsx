@@ -90,7 +90,9 @@ const ProductDetailPage: React.FC<{}> = () => {
   const { product, loading, error } = useProductCache(id);
   const canonicalSlug = useMemo(() => createSlug(product?.name || ''), [product?.name]);
 
-  // Track page view
+  // Track product page views. Call the hook at top-level (rules of hooks) and
+  // let the hook itself decide whether it has sufficient data to actually send
+  // the tracking event (we added guards there to require both productId and sellerId).
   usePageViewTracking({
     pageType: 'Product',
     productId: product?.id,
@@ -238,7 +240,7 @@ const ProductDetailPage: React.FC<{}> = () => {
     try {
       setAddingToCart(true);
       setCartError(null);
-      const success = cartService.addToCart(itemToAdd, quantity);
+      const success = await cartService.addToCart(itemToAdd, quantity);
       if (success) {
         setAddedToCart(true);
         setQuantity(1);

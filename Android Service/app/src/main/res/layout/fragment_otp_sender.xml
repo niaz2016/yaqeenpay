@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="#F5F5F5">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OTP Sender Configuration"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingBottom="24dp"
+            android:textColor="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Backend Server URL"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etBackendUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="http://your-backend-ip:5000"
+            android:inputType="textUri"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Message Template"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etOtpTemplate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Your OTP is {varOTP}"
+            android:inputType="textMultiLine"
+            android:minLines="2"
+            android:maxLines="4"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Default Country Code (e.g., +1)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etDefaultCountryCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="+1"
+            android:inputType="phone"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Test Receiver Phone"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etOtpTestReceiver"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g., +11234567890"
+            android:inputType="phone"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Device Phone for OTP (this device)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etOtpDevicePhone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g., +923001234567"
+            android:inputType="phone"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Preferred SIM Slot (0 or 1)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingBottom="4dp"
+            android:textColor="#666666" />
+
+        <EditText
+            android:id="@+id/etSimSlot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Leave blank for default"
+            android:inputType="number"
+            android:padding="12dp"
+            android:background="#FFFFFF"
+            android:layout_marginBottom="16dp"
+            android:textSize="14sp" />
+
+        <CheckBox
+            android:id="@+id/cbEnableLanEndpoint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Enable LAN testing endpoint (/send-otp, port 8080)"
+            android:layout_marginBottom="8dp" />
+
+        <CheckBox
+            android:id="@+id/cbRequireHmac"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Require HMAC signature (X-Signature)"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnSaveOtpSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save OTP Settings"
+            android:textSize="16sp"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="#6200EE" />
+
+        <Button
+            android:id="@+id/btnGetDeviceIp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Get Device IP Address"
+            android:textSize="16sp"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="#FF9800" />
+
+        <Button
+            android:id="@+id/btnShowEndpoint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Show Full Endpoint URL"
+            android:textSize="16sp"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="#03A9F4" />
+
+        <Button
+            android:id="@+id/btnTestOtpSend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Test Send OTP"
+            android:textSize="16sp"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp"
+            android:backgroundTint="#4CAF50" />
+
+        <TextView
+            android:id="@+id/tvSignalRLog"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="#FFFFFF"
+            android:padding="8dp"
+            android:text="SignalR logs will appear here..."
+            android:textSize="12sp"
+            android:layout_marginBottom="12dp"
+            android:scrollbars="vertical" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Note: For production, do not expose device endpoints. Use FCM or a secure upstream."
+            android:textSize="12sp"
+            android:textColor="#999999"
+            android:paddingTop="8dp" />
+
+    </LinearLayout>
+
+</ScrollView>
+
+

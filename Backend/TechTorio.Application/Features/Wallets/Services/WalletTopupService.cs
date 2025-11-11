@@ -25,7 +25,7 @@ namespace TechTorio.Application.Features.Wallets.Services
     private readonly ILogger<WalletTopupService> _logger;
     private readonly IConfiguration _config;
         
-    private const int LOCK_EXPIRY_MINUTES = 2; // hard cap at 2 minutes
+    private const int LOCK_EXPIRY_MINUTES = 3; // hard cap at 3 minutes
 
         public WalletTopupService(
             IApplicationDbContext context,

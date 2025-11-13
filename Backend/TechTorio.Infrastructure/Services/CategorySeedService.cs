@@ -18,288 +18,289 @@ public class CategorySeedService
 
     public async Task SeedDefaultCategoriesAsync()
     {
-        // Check if categories already exist
-        var existingCategories = await _context.Categories.CountAsync();
-        if (existingCategories > 0)
-        {
-            return; // Categories already seeded
-        }
+        // Non-destructive idempotent seeding
+        var created = new List<Category>();
 
-        var categories = new List<Category>();
+        // Top-level categories
+        var electronicDevices = await GetOrCreateCategoryAsync("Electronic Devices", "Smartphones, laptops, tablets, and other electronic devices", null, created);
+        var electronicAccessories = await GetOrCreateCategoryAsync("Electronic Accessories", "Chargers, cables, cases, and other electronic accessories", null, created);
+        var homeAppliances = await GetOrCreateCategoryAsync("Home Appliances", "Air conditioners, washing machines, refrigerators, and other home appliances", null, created);
+        var healthBeauty = await GetOrCreateCategoryAsync("Health & Beauty", "Skincare, makeup, fragrances, and personal care products", null, created);
+        var motherBaby = await GetOrCreateCategoryAsync("Mother & Baby", "Baby care, feeding, diapers, and maternity products", null, created);
+        var groceriesPets = await GetOrCreateCategoryAsync("Groceries & Pets", "Food, beverages, pet supplies, and household essentials", null, created);
+        var homeLifestyle = await GetOrCreateCategoryAsync("Home & Lifestyle", "Furniture, home decor, kitchen, bedding, and bath products", null, created);
+        var womensFashion = await GetOrCreateCategoryAsync("Women's Fashion", "Clothing, shoes, bags, and accessories for women", null, created);
+        var mensFashion = await GetOrCreateCategoryAsync("Men's Fashion", "Clothing, shoes, bags, and accessories for men", null, created);
+        var watchesBagsJewellery = await GetOrCreateCategoryAsync("Watches, Bags & Jewellery", "Watches, handbags, jewelry, and fashion accessories", null, created);
+        var sportsOutdoor = await GetOrCreateCategoryAsync("Sports & Outdoor", "Exercise equipment, outdoor gear, and sports accessories", null, created);
+        var automotiveMotorbike = await GetOrCreateCategoryAsync("Automotive & Motorbike", "Car and motorcycle parts, accessories, and maintenance products", null, created);
 
-        // 1. Electronic Devices (3 levels)
-        var electronicDevices = new Category("Electronic Devices", "Smartphones, laptops, tablets, and other electronic devices");
-        electronicDevices.Activate();
-        categories.Add(electronicDevices);
+        // Level 2 subcategories
+        var featurePhones = await GetOrCreateCategoryAsync("Feature Phones", "Basic mobile phones", electronicDevices.Id, created);
+        var reallyLikeNew = await GetOrCreateCategoryAsync("Really Like New", "Refurbished and certified pre-owned devices", electronicDevices.Id, created);
+        var securityCameras = await GetOrCreateCategoryAsync("Security Cameras", "CCTV and security camera systems", electronicDevices.Id, created);
+        var gamingConsoles = await GetOrCreateCategoryAsync("Gaming Consoles", "PlayStation, Xbox, and gaming systems", electronicDevices.Id, created);
+        var smartPhones = await GetOrCreateCategoryAsync("Smart Phones", "Android and iOS smartphones", electronicDevices.Id, created);
+        var camerasDrones = await GetOrCreateCategoryAsync("Cameras & Drones", "Digital cameras, action cams, and drones", electronicDevices.Id, created);
+        var smartWatches = await GetOrCreateCategoryAsync("Smart Watches", "Smartwatches and fitness trackers", electronicDevices.Id, created);
+        var monitors = await GetOrCreateCategoryAsync("Monitors", "Computer monitors and displays", electronicDevices.Id, created);
+        var landlinePhones = await GetOrCreateCategoryAsync("Landline Phones", "Home phones and cordless phones", electronicDevices.Id, created);
+        var laptops = await GetOrCreateCategoryAsync("Laptops", "Laptops and notebooks", electronicDevices.Id, created);
+        var desktops = await GetOrCreateCategoryAsync("Desktops", "Desktop computers and all-in-ones", electronicDevices.Id, created);
 
-        // 2. Electronic Accessories (2 levels)
-        var electronicAccessories = new Category("Electronic Accessories", "Chargers, cables, cases, and other electronic accessories");
-        electronicAccessories.Activate();
-        categories.Add(electronicAccessories);
+        // Electronic Accessories detailed categories
+        await GetOrCreateCategoryAsync("Chargers & Cables", "Phone and laptop chargers, USB cables", electronicAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Cases & Covers", "Phone cases, laptop sleeves, screen protectors", electronicAccessories.Id, created);
+        // Note: Power Banks are better as a mobile accessory; keep a Level-2 reference but don't duplicate if mobile PhoneAccessories has it
+        await GetOrCreateCategoryAsync("Power Banks", "Portable chargers and power banks", electronicAccessories.Id, created);
 
-        // 3. Home Appliances (2 levels)
-        var homeAppliances = new Category("Home Appliances", "Air conditioners, washing machines, refrigerators, and other home appliances");
-        homeAppliances.Activate();
-        categories.Add(homeAppliances);
-
-        // 4. Health & Beauty (2 levels)
-        var healthBeauty = new Category("Health & Beauty", "Skincare, makeup, fragrances, and personal care products");
-        healthBeauty.Activate();
-        categories.Add(healthBeauty);
-
-        // 5. Mother & Baby (2 levels)
-        var motherBaby = new Category("Mother & Baby", "Baby care, feeding, diapers, and maternity products");
-        motherBaby.Activate();
-        categories.Add(motherBaby);
-
-        // 6. Groceries & Pets (2 levels)
-        var groceriesPets = new Category("Groceries & Pets", "Food, beverages, pet supplies, and household essentials");
-        groceriesPets.Activate();
-        categories.Add(groceriesPets);
-
-        // 7. Home & Lifestyle (2 levels)
-        var homeLifestyle = new Category("Home & Lifestyle", "Furniture, home decor, kitchen, bedding, and bath products");
-        homeLifestyle.Activate();
-        categories.Add(homeLifestyle);
-
-        // 8. Women's Fashion (2 levels)
-        var womensFashion = new Category("Women's Fashion", "Clothing, shoes, bags, and accessories for women");
-        womensFashion.Activate();
-        categories.Add(womensFashion);
-
-        // 9. Men's Fashion (2 levels)
-        var mensFashion = new Category("Men's Fashion", "Clothing, shoes, bags, and accessories for men");
-        mensFashion.Activate();
-        categories.Add(mensFashion);
-
-        // 10. Watches, Bags & Jewellery (2 levels)
-        var watchesBagsJewellery = new Category("Watches, Bags & Jewellery", "Watches, handbags, jewelry, and fashion accessories");
-        watchesBagsJewellery.Activate();
-        categories.Add(watchesBagsJewellery);
-
-        // 11. Sports & Outdoor (2 levels)
-        var sportsOutdoor = new Category("Sports & Outdoor", "Exercise equipment, outdoor gear, and sports accessories");
-        sportsOutdoor.Activate();
-        categories.Add(sportsOutdoor);
-
-        // 12. Automotive & Motorbike (2 levels)
-        var automotiveMotorbike = new Category("Automotive & Motorbike", "Car and motorcycle parts, accessories, and maintenance products");
-        automotiveMotorbike.Activate();
-        categories.Add(automotiveMotorbike);
-
-        // Save main categories first to get their IDs
-        await _context.Categories.AddRangeAsync(categories, CancellationToken.None);
-        await _context.SaveChangesAsync(CancellationToken.None);
-
-        // Now add subcategories (Level 2)
-        var subcategories = new List<Category>();
-
-        // Electronic Devices - Level 2
-        var featurePhones = new Category("Feature Phones", "Basic mobile phones", null, electronicDevices.Id);
-        featurePhones.Activate();
-        subcategories.Add(featurePhones);
-
-        var reallyLikeNew = new Category("Really Like New", "Refurbished and certified pre-owned devices", null, electronicDevices.Id);
-        reallyLikeNew.Activate();
-        subcategories.Add(reallyLikeNew);
-
-        var securityCameras = new Category("Security Cameras", "CCTV and security camera systems", null, electronicDevices.Id);
-        securityCameras.Activate();
-        subcategories.Add(securityCameras);
-
-        var gamingConsoles = new Category("Gaming Consoles", "PlayStation, Xbox, and gaming systems", null, electronicDevices.Id);
-        gamingConsoles.Activate();
-        subcategories.Add(gamingConsoles);
-
-        var smartPhones = new Category("Smart Phones", "Android and iOS smartphones", null, electronicDevices.Id);
-        smartPhones.Activate();
-        subcategories.Add(smartPhones);
-
-        var camerasDrones = new Category("Cameras & Drones", "Digital cameras, action cams, and drones", null, electronicDevices.Id);
-        camerasDrones.Activate();
-        subcategories.Add(camerasDrones);
-
-        var smartWatches = new Category("Smart Watches", "Smartwatches and fitness trackers", null, electronicDevices.Id);
-        smartWatches.Activate();
-        subcategories.Add(smartWatches);
-
-        var monitors = new Category("Monitors", "Computer monitors and displays", null, electronicDevices.Id);
-        monitors.Activate();
-        subcategories.Add(monitors);
-
-        var landlinePhones = new Category("Landline Phones", "Home phones and cordless phones", null, electronicDevices.Id);
-        landlinePhones.Activate();
-        subcategories.Add(landlinePhones);
-
-        var laptops = new Category("Laptops", "Laptops and notebooks", null, electronicDevices.Id);
-        laptops.Activate();
-        subcategories.Add(laptops);
-
-        var desktops = new Category("Desktops", "Desktop computers and all-in-ones", null, electronicDevices.Id);
-        desktops.Activate();
-        subcategories.Add(desktops);
-
-    // Electronic Accessories - Level 2
-    subcategories.Add(CreateActiveCategory("Chargers & Cables", "Phone and laptop chargers, USB cables", electronicAccessories.Id));
-    subcategories.Add(CreateActiveCategory("Cases & Covers", "Phone cases, laptop sleeves, screen protectors", electronicAccessories.Id));
-    subcategories.Add(CreateActiveCategory("Power Banks", "Portable chargers and power banks", electronicAccessories.Id));
-    subcategories.Add(CreateActiveCategory("Memory Cards", "SD cards, USB drives, external storage", electronicAccessories.Id));
-
-    // New: Electronic Accessories detailed categories
-    var computerLaptopAccessories = CreateActiveCategory("Computer & Laptop Accessories", "Accessories for computers and laptops such as bags, cooling pads, chargers and docks", electronicAccessories.Id);
-    subcategories.Add(computerLaptopAccessories);
-
-    var mobilePhoneAccessories = CreateActiveCategory("Mobile Phone Accessories", "Phone cases, screen protectors, chargers, earphones, mounts and cables", electronicAccessories.Id);
-    subcategories.Add(mobilePhoneAccessories);
-
-    var cameraAccessories = CreateActiveCategory("Camera Accessories", "Camera bags, tripods, batteries, lenses, filters and lighting", electronicAccessories.Id);
-    subcategories.Add(cameraAccessories);
+        var computerLaptopAccessories = await GetOrCreateCategoryAsync("Computer & Laptop Accessories", "Accessories for computers and laptops such as bags, cooling pads, chargers and docks", electronicAccessories.Id, created);
+        var mobilePhoneAccessories = await GetOrCreateCategoryAsync("Mobile Phone Accessories", "Phone cases, screen protectors, chargers, earphones, mounts and cables", electronicAccessories.Id, created);
+        var cameraAccessories = await GetOrCreateCategoryAsync("Camera Accessories", "Camera bags, tripods, batteries, lenses, filters and lighting", electronicAccessories.Id, created);
 
         // Home Appliances - Level 2
-        subcategories.Add(CreateActiveCategory("Air Conditioners", "Split and window AC units", homeAppliances.Id));
-        subcategories.Add(CreateActiveCategory("Washing Machines", "Front load and top load washing machines", homeAppliances.Id));
-        subcategories.Add(CreateActiveCategory("Refrigerators", "Single and double door refrigerators", homeAppliances.Id));
-        subcategories.Add(CreateActiveCategory("Kitchen Appliances", "Microwaves, blenders, toasters", homeAppliances.Id));
+        await GetOrCreateCategoryAsync("Air Conditioners", "Split and window AC units", homeAppliances.Id, created);
+        await GetOrCreateCategoryAsync("Washing Machines", "Front load and top load washing machines", homeAppliances.Id, created);
+        await GetOrCreateCategoryAsync("Refrigerators", "Single and double door refrigerators", homeAppliances.Id, created);
+        await GetOrCreateCategoryAsync("Kitchen Appliances", "Microwaves, blenders, toasters", homeAppliances.Id, created);
 
         // Health & Beauty - Level 2
-        subcategories.Add(CreateActiveCategory("Skincare", "Face wash, moisturizers, serums", healthBeauty.Id));
-        subcategories.Add(CreateActiveCategory("Makeup", "Lipstick, foundation, eyeshadow", healthBeauty.Id));
-        subcategories.Add(CreateActiveCategory("Fragrances", "Perfumes and body sprays", healthBeauty.Id));
-        subcategories.Add(CreateActiveCategory("Personal Care", "Hair care, bath & body products", healthBeauty.Id));
+        await GetOrCreateCategoryAsync("Skincare", "Face wash, moisturizers, serums", healthBeauty.Id, created);
+        await GetOrCreateCategoryAsync("Makeup", "Lipstick, foundation, eyeshadow", healthBeauty.Id, created);
+        await GetOrCreateCategoryAsync("Fragrances", "Perfumes and body sprays", healthBeauty.Id, created);
+        await GetOrCreateCategoryAsync("Personal Care", "Hair care, bath & body products", healthBeauty.Id, created);
 
         // Mother & Baby - Level 2
-        subcategories.Add(CreateActiveCategory("Baby Care", "Baby shampoo, lotion, wipes", motherBaby.Id));
-        subcategories.Add(CreateActiveCategory("Feeding", "Bottles, formula, baby food", motherBaby.Id));
-        subcategories.Add(CreateActiveCategory("Diapers", "Disposable and cloth diapers", motherBaby.Id));
-        subcategories.Add(CreateActiveCategory("Maternity", "Maternity clothing and accessories", motherBaby.Id));
+        await GetOrCreateCategoryAsync("Baby Care", "Baby shampoo, lotion, wipes", motherBaby.Id, created);
+        await GetOrCreateCategoryAsync("Feeding", "Bottles, formula, baby food", motherBaby.Id, created);
+        await GetOrCreateCategoryAsync("Diapers", "Disposable and cloth diapers", motherBaby.Id, created);
+        await GetOrCreateCategoryAsync("Maternity", "Maternity clothing and accessories", motherBaby.Id, created);
 
         // Groceries & Pets - Level 2
-        subcategories.Add(CreateActiveCategory("Food & Beverages", "Snacks, drinks, packaged foods", groceriesPets.Id));
-        subcategories.Add(CreateActiveCategory("Pet Supplies", "Pet food, toys, accessories", groceriesPets.Id));
-        subcategories.Add(CreateActiveCategory("Household Essentials", "Cleaning supplies, laundry detergent", groceriesPets.Id));
+        await GetOrCreateCategoryAsync("Food & Beverages", "Snacks, drinks, packaged foods", groceriesPets.Id, created);
+        await GetOrCreateCategoryAsync("Pet Supplies", "Pet food, toys, accessories", groceriesPets.Id, created);
+        await GetOrCreateCategoryAsync("Household Essentials", "Cleaning supplies, laundry detergent", groceriesPets.Id, created);
 
         // Home & Lifestyle - Level 2
-        subcategories.Add(CreateActiveCategory("Furniture", "Sofas, tables, chairs, storage", homeLifestyle.Id));
-        subcategories.Add(CreateActiveCategory("Home Decor", "Wall art, lighting, decorative items", homeLifestyle.Id));
-        subcategories.Add(CreateActiveCategory("Kitchen & Dining", "Cookware, dinnerware, utensils", homeLifestyle.Id));
-        subcategories.Add(CreateActiveCategory("Bedding & Bath", "Bed sheets, towels, bathroom accessories", homeLifestyle.Id));
+        await GetOrCreateCategoryAsync("Furniture", "Sofas, tables, chairs, storage", homeLifestyle.Id, created);
+        await GetOrCreateCategoryAsync("Home Decor", "Wall art, lighting, decorative items", homeLifestyle.Id, created);
+        await GetOrCreateCategoryAsync("Kitchen & Dining", "Cookware, dinnerware, utensils", homeLifestyle.Id, created);
+        await GetOrCreateCategoryAsync("Bedding & Bath", "Bed sheets, towels, bathroom accessories", homeLifestyle.Id, created);
 
         // Women's Fashion - Level 2
-        subcategories.Add(CreateActiveCategory("Women's Clothing", "Dresses, tops, jeans, traditional wear", womensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Women's Shoes", "Heels, sandals, sneakers, flats", womensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Women's Bags", "Handbags, clutches, backpacks", womensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Women's Accessories", "Scarves, belts, sunglasses", womensFashion.Id));
+        await GetOrCreateCategoryAsync("Women's Clothing", "Dresses, tops, jeans, traditional wear", womensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Women's Shoes", "Heels, sandals, sneakers, flats", womensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Women's Bags", "Handbags, clutches, backpacks", womensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Women's Accessories", "Scarves, belts, sunglasses", womensFashion.Id, created);
 
         // Men's Fashion - Level 2
-        subcategories.Add(CreateActiveCategory("Men's Clothing", "Shirts, pants, jeans, traditional wear", mensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Men's Shoes", "Formal shoes, sneakers, sandals", mensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Men's Bags", "Backpacks, messenger bags, wallets", mensFashion.Id));
-        subcategories.Add(CreateActiveCategory("Men's Accessories", "Ties, belts, sunglasses", mensFashion.Id));
+        await GetOrCreateCategoryAsync("Men's Clothing", "Shirts, pants, jeans, traditional wear", mensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Men's Shoes", "Formal shoes, sneakers, sandals", mensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Men's Bags", "Backpacks, messenger bags, wallets", mensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Men's Accessories", "Ties, belts, sunglasses", mensFashion.Id, created);
 
         // Watches, Bags & Jewellery - Level 2
-        subcategories.Add(CreateActiveCategory("Watches", "Men's and women's watches", watchesBagsJewellery.Id));
-        subcategories.Add(CreateActiveCategory("Bags & Travel", "Luggage, travel bags, organizers", watchesBagsJewellery.Id));
-        subcategories.Add(CreateActiveCategory("Jewellery", "Necklaces, rings, bracelets, earrings", watchesBagsJewellery.Id));
+        await GetOrCreateCategoryAsync("Watches", "Men's and women's watches", watchesBagsJewellery.Id, created);
+        await GetOrCreateCategoryAsync("Bags & Travel", "Luggage, travel bags, organizers", watchesBagsJewellery.Id, created);
+        await GetOrCreateCategoryAsync("Jewellery", "Necklaces, rings, bracelets, earrings", watchesBagsJewellery.Id, created);
 
         // Sports & Outdoor - Level 2
-        subcategories.Add(CreateActiveCategory("Exercise & Fitness", "Gym equipment, yoga mats, weights", sportsOutdoor.Id));
-        subcategories.Add(CreateActiveCategory("Outdoor Recreation", "Camping, hiking, fishing gear", sportsOutdoor.Id));
-        subcategories.Add(CreateActiveCategory("Sports Accessories", "Balls, protective gear, sportswear", sportsOutdoor.Id));
+        await GetOrCreateCategoryAsync("Exercise & Fitness", "Gym equipment, yoga mats, weights", sportsOutdoor.Id, created);
+        await GetOrCreateCategoryAsync("Outdoor Recreation", "Camping, hiking, fishing gear", sportsOutdoor.Id, created);
+        await GetOrCreateCategoryAsync("Sports Accessories", "Balls, protective gear, sportswear", sportsOutdoor.Id, created);
 
         // Automotive & Motorbike - Level 2
-        subcategories.Add(CreateActiveCategory("Car Accessories", "Car covers, seat covers, organizers", automotiveMotorbike.Id));
-        subcategories.Add(CreateActiveCategory("Car Parts", "Batteries, filters, spark plugs", automotiveMotorbike.Id));
-        subcategories.Add(CreateActiveCategory("Motorbike Accessories", "Helmets, gloves, riding gear", automotiveMotorbike.Id));
+        var carAccessories = await GetOrCreateCategoryAsync("Car Accessories", "Car covers, seat covers, organizers, and interior accessories", automotiveMotorbike.Id, created);
+        var carParts = await GetOrCreateCategoryAsync("Car Parts", "Batteries, filters, spark plugs, and replacement parts", automotiveMotorbike.Id, created);
+        var motorbikeAccessories = await GetOrCreateCategoryAsync("Motorbike Accessories", "Helmets, gloves, riding gear, and bike accessories", automotiveMotorbike.Id, created);
+        var motorbikeParts = await GetOrCreateCategoryAsync("Motorbike Parts", "Engine parts, brakes, tires, and replacement parts", automotiveMotorbike.Id, created);
+        var carElectronics = await GetOrCreateCategoryAsync("Car Electronics", "GPS, dashcams, audio systems, and car tech", automotiveMotorbike.Id, created);
+        var carCare = await GetOrCreateCategoryAsync("Car Care & Maintenance", "Cleaning products, tools, and maintenance items", automotiveMotorbike.Id, created);
+        var tiresWheels = await GetOrCreateCategoryAsync("Tires & Wheels", "Car and bike tires, rims, and wheel accessories", automotiveMotorbike.Id, created);
+        var oilsFluids = await GetOrCreateCategoryAsync("Oils & Fluids", "Engine oil, brake fluid, coolants, and lubricants", automotiveMotorbike.Id, created);
 
-        // Save Level 2 subcategories
-        await _context.Categories.AddRangeAsync(subcategories, CancellationToken.None);
-        await _context.SaveChangesAsync(CancellationToken.None);
+        // Add generic "Other" Level-2 category for each top-level category (idempotent)
+        await GetOrCreateCategoryAsync("Other Electronic Devices", "Other electronic devices not listed above", electronicDevices.Id, created);
+        await GetOrCreateCategoryAsync("Other Electronic Accessories", "Other electronic accessories not listed above", electronicAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Other Home Appliances", "Other home appliances not listed above", homeAppliances.Id, created);
+        await GetOrCreateCategoryAsync("Other Health & Beauty", "Other health & beauty products not listed above", healthBeauty.Id, created);
+        await GetOrCreateCategoryAsync("Other Mother & Baby", "Other mother & baby products not listed above", motherBaby.Id, created);
+        await GetOrCreateCategoryAsync("Other Groceries & Pets", "Other groceries & pet products not listed above", groceriesPets.Id, created);
+        await GetOrCreateCategoryAsync("Other Home & Lifestyle", "Other home & lifestyle products not listed above", homeLifestyle.Id, created);
+        await GetOrCreateCategoryAsync("Other Women's Fashion", "Other women's fashion items not listed above", womensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Other Men's Fashion", "Other men's fashion items not listed above", mensFashion.Id, created);
+        await GetOrCreateCategoryAsync("Other Watches, Bags & Jewellery", "Other watches, bags & jewellery items not listed above", watchesBagsJewellery.Id, created);
+        await GetOrCreateCategoryAsync("Other Sports & Outdoor", "Other sports & outdoor items not listed above", sportsOutdoor.Id, created);
+        await GetOrCreateCategoryAsync("Other Automotive & Motorbike", "Other automotive & motorbike items not listed above", automotiveMotorbike.Id, created);
 
-        // Add a catch-all "Other" Level-3 child for every Level-2 subcategory so users can place uncategorized items
-        var otherChildren = new List<Category>();
-        foreach (var sc in subcategories)
-        {
-            try
-            {
-                // Avoid adding duplicate "Other" if it somehow already exists (by name + parent)
-                otherChildren.Add(CreateActiveCategory("Other", "Miscellaneous / Other items", sc.Id));
-            }
-            catch
-            {
-                // Swallow any unexpected exceptions for robustness in seeding
-            }
-        }
+        // Level 3 brand / type categories (Electronic Devices + accessories + automotive)
+        // Smart Phones - Level 3 (Brands)
+        await GetOrCreateCategoryAsync("Nokia Mobiles", "Nokia feature phones and smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Honor Mobiles", "Honor smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Infinix Mobiles", "Infinix smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Realme Mobiles", "Realme smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Redmi Mobiles", "Xiaomi Redmi smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Oneplus Mobiles", "OnePlus smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Oppo Mobile Phones", "Oppo smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Apple iPhones", "iPhone smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Tecno Mobiles", "Tecno smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Samsung Mobile Phones", "Samsung Galaxy smartphones", smartPhones.Id, created);
+        await GetOrCreateCategoryAsync("Vivo Mobiles", "Vivo smartphones", smartPhones.Id, created);
 
-        if (otherChildren.Count > 0)
-        {
-            await _context.Categories.AddRangeAsync(otherChildren, CancellationToken.None);
-            await _context.SaveChangesAsync(CancellationToken.None);
-        }
+        // Laptops - Level 3 (Brands)
+        await GetOrCreateCategoryAsync("HP", "HP laptops and notebooks", laptops.Id, created);
+        await GetOrCreateCategoryAsync("Dell", "Dell laptops and notebooks", laptops.Id, created);
+        await GetOrCreateCategoryAsync("Lenovo", "Lenovo laptops and ThinkPad", laptops.Id, created);
+        await GetOrCreateCategoryAsync("Asus", "Asus laptops and gaming laptops", laptops.Id, created);
+        await GetOrCreateCategoryAsync("Acer", "Acer laptops and notebooks", laptops.Id, created);
+        await GetOrCreateCategoryAsync("Apple MacBook", "MacBook Air and MacBook Pro", laptops.Id, created);
+        await GetOrCreateCategoryAsync("MSI", "MSI gaming laptops", laptops.Id, created);
 
-    // Now add Level 3 subcategories (brands) for Electronic Devices
-        var brandCategories = new List<Category>
-        {
-            // Smart Phones - Level 3 (Brands)
-            CreateActiveCategory("Nokia Mobiles", "Nokia feature phones and smartphones", smartPhones.Id),
-            CreateActiveCategory("Honor Mobiles", "Honor smartphones", smartPhones.Id),
-            CreateActiveCategory("Infinix Mobiles", "Infinix smartphones", smartPhones.Id),
-            CreateActiveCategory("Realme Mobiles", "Realme smartphones", smartPhones.Id),
-            CreateActiveCategory("Redmi Mobiles", "Xiaomi Redmi smartphones", smartPhones.Id),
-            CreateActiveCategory("Oneplus Mobiles", "OnePlus smartphones", smartPhones.Id),
-            CreateActiveCategory("Oppo Mobile Phones", "Oppo smartphones", smartPhones.Id),
-            CreateActiveCategory("Apple iPhones", "iPhone smartphones", smartPhones.Id),
-            CreateActiveCategory("Tecno Mobiles", "Tecno smartphones", smartPhones.Id),
-            CreateActiveCategory("Samsung Mobile Phones", "Samsung Galaxy smartphones", smartPhones.Id),
-            CreateActiveCategory("Vivo Mobiles", "Vivo smartphones", smartPhones.Id),
+        // Desktops - Level 3 (Brands)
+        await GetOrCreateCategoryAsync("HP Desktops", "HP desktop computers and all-in-ones", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Dell Desktops", "Dell desktop computers and workstations", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Lenovo Desktops", "Lenovo desktop computers", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Asus Desktops", "Asus desktop computers", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Acer Desktops", "Acer desktop computers", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Apple iMac", "iMac and Mac Mini", desktops.Id, created);
+        await GetOrCreateCategoryAsync("Custom Built PCs", "Custom built desktop computers", desktops.Id, created);
 
-            // Laptops - Level 3 (Brands)
-            CreateActiveCategory("HP", "HP laptops and notebooks", laptops.Id),
-            CreateActiveCategory("Dell", "Dell laptops and notebooks", laptops.Id),
-            CreateActiveCategory("Lenovo", "Lenovo laptops and ThinkPad", laptops.Id),
-            CreateActiveCategory("Asus", "Asus laptops and gaming laptops", laptops.Id),
-            CreateActiveCategory("Acer", "Acer laptops and notebooks", laptops.Id),
-            CreateActiveCategory("Apple MacBook", "MacBook Air and MacBook Pro", laptops.Id),
-            CreateActiveCategory("MSI", "MSI gaming laptops", laptops.Id)
-,
-            // Computer & Laptop Accessories - Level 3
-            CreateActiveCategory("Laptop Bags & Sleeves", "Backpacks, sleeves and protective bags for laptops", computerLaptopAccessories.Id),
-            CreateActiveCategory("Laptop Chargers", "Chargers and power adapters for laptops", computerLaptopAccessories.Id),
-            CreateActiveCategory("Cooling Pads", "Laptop cooling pads and external fans", computerLaptopAccessories.Id),
-            CreateActiveCategory("Docking Stations & Hubs", "Docks, USB-C hubs and docking stations", computerLaptopAccessories.Id),
-            CreateActiveCategory("Keyboards & Mice", "External keyboards, mice and combos", computerLaptopAccessories.Id),
-            CreateActiveCategory("Laptop Stands & Risers", "Adjustable laptop stands and risers", computerLaptopAccessories.Id),
-            CreateActiveCategory("Internal SSDs & HDDs", "Internal storage: SSDs and HDDs", computerLaptopAccessories.Id),
-            CreateActiveCategory("External Storage", "External HDDs, SSDs and enclosures", computerLaptopAccessories.Id),
+        // Gaming Consoles - Level 3
+        await GetOrCreateCategoryAsync("PlayStation", "Sony PlayStation consoles and games", gamingConsoles.Id, created);
+        await GetOrCreateCategoryAsync("Xbox", "Microsoft Xbox consoles and games", gamingConsoles.Id, created);
+        await GetOrCreateCategoryAsync("Nintendo Switch", "Nintendo Switch consoles and games", gamingConsoles.Id, created);
+        await GetOrCreateCategoryAsync("Gaming Accessories", "Controllers, headsets, and gaming peripherals", gamingConsoles.Id, created);
 
-            // Mobile Phone Accessories - Level 3
-            CreateActiveCategory("Phone Cases", "Protective phone cases and covers", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Screen Protectors", "Tempered glass and film protectors", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Phone Chargers & Cables", "Wall chargers, car chargers and charging cables", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Earphones & Headphones", "Wired and wireless earphones and headphones", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Power Banks", "Portable chargers and power banks", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Car Mounts & Holders", "Phone holders, magnetic mounts and tripods", mobilePhoneAccessories.Id),
-            CreateActiveCategory("Selfie Sticks & Mini Tripods", "Selfie sticks and small tripods for phones", mobilePhoneAccessories.Id),
+        // Cameras & Drones - Level 3
+        await GetOrCreateCategoryAsync("DSLR Cameras", "Canon, Nikon DSLR cameras", camerasDrones.Id, created);
+        await GetOrCreateCategoryAsync("Mirrorless Cameras", "Sony, Fujifilm mirrorless cameras", camerasDrones.Id, created);
+        await GetOrCreateCategoryAsync("Action Cameras", "GoPro and action cameras", camerasDrones.Id, created);
+        await GetOrCreateCategoryAsync("Instant Cameras", "Polaroid and instant cameras", camerasDrones.Id, created);
+        await GetOrCreateCategoryAsync("Drones", "DJI and other drones", camerasDrones.Id, created);
+        await GetOrCreateCategoryAsync("Camcorders", "Video cameras and camcorders", camerasDrones.Id, created);
 
-            // Camera Accessories - Level 3
-            CreateActiveCategory("Camera Bags & Cases", "Camera bags, shoulder bags and protective cases", cameraAccessories.Id),
-            CreateActiveCategory("Tripods & Monopods", "Tripods, monopods and flexible tripods", cameraAccessories.Id),
-            CreateActiveCategory("Camera Batteries & Chargers", "Spare batteries and chargers", cameraAccessories.Id),
-            CreateActiveCategory("Camera Lenses & Mounts", "Prime and zoom lenses, lens mounts and adapters", cameraAccessories.Id),
-            CreateActiveCategory("Memory Cards (Camera)", "SD cards, microSD and CF for cameras", cameraAccessories.Id),
-            CreateActiveCategory("Flashes & Lighting", "External flashes, studio lighting and LED panels", cameraAccessories.Id),
-            CreateActiveCategory("Filters & Lens Accessories", "Filters, hoods and lens caps", cameraAccessories.Id),
-            CreateActiveCategory("Gimbals & Stabilizers", "Gimbals and stabilizers for video shooting", cameraAccessories.Id)
-        };
+        // Smart Watches - Level 3
+        await GetOrCreateCategoryAsync("Apple Watch", "Apple Watch and bands", smartWatches.Id, created);
+        await GetOrCreateCategoryAsync("Samsung Galaxy Watch", "Samsung smartwatches", smartWatches.Id, created);
+        await GetOrCreateCategoryAsync("Fitbit", "Fitbit fitness trackers", smartWatches.Id, created);
+        await GetOrCreateCategoryAsync("Garmin", "Garmin smartwatches and fitness trackers", smartWatches.Id, created);
+        await GetOrCreateCategoryAsync("Amazfit", "Amazfit smartwatches", smartWatches.Id, created);
+        await GetOrCreateCategoryAsync("Huawei Watch", "Huawei smartwatches", smartWatches.Id, created);
 
-        // Save Level 3 brand categories
-        await _context.Categories.AddRangeAsync(brandCategories, CancellationToken.None);
-        await _context.SaveChangesAsync(CancellationToken.None);
+        // Monitors - Level 3
+        await GetOrCreateCategoryAsync("Gaming Monitors", "High refresh rate gaming monitors", monitors.Id, created);
+        await GetOrCreateCategoryAsync("4K Monitors", "4K UHD monitors", monitors.Id, created);
+        await GetOrCreateCategoryAsync("Ultrawide Monitors", "Ultrawide curved monitors", monitors.Id, created);
+        await GetOrCreateCategoryAsync("Portable Monitors", "USB-C portable monitors", monitors.Id, created);
+
+        // Security Cameras - Level 3
+        await GetOrCreateCategoryAsync("IP Cameras", "Network IP security cameras", securityCameras.Id, created);
+        await GetOrCreateCategoryAsync("CCTV Systems", "Complete CCTV camera systems", securityCameras.Id, created);
+        await GetOrCreateCategoryAsync("Smart Doorbells", "Video doorbell cameras", securityCameras.Id, created);
+        await GetOrCreateCategoryAsync("Baby Monitors", "Baby monitor cameras", securityCameras.Id, created);
+
+        // Feature Phones - Level 3
+        await GetOrCreateCategoryAsync("Nokia Feature Phones", "Nokia basic phones", featurePhones.Id, created);
+        await GetOrCreateCategoryAsync("Samsung Feature Phones", "Samsung basic phones", featurePhones.Id, created);
+        await GetOrCreateCategoryAsync("Other Feature Phones", "Other basic phone brands", featurePhones.Id, created);
+
+        // Computer & Laptop Accessories - Level 3
+        await GetOrCreateCategoryAsync("Laptop Bags & Sleeves", "Backpacks, sleeves and protective bags for laptops", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Laptop Chargers", "Chargers and power adapters for laptops", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Cooling Pads", "Laptop cooling pads and external fans", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Docking Stations & Hubs", "Docks, USB-C hubs and docking stations", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Keyboards & Mice", "External keyboards, mice and combos", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Laptop Stands & Risers", "Adjustable laptop stands and risers", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Internal SSDs & HDDs", "Internal storage: SSDs and HDDs", computerLaptopAccessories.Id, created);
+        await GetOrCreateCategoryAsync("External Storage", "External HDDs, SSDs and enclosures", computerLaptopAccessories.Id, created);
+
+        // Mobile Phone Accessories - Level 3
+        await GetOrCreateCategoryAsync("Phone Cases", "Protective phone cases and covers", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Screen Protectors", "Tempered glass and film protectors", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Phone Chargers & Cables", "Wall chargers, car chargers and charging cables", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Earphones & Headphones", "Wired and wireless earphones and headphones", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Power Banks", "Portable chargers and power banks", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Memory Cards", "SD cards, microSD and USB storage for phones", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Car Mounts & Holders", "Phone holders, magnetic mounts and tripods", mobilePhoneAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Selfie Sticks & Mini Tripods", "Selfie sticks and small tripods for phones", mobilePhoneAccessories.Id, created);
+
+        // Camera Accessories - Level 3
+        await GetOrCreateCategoryAsync("Camera Bags & Cases", "Camera bags, shoulder bags and protective cases", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Tripods & Monopods", "Tripods, monopods and flexible tripods", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Camera Batteries & Chargers", "Spare batteries and chargers", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Camera Lenses & Mounts", "Prime and zoom lenses, lens mounts and adapters", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Memory Cards (Camera)", "SD cards, microSD and CF for cameras", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Flashes & Lighting", "External flashes, studio lighting and LED panels", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Filters & Lens Accessories", "Filters, hoods and lens caps", cameraAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Gimbals & Stabilizers", "Gimbals and stabilizers for video shooting", cameraAccessories.Id, created);
+
+        // Car Accessories - Level 3
+        await GetOrCreateCategoryAsync("Seat Covers & Cushions", "Seat covers, cushions and seat organizers", carAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Car Covers & Tarps", "Outdoor and indoor car covers", carAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Interior Accessories", "Dashboard accessories, steering wheel covers, floor mats", carAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Organizers & Storage", "Trunk organizers, backseat organizers, cup holders", carAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Sun Shades & Visors", "Windshield sun shades and window visors", carAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Air Fresheners", "Car air fresheners and deodorizers", carAccessories.Id, created);
+
+        // Car Parts - Level 3
+        await GetOrCreateCategoryAsync("Batteries & Accessories", "Car batteries, jump starters, battery chargers", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Filters", "Air filters, oil filters, fuel filters, cabin filters", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Spark Plugs & Ignition", "Spark plugs, ignition coils, wires", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Brake Parts", "Brake pads, rotors, brake fluid, calipers", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Engine Parts", "Belts, hoses, gaskets, engine components", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Lighting", "Headlights, tail lights, LED lights, bulbs", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Wiper Blades", "Windshield wiper blades and refills", carParts.Id, created);
+        await GetOrCreateCategoryAsync("Suspension Parts", "Shocks, struts, springs, bushings", carParts.Id, created);
+
+        // Motorbike Accessories - Level 3
+        await GetOrCreateCategoryAsync("Helmets", "Full-face, half-face, modular helmets", motorbikeAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Riding Gear", "Jackets, pants, gloves, boots, riding suits", motorbikeAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Protective Gear", "Knee pads, elbow pads, chest protectors, back protectors", motorbikeAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Bike Covers", "Motorcycle covers and bike protection", motorbikeAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Luggage & Bags", "Saddlebags, tank bags, tail bags, backpacks", motorbikeAccessories.Id, created);
+        await GetOrCreateCategoryAsync("Mirrors & Accessories", "Side mirrors, handlebar accessories, grips", motorbikeAccessories.Id, created);
+
+        // Motorbike Parts - Level 3
+        await GetOrCreateCategoryAsync("Bike Batteries", "Motorcycle batteries and charging systems", motorbikeParts.Id, created);
+        await GetOrCreateCategoryAsync("Bike Filters & Oil", "Air filters, oil filters, engine oil", motorbikeParts.Id, created);
+        await GetOrCreateCategoryAsync("Brake Parts (Bike)", "Brake pads, discs, brake fluid for bikes", motorbikeParts.Id, created);
+        await GetOrCreateCategoryAsync("Chain & Sprockets", "Drive chains, sprockets, chain lubricants", motorbikeParts.Id, created);
+        await GetOrCreateCategoryAsync("Exhaust Systems", "Exhaust pipes, mufflers, silencers", motorbikeParts.Id, created);
+        await GetOrCreateCategoryAsync("Bike Lighting", "Headlights, indicators, LED lights for bikes", motorbikeParts.Id, created);
+
+        // Car Electronics - Level 3
+        await GetOrCreateCategoryAsync("GPS & Navigation", "GPS devices, car navigation systems", carElectronics.Id, created);
+        await GetOrCreateCategoryAsync("Dash Cams", "Dashboard cameras and recording systems", carElectronics.Id, created);
+        await GetOrCreateCategoryAsync("Car Audio Systems", "Car stereos, speakers, amplifiers, subwoofers", carElectronics.Id, created);
+        await GetOrCreateCategoryAsync("Bluetooth & Adapters", "Bluetooth adapters, FM transmitters, aux cables", carElectronics.Id, created);
+        await GetOrCreateCategoryAsync("Parking Sensors & Cameras", "Reverse cameras, parking sensors, 360 cameras", carElectronics.Id, created);
+        await GetOrCreateCategoryAsync("Car Alarms & Security", "Alarm systems, GPS trackers, immobilizers", carElectronics.Id, created);
+
+        // Car Care & Maintenance - Level 3
+        await GetOrCreateCategoryAsync("Car Wash & Cleaning", "Car shampoo, wax, detailing products", carCare.Id, created);
+        await GetOrCreateCategoryAsync("Polishing & Wax", "Car polish, wax, scratch removers", carCare.Id, created);
+        await GetOrCreateCategoryAsync("Interior Cleaners", "Dashboard cleaners, leather cleaners, fabric cleaners", carCare.Id, created);
+        await GetOrCreateCategoryAsync("Tools & Equipment", "Jacks, wrenches, tool kits, air compressors", carCare.Id, created);
+        await GetOrCreateCategoryAsync("Microfiber Cloths", "Cleaning cloths, drying towels, applicators", carCare.Id, created);
+
+        // Tires & Wheels - Level 3
+        await GetOrCreateCategoryAsync("Car Tires", "All-season, summer, winter car tires", tiresWheels.Id, created);
+        await GetOrCreateCategoryAsync("Motorbike Tires", "Sport, touring, off-road bike tires", tiresWheels.Id, created);
+        await GetOrCreateCategoryAsync("Alloy Wheels & Rims", "Alloy wheels, steel rims, wheel covers", tiresWheels.Id, created);
+        await GetOrCreateCategoryAsync("Tire Accessories", "Tire pressure gauges, inflators, valve caps", tiresWheels.Id, created);
+
+        // Oils & Fluids - Level 3
+        await GetOrCreateCategoryAsync("Engine Oil", "Synthetic, semi-synthetic, mineral engine oil", oilsFluids.Id, created);
+        await GetOrCreateCategoryAsync("Brake Fluid", "DOT 3, DOT 4, DOT 5.1 brake fluids", oilsFluids.Id, created);
+        await GetOrCreateCategoryAsync("Coolants & Antifreeze", "Engine coolants and antifreeze", oilsFluids.Id, created);
+        await GetOrCreateCategoryAsync("Transmission Fluid", "Automatic and manual transmission fluids", oilsFluids.Id, created);
+        await GetOrCreateCategoryAsync("Lubricants & Greases", "General lubricants, chassis grease, penetrating oil", oilsFluids.Id, created);
 
         // Log summary so it's easy to confirm seeding in container logs
         try
         {
-            var total = categories.Count + subcategories.Count + brandCategories.Count;
-            _logger.LogInformation("Category seeding complete. Inserted {Total} categories (levels 1-3). Top-level categories: {Tops}", total, string.Join(", ", categories.Select(c => c.Name)));
+            var total = created.Count;
+            _logger.LogInformation("Category seeding complete. Inserted {Total} categories (levels 1-3) (idempotent). Top-level categories: {Tops}", total, string.Join(", ", new[] { electronicDevices.Name, electronicAccessories.Name, homeAppliances.Name, healthBeauty.Name, motherBaby.Name, groceriesPets.Name, homeLifestyle.Name, womensFashion.Name, mensFashion.Name, watchesBagsJewellery.Name, sportsOutdoor.Name, automotiveMotorbike.Name }));
         }
         catch
         {
@@ -311,6 +312,38 @@ public class CategorySeedService
     {
         var category = new Category(name, description, null, parentId);
         category.Activate();
+        return category;
+    }
+
+    private async Task<Category> GetOrCreateCategoryAsync(string name, string description, Guid? parentId, List<Category> created)
+    {
+        // Try to find existing category by name and parent
+        var existing = await _context.Categories.FirstOrDefaultAsync(c => c.Name == name && c.ParentCategoryId == parentId);
+        if (existing != null)
+        {
+            try
+            {
+                // If it exists but is not active, activate it
+                var prop = existing.GetType().GetProperty("IsActive");
+                if (prop != null && prop.PropertyType == typeof(bool) && !(bool)prop.GetValue(existing)!)
+                {
+                    existing.Activate();
+                    _context.Categories.Update(existing);
+                    await _context.SaveChangesAsync(CancellationToken.None);
+                }
+            }
+            catch
+            {
+                // ignore activation failures
+            }
+            return existing;
+        }
+
+        var category = new Category(name, description, null, parentId);
+        category.Activate();
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync(CancellationToken.None);
+        created.Add(category);
         return category;
     }
 }

@@ -60,7 +60,11 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResp
 
         if (request.CategoryId.HasValue)
         {
-            query = query.Where(p => p.CategoryId == request.CategoryId.Value);
+            // Get all descendant category IDs (including the selected category itself)
+            var categoryIds = await GetAllDescendantCategoryIdsAsync(request.CategoryId.Value, cancellationToken);
+            
+            // Filter products that belong to the selected category or any of its descendants
+            query = query.Where(p => categoryIds.Contains(p.CategoryId));
         }
 
         if (request.SellerId.HasValue)
@@ -190,5 +194,44 @@ public class GetProductsQueryHandler : IRequestHandler<GetProductsQuery, ApiResp
         var pagedResult = new PagedList<ProductDto>(products, totalCount, request.Page, request.PageSize);
 
         return ApiResponse<PagedList<ProductDto>>.SuccessResponse(pagedResult);
+    }
+
+    /// <summary>
+    /// Recursively gets all descendant category IDs for a given category.
+    /// This enables hierarchical filtering where selecting a parent category shows products from all child categories.
+    /// </summary>
+    private async Task<List<Guid>> GetAllDescendantCategoryIdsAsync(Guid categoryId, CancellationToken cancellationToken)
+    {
+        var categoryIds = new List<Guid> { categoryId }; // Include the parent category itself
+        
+        // Get all categories to avoid multiple DB queries
+        var allCategories = await _context.Categories
+            .AsNoTracking()
+            .Select(c => new { c.Id, c.ParentCategoryId })
+            .ToListAsync(cancellationToken);
+        
+        // Recursively find all descendants
+        var toProcess = new Queue<Guid>();
+        toProcess.Enqueue(categoryId);
+        
+        while (toProcess.Count > 0)
+        {
+            var currentId = toProcess.Dequeue();
+            var children = allCategories
+                .Where(c => c.ParentCategoryId == currentId)
+                .Select(c => c.Id)
+                .ToList();
+            
+            foreach (var childId in children)
+            {
+                if (!categoryIds.Contains(childId))
+                {
+                    categoryIds.Add(childId);
+                    toProcess.Enqueue(childId);
+                }
+            }
+        }
+        
+        return categoryIds;
     }
 }

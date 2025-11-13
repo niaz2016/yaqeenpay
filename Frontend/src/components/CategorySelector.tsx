@@ -176,29 +176,16 @@ const CategorySelector: React.FC<Props> = ({ categories, value, onChange, disabl
                 <ListItemButton
                   key={c.id}
                   onClick={() => {
-                    // if clicking the already-selected level1, toggle between stage 1 and 2 to avoid blank state
-                    if (level1 === c.id) {
-                      if (stage === 1) {
-                        if (c.subCategories && c.subCategories.length > 0) setStage(2);
-                      } else {
-                        setStage(1);
-                      }
-                      return;
-                    }
-
+                    // Category name clicked: select this category immediately
                     setLevel1(c.id);
                     setLevel2('');
                     setLevel3('');
-                    // if no children, treat as leaf and close
-                    if (!c.subCategories || c.subCategories.length === 0) {
-                      handleSelectLeaf(c.id);
-                    } else {
-                      // slide to level2
-                      setStage(2);
-                    }
+                    handleSelectLeaf(c.id);
                   }}
                   selected={level1 === c.id}
                   sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     '&:hover': {
                       backgroundColor: 'action.hover',
                     },
@@ -212,9 +199,36 @@ const CategorySelector: React.FC<Props> = ({ categories, value, onChange, disabl
                 >
                   <ListItemText 
                     primary={<Typography variant="body2" fontWeight={level1 === c.id ? 600 : 400}>{c.name}</Typography>}
+                    sx={{ cursor: 'pointer' }}
                   />
                   {c.subCategories && c.subCategories.length > 0 && (
-                    <ChevronRightIcon fontSize="small" sx={{ ml: 'auto', color: 'text.secondary' }} />
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Arrow clicked: toggle expansion only, don't close dropdown
+                        if (level1 === c.id) {
+                          if (stage === 1) {
+                            setStage(2);
+                          } else {
+                            setStage(1);
+                          }
+                        } else {
+                          setLevel1(c.id);
+                          setLevel2('');
+                          setLevel3('');
+                          setStage(2);
+                        }
+                      }}
+                      sx={{
+                        ml: 0.5,
+                        '&:hover': {
+                          backgroundColor: 'action.selected',
+                        },
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    </IconButton>
                   )}
                 </ListItemButton>
               ))}
@@ -235,28 +249,15 @@ const CategorySelector: React.FC<Props> = ({ categories, value, onChange, disabl
                   <ListItemButton
                     key={c.id}
                     onClick={() => {
-                      // if clicking same level2, toggle between stage 2 and 3
-                      if (level2 === c.id) {
-                        if (stage === 2) {
-                          if (c.subCategories && c.subCategories.length > 0) setStage(3);
-                        } else {
-                          setStage(2);
-                        }
-                        return;
-                      }
-
+                      // Category name clicked: select this category immediately
                       setLevel2(c.id);
                       setLevel3('');
-                      // if no deeper children, treat as leaf
-                      if (!c.subCategories || c.subCategories.length === 0) {
-                        handleSelectLeaf(c.id);
-                      } else {
-                        // slide to level3
-                        setStage(3);
-                      }
+                      handleSelectLeaf(c.id);
                     }}
                     selected={level2 === c.id}
                     sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
                       '&:hover': {
                         backgroundColor: 'action.hover',
                       },
@@ -268,9 +269,37 @@ const CategorySelector: React.FC<Props> = ({ categories, value, onChange, disabl
                       },
                     }}
                   >
-                    <ListItemText primary={<Typography variant="body2" fontWeight={level2 === c.id ? 600 : 400}>{c.name}</Typography>} />
+                    <ListItemText 
+                      primary={<Typography variant="body2" fontWeight={level2 === c.id ? 600 : 400}>{c.name}</Typography>}
+                      sx={{ cursor: 'pointer' }}
+                    />
                     {c.subCategories && c.subCategories.length > 0 && (
-                      <ChevronRightIcon fontSize="small" sx={{ ml: 'auto', color: 'text.secondary' }} />
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Arrow clicked: toggle expansion only, don't close dropdown
+                          if (level2 === c.id) {
+                            if (stage === 2) {
+                              setStage(3);
+                            } else {
+                              setStage(2);
+                            }
+                          } else {
+                            setLevel2(c.id);
+                            setLevel3('');
+                            setStage(3);
+                          }
+                        }}
+                        sx={{
+                          ml: 0.5,
+                          '&:hover': {
+                            backgroundColor: 'action.selected',
+                          },
+                        }}
+                      >
+                        <ChevronRightIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </IconButton>
                     )}
                   </ListItemButton>
                 ))

@@ -18,14 +18,22 @@ COPY . .
 # Allow overriding the base path when building the production bundle (default /escrow-market/)
 # Frontend needs full path since browser resolves absolute paths from domain root
 ARG VITE_BASE_PATH=/escrow-market/
-ENV VITE_BASE_PATH=${VITE_BASE_PATH}
-
-# Allow overriding the API URL at build time (default /api for nginx proxy)
 ARG VITE_API_URL=/api
+
+# Set as ENV so Vite can access them during build
+ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 ENV VITE_API_URL=${VITE_API_URL}
+
+# Debug: Print the values to ensure they're set
+RUN echo "Building with VITE_BASE_PATH=${VITE_BASE_PATH} and VITE_API_URL=${VITE_API_URL}"
 
 # Build the application
 RUN npm run build
+
+# Debug: Verify the built files
+RUN echo "Checking built files for API URL..." && \
+    grep -r "localhost:7137" dist/ || echo "No localhost:7137 found (GOOD!)" && \
+    grep -r "VITE_API_URL" dist/ | head -5 || true
 
 # Production stage
 FROM nginx:alpine AS production

@@ -8,10 +8,13 @@ All deployment files are ready and pushed to GitHub. Since you're using browser 
 
 1. **Open browser SSH to your instance** (via GCP Console)
 
-2. **Run this single command:**
+2. **Run these commands:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/niaz2016/yaqeenpay/main/deploy/deploy-to-cloud.sh | bash
+# Clone and deploy
+cd /opt && sudo rm -rf techtorio && sudo git clone https://github.com/niaz2016/yaqeenpay.git techtorio && sudo chown -R $(whoami):$(whoami) techtorio && cd techtorio && bash deploy/deploy-to-cloud.sh
 ```
+
+**Alternative if repo is private, use manual steps below (Option 2)**
 
 That's it! The script will:
 - ✓ Verify Docker

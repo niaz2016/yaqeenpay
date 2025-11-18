@@ -42,13 +42,16 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
+    private readonly TechTorio.Application.Interfaces.IOrderNotificationService _orderNotificationService;
 
     public CreateOrderCommandHandler(
         IApplicationDbContext context,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        TechTorio.Application.Interfaces.IOrderNotificationService orderNotificationService)
     {
         _context = context;
         _currentUserService = currentUserService;
+        _orderNotificationService = orderNotificationService;
     }
 
     public async Task<ApiResponse<Guid>> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -56,6 +59,18 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
         if (_currentUserService.UserId == Guid.Empty)
         {
             return ApiResponse<Guid>.FailureResponse("User not authenticated");
+        }
+
+        // Check if buyer's phone number is verified
+        var buyer = await _context.Users.FindAsync(new object[] { _currentUserService.UserId }, cancellationToken);
+        if (buyer == null)
+        {
+            return ApiResponse<Guid>.FailureResponse("Buyer not found");
+        }
+        
+        if (!buyer.IsPhoneVerified)
+        {
+            return ApiResponse<Guid>.FailureResponse("Phone number must be verified before placing an order");
         }
 
         // Check if seller exists
@@ -88,10 +103,28 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Api
             request.ImageUrls);
 
         _context.Orders.Add(order);
-        
+
         // Link the order to the escrow
         escrow.SetOrderId(order.Id);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Check buyer wallet and set payment pending if insufficient
+        try
+        {
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == _currentUserService.UserId, cancellationToken);
+            if (wallet == null || !wallet.HasSufficientFunds(order.Amount))
+            {
+                order.MarkPaymentPending();
+                await _context.SaveChangesAsync(cancellationToken);
+
+                // Notify buyer and seller about pending payment
+                await _orderNotificationService.NotifyPaymentPending(order);
+            }
+        }
+        catch
+        {
+            // Do not fail order creation on notification or wallet-check errors
+        }
 
         return ApiResponse<Guid>.SuccessResponse(order.Id, "Order created successfully");
     }

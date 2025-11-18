@@ -44,6 +44,8 @@ public class MarkOrderAsShippedCommandHandler : IRequestHandler<MarkOrderAsShipp
         var order = await _context.Orders.FindAsync(new object[] { request.OrderId }, cancellationToken) 
             ?? throw new KeyNotFoundException($"Order with ID {request.OrderId} not found");
         
+        Console.WriteLine($"[MarkAsShipped] OrderId: {order.Id}, Current Status: {order.Status}, SellerId: {order.SellerId}, RequestUserId: {userId}");
+        
         // Only the seller can mark order as shipped
         if (order.SellerId != userId)
             throw new UnauthorizedAccessException("Only the seller can mark order as shipped");
@@ -56,8 +58,10 @@ public class MarkOrderAsShippedCommandHandler : IRequestHandler<MarkOrderAsShipp
         
         // Mark order as shipped
         order.MarkAsShipped();
+        Console.WriteLine($"[MarkAsShipped] After MarkAsShipped - New Status: {order.Status}");
         
         await _context.SaveChangesAsync(cancellationToken);
+        Console.WriteLine($"[MarkAsShipped] After SaveChanges - Status: {order.Status}");
 
         // Send notifications to both buyer and seller
         try

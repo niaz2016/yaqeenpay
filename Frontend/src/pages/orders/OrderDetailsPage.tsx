@@ -163,7 +163,13 @@ const OrderDetailsPage: React.FC = () => {
         if (mountedRef.current && updated) setOrder(updated);
         if (mountedRef.current) setSnack({ open: true, message: res.message || 'Payment successful', severity: 'success' });
       } else if (action === 'ship') {
-        updated = await ordersService.markAsShipped(targetOrder.id!, {});
+        await ordersService.markAsShipped(targetOrder.id!, {});
+        try {
+          updated = await ordersService.getById(targetOrder.id);
+        } catch (inner) {
+          logger.warn('[OrderDetails] Failed fetching updated order after ship, using previous order snapshot', inner);
+          updated = { ...targetOrder, status: targetOrder.status }; // no-op fallback
+        }
         if (mountedRef.current && updated) setOrder(updated);
         if (mountedRef.current) setSnack({ open: true, message: 'Order marked as shipped', severity: 'success' });
       } else if (action === 'confirmDelivery') {

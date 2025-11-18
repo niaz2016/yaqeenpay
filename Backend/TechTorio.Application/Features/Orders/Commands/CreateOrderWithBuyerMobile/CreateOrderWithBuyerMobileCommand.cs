@@ -90,6 +90,12 @@ public class CreateOrderWithBuyerMobileCommandHandler : IRequestHandler<CreateOr
         {
             return ApiResponse<Guid>.FailureResponse($"No buyer found with mobile number {request.BuyerMobileNumber}");
         }
+        
+        // Check if buyer's phone number is verified
+        if (!buyer.IsPhoneVerified)
+        {
+            return ApiResponse<Guid>.FailureResponse("Buyer's phone number must be verified before placing an order");
+        }
 
         var sellerId = _currentUserService.UserId;
         var buyerId = buyer.Id;

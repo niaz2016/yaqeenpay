@@ -118,8 +118,11 @@ namespace TechTorio.Domain.Entities
 
         public void MarkAsShipped()
         {
-            if (Status != OrderStatus.AwaitingShipment)
-                throw new InvalidOperationException($"Cannot mark order as shipped in status {Status}");
+            // Allow marking as shipped from multiple valid statuses
+            if (Status != OrderStatus.AwaitingShipment && 
+                Status != OrderStatus.PaymentConfirmed && 
+                Status != OrderStatus.Confirmed)
+                throw new InvalidOperationException($"Cannot mark order as shipped in status {Status}. Order must be in AwaitingShipment, PaymentConfirmed, or Confirmed status.");
             
             Status = OrderStatus.Shipped;
             ShippedDate = DateTime.UtcNow;

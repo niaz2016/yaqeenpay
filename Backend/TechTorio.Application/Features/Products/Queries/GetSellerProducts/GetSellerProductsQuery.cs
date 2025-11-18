@@ -120,7 +120,8 @@ public class GetSellerProductsQueryHandler : IRequestHandler<GetSellerProductsQu
         var query = _context.Products
             .Include(p => p.Category)
             .Include(p => p.ProductImages.OrderBy(img => img.SortOrder))
-            .Where(p => p.SellerId == sellerId && p.IsActive);
+            // Show all seller products in dashboard, even if inactive, so seller can manage them
+            .Where(p => p.SellerId == sellerId);
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(request.Search))

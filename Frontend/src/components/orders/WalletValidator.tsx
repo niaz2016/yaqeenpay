@@ -15,7 +15,7 @@ import {
 import { AccountBalanceWallet, Warning, CheckCircle, Add } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import walletService from '../../services/walletService';
-import type { WalletSummary } from '../../types/wallet';
+import type { WalletSummary } from '../../types/wallet';``
 
 interface Props {
   orderAmount: number;

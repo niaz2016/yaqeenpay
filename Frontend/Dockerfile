@@ -20,6 +20,10 @@ COPY . .
 ARG VITE_BASE_PATH=/escrow-market/
 ENV VITE_BASE_PATH=${VITE_BASE_PATH}
 
+# Allow overriding the API URL at build time (default /api for nginx proxy)
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Build the application
 RUN npm run build
 

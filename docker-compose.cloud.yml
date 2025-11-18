@@ -46,6 +46,9 @@ services:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+        VITE_BASE_PATH: /escrow-market/
     container_name: techtorio-frontend
     depends_on:
       - backend

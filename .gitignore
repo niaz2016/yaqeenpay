@@ -44,6 +44,72 @@ CodeCoverage/
 # MSBuild Binary and Structured Log
 *.binlog
 
+# ============================================
+# SECURITY: Sensitive Files - Never Commit!
+# ============================================
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.cloud
+*.env
+
+# Configuration files with credentials
+appsettings.Production.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# Temporary sensitive files
+temp/
+Temp/
+*.tmp
+
+# SSH keys and certificates
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+gkey
+gkey.pub
+id_rsa
+id_rsa.pub
+*.ppk
+
+# Database files and backups
+*.db
+*.sqlite
+*.sql.gz
+*.sql.bak
+*.backup
+
+# API keys and secrets files
+secrets.json
+secrets.*.json
+api-keys.json
+credentials.json
+*.credentials
+
+# JWT keys
+jwt-keys.txt
+private.key
+public.key
+
+# Docker secrets
+docker-compose.override.yml
+
+# Logs that might contain sensitive data
+*.log
+logs/
+
+# IDE and editor files that might cache secrets
+.vscode/settings.json
+.idea/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
